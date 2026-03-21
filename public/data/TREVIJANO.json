@@ -1,0 +1,72 @@
+[
+  {
+    "Code": "TJ-0022",
+    "Description": "MASHROOMS",
+    "Brand": "TREVIJANO",
+    "Price": 3.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8410770910263-300x300.jpg"
+  },
+  {
+    "Code": "TJ-0091",
+    "Description": "MEDITERRANEAN",
+    "Brand": "TREVIJANO",
+    "Price": 3.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8410770910256-300x300.jpg"
+  },
+  {
+    "Code": "TJ-0164",
+    "Description": "TUSCAN",
+    "Brand": "TREVIJANO",
+    "Price": 3.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8410770910294-300x300.jpg"
+  },
+  {
+    "Code": "TJ-9014",
+    "Description": "WITH 6 VEGGIES",
+    "Brand": "TREVIJANO",
+    "Price": 3.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8410770910348-300x300.jpg"
+  },
+  {
+    "Code": "TJ-0021",
+    "Description": "MEDITERRANEAN",
+    "Brand": "TREVIJANO",
+    "Price": 3.65,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8410770910324-300x300.jpg"
+  },
+  {
+    "Code": "TJ-0014",
+    "Description": "MOROCCAN",
+    "Brand": "TREVIJANO",
+    "Price": 3.65,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8410770910317-300x300.jpg"
+  },
+  {
+    "Code": "TJ-0011",
+    "Description": "QUINOA",
+    "Brand": "TREVIJANO",
+    "Price": 3.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8410770910232-300x300.jpg"
+  },
+  {
+    "Code": "TJ-1963",
+    "Description": "BOLOGNESE STYLE PASTA",
+    "Brand": "TREVIJANO",
+    "Price": 3.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2025/03/8410770911963-300x300.jpg"
+  },
+  {
+    "Code": "TJ-1956",
+    "Description": "PASTA WITH MASHROOMS",
+    "Brand": "TREVIJANO",
+    "Price": 3.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2025/03/8410770911956-300x300.jpg"
+  },
+  {
+    "Code": "TJ-1987",
+    "Description": "THAI STYLE COUS COUS",
+    "Brand": "TREVIJANO",
+    "Price": 3.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2025/03/8410770911987-300x300.jpg"
+  }
+]

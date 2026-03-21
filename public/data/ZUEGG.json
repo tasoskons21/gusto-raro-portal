@@ -1,0 +1,198 @@
+[
+  {
+    "Code": "ZU-2154",
+    "Description": "MANGO",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-3256",
+    "Description": "PEACH",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-3294",
+    "Description": "ACE",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-4611",
+    "Description": "LEMON GINGER",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-4895",
+    "Description": "STRAWBERRY",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-4920",
+    "Description": "TOMATO NO ADDED SUGAR",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-3442",
+    "Description": "ΡΟΔΙ",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-3435",
+    "Description": "ΜΗΛΟ",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-2432",
+    "Description": "ΒΕΡΙΚΟΚΟ",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-4210",
+    "Description": "ΣΑΝΓΚΟΥΙΝΙ",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-2456",
+    "Description": "ΑΧΛΑΔΙ",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-9463",
+    "Description": "ΠΟΡΤΟΚΑΛΙ",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-9456",
+    "Description": "ANANAS",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-3411",
+    "Description": "ΦΡΟΥΤΑ ΤΟΥ ΔΑΣΟΥΣ",
+    "Brand": "ZUEGG",
+    "Price": 1.25,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-0611",
+    "Description": "NO ADDED SUGAR FOREST FRUITS",
+    "Brand": "ZUEGG",
+    "Price": 1.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-0598",
+    "Description": "NO ADDED SUGAR ANANAS",
+    "Brand": "ZUEGG",
+    "Price": 1.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-0574",
+    "Description": "NO ADDED SUGAR ACE",
+    "Brand": "ZUEGG",
+    "Price": 1.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-0512",
+    "Description": "NO ADDED SUGAR PEAR & APPLE",
+    "Brand": "ZUEGG",
+    "Price": 2.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-3528",
+    "Description": "NO ADDED SUGAR APPLE & BLUEBERRIES",
+    "Brand": "ZUEGG",
+    "Price": 2.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-3443",
+    "Description": "NO ADDED SUGAR APPLE,GRAPES & FORREST FRUITS",
+    "Brand": "ZUEGG",
+    "Price": 2.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-0383",
+    "Description": "KIWI & APPLE INTENCO",
+    "Brand": "ZUEGG",
+    "Price": 2.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-3429",
+    "Description": "NO ADDED SUGAR ANANAS",
+    "Brand": "ZUEGG",
+    "Price": 2.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-0253",
+    "Description": "ACE INTENSO",
+    "Brand": "ZUEGG",
+    "Price": 2.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-9369",
+    "Description": "SKIPPER- NO ADDED SUGAR -RED FRUITS",
+    "Brand": "ZUEGG",
+    "Price": 2.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-9383",
+    "Description": "SKIPPER- NO ADDED SUGAR -YELLOW FRUITS",
+    "Brand": "ZUEGG",
+    "Price": 2.3,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-9512",
+    "Description": "APPLE & ELDERFLOWER",
+    "Brand": "ZUEGG",
+    "Price": 1.35,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-9529",
+    "Description": "STRAWBERRY & IBISCUS",
+    "Brand": "ZUEGG",
+    "Price": 1.35,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "ZU-9543",
+    "Description": "MANDARINE,ORANGE,LEMON & MINT",
+    "Brand": "ZUEGG",
+    "Price": 1.35,
+    "ImageUrl": ""
+  }
+]

@@ -1,0 +1,121 @@
+[
+  {
+    "Code": "SM-3310",
+    "Description": "MIXED FRUITS",
+    "Brand": "SIMPKINS",
+    "Price": 2.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563623310-300x300.jpg"
+  },
+  {
+    "Code": "SM-0893",
+    "Description": "BUTTERSCOTCH",
+    "Brand": "SIMPKINS",
+    "Price": 2.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563210893-300x300.jpg"
+  },
+  {
+    "Code": "SM-2849",
+    "Description": "STRAWBERRY & CREAM",
+    "Brand": "SIMPKINS",
+    "Price": 2.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563002849-300x300.jpg"
+  },
+  {
+    "Code": "SM-4614",
+    "Description": "CITRUS LEMON & SOUR CHERRY",
+    "Brand": "SIMPKINS",
+    "Price": 2.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563624614-300x300.jpg"
+  },
+  {
+    "Code": "SM-1210",
+    "Description": "COFFEE",
+    "Brand": "SIMPKINS",
+    "Price": 2.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563211210-300x300.jpg"
+  },
+  {
+    "Code": "SM-3181",
+    "Description": "MANDARINE & LIME",
+    "Brand": "SIMPKINS",
+    "Price": 2.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563623181-300x300.jpg"
+  },
+  {
+    "Code": "SM-0854",
+    "Description": "BANANA",
+    "Brand": "SIMPKINS",
+    "Price": 3.3,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563600854-300x300.jpg"
+  },
+  {
+    "Code": "SM-0869",
+    "Description": "ROSE DELIGHT",
+    "Brand": "SIMPKINS",
+    "Price": 3.3,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563000869-300x300.jpg"
+  },
+  {
+    "Code": "SM-0883",
+    "Description": "SALTED CARAMEL",
+    "Brand": "SIMPKINS",
+    "Price": 3.3,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563000883-300x300.jpg"
+  },
+  {
+    "Code": "SM-0890",
+    "Description": "COCONUT",
+    "Brand": "SIMPKINS",
+    "Price": 3.3,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563000890-300x300.jpg"
+  },
+  {
+    "Code": "SM-1873",
+    "Description": "MIXED FRUITS",
+    "Brand": "SIMPKINS",
+    "Price": 3.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563001873-300x300.jpg"
+  },
+  {
+    "Code": "SM-1880",
+    "Description": "TROPICAL FRUITS",
+    "Brand": "SIMPKINS",
+    "Price": 3.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563001880-300x300.jpg"
+  },
+  {
+    "Code": "SM-1644",
+    "Description": "MULLED WINE",
+    "Brand": "SIMPKINS",
+    "Price": 3.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563001644-300x300.jpg"
+  },
+  {
+    "Code": "SM-1620",
+    "Description": "GIN & TONIC",
+    "Brand": "SIMPKINS",
+    "Price": 3.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563001620-300x300.jpg"
+  },
+  {
+    "Code": "SM-0844",
+    "Description": "APPLE & GINGER",
+    "Brand": "SIMPKINS",
+    "Price": 4.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563010844-300x300.jpg"
+  },
+  {
+    "Code": "SM-0851",
+    "Description": "STRAWBERRY & CRUSHED PEPPER",
+    "Brand": "SIMPKINS",
+    "Price": 4.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563010851-300x300.jpg"
+  },
+  {
+    "Code": "SM-0868",
+    "Description": "LAVENDER",
+    "Brand": "SIMPKINS",
+    "Price": 4.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/5011563010868-300x300.jpg"
+  }
+]

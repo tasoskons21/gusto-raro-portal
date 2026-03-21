@@ -1,0 +1,93 @@
+[
+  {
+    "Code": "VD-0072",
+    "Description": "PESTO",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726300072-300x300.jpg"
+  },
+  {
+    "Code": "VD-0775",
+    "Description": "CHEESE (AGGED GUDA)",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726300775-300x300.jpg"
+  },
+  {
+    "Code": "VD-0782",
+    "Description": "HONEY & MUSTARD",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726300782-300x300.jpg"
+  },
+  {
+    "Code": "VD-0799",
+    "Description": "TOMATO & BASIL",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726300799-300x300.jpg"
+  },
+  {
+    "Code": "VD-1109",
+    "Description": "BLACK PEPPER & SEA SALT",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726300539-300x300.jpg"
+  },
+  {
+    "Code": "VD-1116",
+    "Description": "ROSEMARY & SEA SALT",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726300546-300x300.jpg"
+  },
+  {
+    "Code": "VD-1123",
+    "Description": "SESAME & SEA SALT",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726300553-300x300.jpg"
+  },
+  {
+    "Code": "VD-1284",
+    "Description": "PECORINO TRUFFLE",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2025/02/8713726301284-300x300.png"
+  },
+  {
+    "Code": "VD-1208",
+    "Description": "PARMESAN WITH BASIL & GARLIC",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726301208-300x300.jpg"
+  },
+  {
+    "Code": "VD-1307",
+    "Description": "ARRABBIATA",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://foodelicious.nl/wp-content/uploads/2026/02/6761-Verduijns-Fine-Biscuits-Arrabbiata-Wafels-75-g.webp"
+  },
+  {
+    "Code": "VD-0945",
+    "Description": "ALMONDS",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726201232-300x300.jpg"
+  },
+  {
+    "Code": "VD-0952",
+    "Description": "CRANBERRIES & RASPBERRIES",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/8713726201225-300x300.jpg"
+  },
+  {
+    "Code": "VD-1317",
+    "Description": "DARK CHOCOLATE",
+    "Brand": "VERDUIJNS",
+    "Price": 2.5,
+    "ImageUrl": "https://alvarezdelicatessen.com/101711-large_default/verduijns-dark-chocolate-thins.jpg"
+  }
+]

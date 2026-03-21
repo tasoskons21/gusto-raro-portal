@@ -1,0 +1,30 @@
+[
+  {
+    "Code": "BB-6928",
+    "Description": "ORIGINAL",
+    "Brand": "SWEET BABY RAY'S",
+    "Price": 4.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/0013409516928-300x300.jpg"
+  },
+  {
+    "Code": "BB-6935",
+    "Description": "HONEY CHIPOTLE",
+    "Brand": "SWEET BABY RAY'S",
+    "Price": 4.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/0013409516935-300x300.jpg"
+  },
+  {
+    "Code": "BB-7321",
+    "Description": "HONEY",
+    "Brand": "SWEET BABY RAY'S",
+    "Price": 4.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/0013409517321-300x300.jpg"
+  },
+  {
+    "Code": "BB-7338",
+    "Description": "SWEET & SPICY",
+    "Brand": "SWEET BABY RAY'S",
+    "Price": 4.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/0013409517338-300x300.jpg"
+  }
+]

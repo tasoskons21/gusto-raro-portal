@@ -1,0 +1,226 @@
+[
+  {
+    "Code": "BP-2052",
+    "Description": "BLACK GARLIC",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3571303102052-300x300.jpg"
+  },
+  {
+    "Code": "BP-2038",
+    "Description": "PESTO PARMESAN",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3571303102038-300x300.jpg"
+  },
+  {
+    "Code": "BP-2014",
+    "Description": "PICODON CHEESE D.O.P.",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQSwNKz1XHMpQKVo5D9clPm0nVahEiLqRgcKA&s"
+  },
+  {
+    "Code": "BP-2045",
+    "Description": "TOMATO & CHILLI",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3571303102045-300x300.jpg"
+  },
+  {
+    "Code": "BP-1233",
+    "Description": "ALMOND & APRICOT",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.45,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3571379021233-300x300.jpg"
+  },
+  {
+    "Code": "BP-1238",
+    "Description": "ALMOND & FIG",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.45,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3571379071238-300x300.jpg"
+  },
+  {
+    "Code": "BP-2044",
+    "Description": "VANILLE BOURBON",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmbIsDGt2doT75yrfnhau-b68wDpIxVpudFA&s"
+  },
+  {
+    "Code": "BP-2068",
+    "Description": "SALTED BUTTER CARAMEL",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRLd4K3I9-8OvAGg_ddBoOHixGzsZffl2z5hw&s"
+  },
+  {
+    "Code": "BP-2429",
+    "Description": "PINK PRALINES",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTXT048drhRCoxtbx2Pwaz-MII7jzcV6Wa-Jg&s"
+  },
+  {
+    "Code": "BP-2467",
+    "Description": "ROQUEFORT DOP & WALNUTS",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTf6CaNF-3d4XRyXobO1ckMTDUSnF84OgOd9Q&s"
+  },
+  {
+    "Code": "BP-2443",
+    "Description": "RED BELL PEPPER & ESPELETTE DOP CHILI",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://www.lagrandeepicerie.com/on/demandware.static/-/Sites-lge-master-catalog/default/dw95554bfd/images/DIS/3571318032443_1.jpg"
+  },
+  {
+    "Code": "BP-2082",
+    "Description": "FIG & HAZELNUT",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt34hZ8ZtolW8A2wcSB_0C_z1sv3Xdxfb4Jw&s"
+  },
+  {
+    "Code": "BP-2075",
+    "Description": "LEMON & ALMOND",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTNuhyowKcbS4rTrKN2843o2hbgnhWqs2EvEA&s"
+  },
+  {
+    "Code": "BP-2412",
+    "Description": "CRANBERRIES & GRAINES",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.0,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSZe_32A5IbltwU_5Tz_fy8Hyy0GG5LLbhlFA&s"
+  },
+  {
+    "Code": "BP-2036",
+    "Description": "ALMOND & LEMON - GLUTEN FREE",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3571305102036-300x300.jpg"
+  },
+  {
+    "Code": "BP-2029",
+    "Description": "ALMOND & CHOCOLATE - GLUTEN FREE",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3571305102029-300x300.jpg"
+  },
+  {
+    "Code": "BP-2043",
+    "Description": "ALMOND & FIG-GLUTEN FREE",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 5.15,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "BP-8137",
+    "Description": "ALMOND & DARK CHOCOLATE VALRHONA-GF",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.95,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVg5kWcZphkNZrJ6rxKHXvV_JmdWHpVpvq9A&s"
+  },
+  {
+    "Code": "BP-2004",
+    "Description": "ALMOND & CHESTNUT -GF",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 4.75,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1Jij0TEuhwn1G59fR2rIf5F6EUacFo6C2hg&s"
+  },
+  {
+    "Code": "BP-1374",
+    "Description": "PISTACCHIO",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 6.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3760081351374-300x300.jpg"
+  },
+  {
+    "Code": "BP-6408",
+    "Description": "CLASSIC SENT-REMY",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 6.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3770002216408-300x300.jpg"
+  },
+  {
+    "Code": "BP-1459",
+    "Description": "ROSES",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 6.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3760081351459-300x300.jpg"
+  },
+  {
+    "Code": "BP-1411",
+    "Description": "ORANGE",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 6.9,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3760081351411-300x300.jpg"
+  },
+  {
+    "Code": "BP-2319",
+    "Description": "POPPY FLOWERS",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 5.75,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3760081352319-300x300.jpg"
+  },
+  {
+    "Code": "BP-0247",
+    "Description": "FOREST'S FRUITS",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 5.75,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3760081350247-300x300.jpg"
+  },
+  {
+    "Code": "BP-1121",
+    "Description": "VIOLET",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 5.75,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/04/3760081351121-300x300.jpg"
+  },
+  {
+    "Code": "BP-1145",
+    "Description": "VIOLETTES",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 12.95,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQdW3WOnz7bzKxMkeX4ubHsS2El9kbJnNR0jw&s"
+  },
+  {
+    "Code": "BP-1152",
+    "Description": "MINTS",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 12.95,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "BP-1138",
+    "Description": "ROSES",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 12.95,
+    "ImageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQr5EJsw5h5g5gSt67ELElTLpmdn5KNhO6qeg&s"
+  },
+  {
+    "Code": "BP-2415",
+    "Description": "BIO COOKIES",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 8.8,
+    "ImageUrl": "https://cdn11.bigcommerce.com/s-arl5b/images/stencil/1280x1280/products/2284/13779/BdPCookieXmasBall__53037.1760470828.png?c=2"
+  },
+  {
+    "Code": "BP-0080",
+    "Description": "ASSORTED BIO BISCUITS",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 11.35,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2025/03/3571372330080-300x300.jpg"
+  },
+  {
+    "Code": "BP-1040",
+    "Description": "ASSORTED MINI CHOCOLATE BALLS",
+    "Brand": "BISCUITERIE DE PROVENCE",
+    "Price": 11.6,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2025/03/3760081241040-300x300.jpg"
+  }
+]

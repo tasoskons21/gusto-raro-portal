@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-gusto-green: #1e3932;
+  --color-gusto-green-light: #2d5a27;
+  --color-gusto-gold: #ffc107;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+}
+
+@layer components {
+  .order-page-bg {
+    background: linear-gradient(135deg, #1e3932 0%, #2d5a27 100%);
+    min-height: 100vh;
+    padding-bottom: 50px;
+  }
+}
+
+/* Custom Scrollbar for Customer List */
+.customer-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.customer-scroll::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+.customer-scroll::-webkit-scrollbar-thumb {
+  @apply bg-gusto-green/20 rounded-full;
+}
+
+/* Custom Scrollbar for Brand List */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gusto-green/20 rounded-full;
+}
+
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show the printable order and its ancestors */
+  #printable-order, 
+  #printable-order *,
+  .fixed.inset-0,
+  .fixed.inset-0 *,
+  .order-page-bg {
+    visibility: visible !important;
+  }
+
+  /* Force the printable order to the top left */
+  #printable-order {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    padding: 20px !important;
+    margin: 0 !important;
+    background: white !important;
+    z-index: 9999 !important;
+  }
+
+  /* Hide UI elements that shouldn't be printed */
+  .print-hidden, 
+  header, 
+  button, 
+  .bg-gusto-green.p-6,
+  .bg-slate-50.border-t {
+    display: none !important;
+  }
+
+  /* Reset layout for print */
+  .order-page-bg {
+    background: white !important;
+    min-height: auto !important;
+    padding: 0 !important;
+  }
+
+  .fixed.inset-0 {
+    background: white !important;
+    position: static !important;
+    display: block !important;
+  }
+
+  /* Ensure text is black for printing */
+  #printable-order * {
+    color: black !important;
+  }
+  
+  #printable-order .text-gusto-green {
+    color: #1e3932 !important;
+  }
+
+  #printable-order .text-red-600 {
+    color: #dc2626 !important;
+  }
+}

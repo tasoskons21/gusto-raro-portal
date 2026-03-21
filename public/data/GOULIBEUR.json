@@ -1,0 +1,135 @@
+[
+  {
+    "Code": "GU-2033",
+    "Description": "CACAO",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481712732033-300x300.jpg"
+  },
+  {
+    "Code": "GU-4012",
+    "Description": "WALNUTS",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": ""
+  },
+  {
+    "Code": "GU-0055",
+    "Description": "CHEDDAR",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": "https://cdn11.bigcommerce.com/s-arl5b/images/stencil/500x659/products/2224/13642/GoulibeurSableChedar__94427.1750695348.png?c=2"
+  },
+  {
+    "Code": "GU-2040",
+    "Description": "COFFEE",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481712732040-300x300.jpg"
+  },
+  {
+    "Code": "GU-0048",
+    "Description": "TRADITIONEL",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481712710048-300x300.jpg"
+  },
+  {
+    "Code": "GU-1020",
+    "Description": "LEMON",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481712721020-300x300.jpg"
+  },
+  {
+    "Code": "GU-4035",
+    "Description": "ONIONS",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481712754035-300x300.jpg"
+  },
+  {
+    "Code": "GU-4011",
+    "Description": "OLIVES",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481712754011-300x300.jpg"
+  },
+  {
+    "Code": "GU-4028",
+    "Description": "CHEESE COMPTE",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481712754028-300x300.jpg"
+  },
+  {
+    "Code": "GU-4059",
+    "Description": "TOMATO",
+    "Brand": "GOULIBEUR",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481712754059-300x300.jpg"
+  },
+  {
+    "Code": "GU-1121",
+    "Description": "LEMON & GINGER",
+    "Brand": "GOULIBEUR",
+    "Price": 5.2,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481718121121-300x300.jpg"
+  },
+  {
+    "Code": "GU-1114",
+    "Description": "BUTTER",
+    "Brand": "GOULIBEUR",
+    "Price": 5.2,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481718121114-300x300.jpg"
+  },
+  {
+    "Code": "GU-1138",
+    "Description": "CACAO",
+    "Brand": "GOULIBEUR",
+    "Price": 5.2,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481718121138-300x300.jpg"
+  },
+  {
+    "Code": "GU-1113",
+    "Description": "TRADITIONAL BUTTER",
+    "Brand": "GOULIBEUR",
+    "Price": 2.2,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481718131113-1-300x300.jpg"
+  },
+  {
+    "Code": "GU-1151",
+    "Description": "CACAO DARK",
+    "Brand": "GOULIBEUR",
+    "Price": 2.2,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481718131151-300x300.jpg"
+  },
+  {
+    "Code": "GU-1120",
+    "Description": "LEMON & GINGER",
+    "Brand": "GOULIBEUR",
+    "Price": 2.2,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481718131120-300x300.jpg"
+  },
+  {
+    "Code": "GU-1168",
+    "Description": "WALNUTS",
+    "Brand": "GOULIBEUR",
+    "Price": 2.2,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481718131168-300x300.jpg"
+  },
+  {
+    "Code": "GU-1144",
+    "Description": "PECORINO ROMANO",
+    "Brand": "GOULIBEUR",
+    "Price": 2.2,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2024/01/3481718131144-300x300.jpg"
+  },
+  {
+    "Code": "GU-1137",
+    "Description": "TOMATO & BASIL",
+    "Brand": "GOULIBEUR",
+    "Price": 2.2,
+    "ImageUrl": ""
+  }
+]
