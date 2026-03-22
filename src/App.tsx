@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 import { 
   Search, 
   ShoppingCart, 
@@ -19,7 +20,8 @@ import {
   Mail,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Customer, Product, CartItem, OrderRecord, User, Brand } from './types';
@@ -40,6 +42,13 @@ export default function App() {
   const [allBrands, setAllBrands] = useState<Brand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Admin State
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({ email: '', password: '', role: 'customer' });
 
   // UI State
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -67,7 +76,6 @@ export default function App() {
     const checkSession = async () => {
       setAuthLoading(true);
       
-      // Set a timeout to ensure we don't get stuck in loading state
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Auth check timed out')), 5000)
       );
@@ -125,7 +133,6 @@ export default function App() {
 
   useEffect(() => {
     const loadData = async () => {
-      console.log('Starting to load data...');
       setIsLoading(true);
       try {
         const [custData, prodData, brandData] = await Promise.all([
@@ -133,7 +140,6 @@ export default function App() {
           dataService.fetchProducts(),
           dataService.fetchBrands()
         ]);
-        console.log('Data loaded:', custData.length, 'customers,', prodData.length, 'products,', brandData.length, 'brands');
         setCustomers(custData);
         setProducts(prodData);
         setAllBrands(brandData.sort((a, b) => a.name.localeCompare(b.name)));
@@ -141,7 +147,6 @@ export default function App() {
         console.error('Error loading data:', err);
         setError('Σφάλμα κατά τη φόρτωση των δεδομένων.');
       } finally {
-        console.log('Finished loading data.');
         setIsLoading(false);
       }
     };
@@ -157,14 +162,13 @@ export default function App() {
       c.afm.includes(term) || 
       c.code.toLowerCase().includes(term) ||
       c.city.toLowerCase().includes(term)
-    ).slice(0, 30); // Αυξάνουμε τα αποτελέσματα σε 30
+    ).slice(0, 30);
   }, [customers, searchTerm]);
 
   const brands = useMemo(() => {
     return allBrands.map(b => b.name);
   }, [allBrands]);
 
-  // Set default brand when brands are loaded
   useEffect(() => {
     if (brands.length > 0 && selectedBrand === '') {
       setSelectedBrand(brands[0]);
@@ -182,7 +186,6 @@ export default function App() {
          p.code.toLowerCase().includes(term));
     });
     
-    // Final deduplication by code to be absolutely safe
     const seen = new Set();
     return filtered.filter(p => {
       if (seen.has(p.code)) return false;
@@ -209,8 +212,6 @@ export default function App() {
     });
   };
 
-  // Removed management functions as requested by user
-  
   const addToCart = (product: Product, qty: number) => {
     setCart(prev => {
       const existing = prev.find(item => item.code === product.code);
@@ -235,6 +236,58 @@ export default function App() {
       }).filter(item => item.quantity > 0);
     });
   };
+
+const exportToExcel = () => {
+  if (cart.length === 0 || !selectedCustomer) return;
+
+  // 1. Δομή Δεδομένων: Στοιχεία Πελάτη (Επικεφαλίδες)
+  const data = [
+    ['ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ'],
+    ['Κωδικός:', selectedCustomer.code],
+    ['Όνομα:', selectedCustomer.name],
+    ['ΑΦΜ:', selectedCustomer.afm],
+    ['Διεύθυνση:', selectedCustomer.address],
+    ['Πόλη:', selectedCustomer.city],
+    [''], // Κενό για διαχωρισμό
+    ['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ'],
+    ['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ', 'ΤΙΜΗ ΜΟΝΑΔΟΣ'] // Επικεφαλίδες πίνακα
+  ];
+
+  // 2. Προσθήκη Προϊόντων (Μόνο τα βασικά πεδία που ζήτησες)
+  cart.forEach(item => {
+    data.push([
+      item.code, 
+      item.description, 
+      item.quantity, 
+      item.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })
+    ]);
+  });
+
+  // 3. Δημιουργία Worksheet
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+  // 4. Ρύθμιση Πλάτους Στηλών (για να φαίνεται όμορφο και στοιχισμένο)
+  const columnWidths = [
+    { wch: 15 }, // Κωδικός
+    { wch: 50 }, // Περιγραφή (πιο πλατιά)
+    { wch: 12 }, // Ποσότητα
+    { wch: 15 }, // Τιμή
+  ];
+  worksheet['!cols'] = columnWidths;
+
+  // 5. Δημιουργία και Εξαγωγή αρχείου
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Order");
+
+  // Όνομα αρχείου μόνο ο κωδικός
+  XLSX.writeFile(workbook, `${selectedCustomer.code}.xlsx`);
+
+  // 6. Καθαρισμός και Μήνυμα
+  setCart([]);
+  setNotes('');
+  setShowSuccess(true);
+  setTimeout(() => setShowSuccess(false), 3000);
+};
 
   const submitOrder = () => {
     if (!selectedCustomer) return;
@@ -290,17 +343,13 @@ export default function App() {
 
     setIsExporting(true);
     try {
-      // Wait for images to load and layout to settle
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Get the full height of the element
       const originalHeight = input.style.height;
       const originalOverflow = input.style.overflow;
       const originalWidth = input.style.width;
       const originalMaxHeight = input.style.maxHeight;
       
-      // Temporarily expand the element to its full content height for capture
-      // Set a fixed width to ensure consistent layout (A4 width in pixels at 96dpi is ~794px)
       input.style.width = '800px';
       const originalPosition = input.style.position;
       input.style.position = 'relative';
@@ -308,7 +357,6 @@ export default function App() {
       input.style.maxHeight = 'none';
       input.style.overflow = 'visible';
 
-      // Detect if mobile to use lower scale (prevents memory issues)
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const captureScale = isMobile ? 1.5 : 2;
 
@@ -328,9 +376,8 @@ export default function App() {
             el.style.maxHeight = 'none';
             el.style.overflow = 'visible';
             el.style.position = 'relative';
-            el.style.padding = '40px'; // Ensure padding is consistent
+            el.style.padding = '40px'; 
 
-            // Inject a style tag to override modern CSS color functions that html2canvas doesn't support
             const style = clonedDoc.createElement('style');
             style.innerHTML = `
               #printable-order {
@@ -354,7 +401,6 @@ export default function App() {
             `;
             clonedDoc.head.appendChild(style);
 
-            // Generic sanitizer for any remaining modern color functions
             const allElements = el.getElementsByTagName('*');
             for (let i = 0; i < allElements.length; i++) {
               const element = allElements[i] as HTMLElement;
@@ -370,7 +416,6 @@ export default function App() {
         }
       });
 
-      // Restore original styles
       input.style.height = originalHeight;
       input.style.overflow = originalOverflow;
       input.style.width = originalWidth;
@@ -389,15 +434,12 @@ export default function App() {
       let heightLeft = imgHeight;
       let position = 0;
 
-      // Add first page
       pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
 
-      // Add subsequent pages if content exceeds one page
       while (heightLeft > 0) {
         pdf.addPage();
         position = heightLeft - imgHeight;
-        // Add a small overlap to avoid white lines between pages
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pdfHeight;
       }
@@ -412,7 +454,6 @@ export default function App() {
     }
   };
 
-  // Add print styles to head
   useEffect(() => {
     const style = document.createElement('style');
     style.innerHTML = `
@@ -445,6 +486,136 @@ export default function App() {
     };
   }, []);
 
+  // ====== ADMIN FUNCTIONS (ΔΙΟΡΘΩΜΕΝΑ) ======
+
+  // Η παράμετρος showLoading=true εξασφαλίζει ότι το spinner 
+  // εμφανίζεται μόνο όταν ανοίγουμε το Modal, όχι στις μικροαλλαγές.
+  const fetchAllUsers = async (showLoading = true) => {
+    if (showLoading) setIsAdminLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('email');
+  
+      if (error) throw error;
+      setAllUsers(data || []);
+    } catch (err: any) {
+      console.error("Fetch users error:", err);
+      if (err.message?.includes('JWT')) handleLogout();
+    } finally {
+      if (showLoading) setIsAdminLoading(false);
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, newRole: string) => {
+    // 1. Άμεση ενημέρωση (Optimistic Update) για να αλλάξει ακαριαία στην οθόνη χωρίς loading
+    setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    
+    // 2. Ενημέρωση της βάσης στο παρασκήνιο
+    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+    
+    if (error) { 
+      setShowError('Αποτυχία αλλαγής ρόλου.'); 
+      setTimeout(() => setShowError(null), 3000); 
+      // Αν αποτύχει, επαναφέρουμε τα δεδομένα κρυφά
+      fetchAllUsers(false); 
+    } else { 
+      setShowSuccess(true); 
+      setTimeout(() => setShowSuccess(false), 2000); 
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, targetRole: string) => {
+    if (targetRole === 'admin') {
+      setShowError('Δεν μπορείτε να διαγράψετε άλλον διαχειριστή.');
+      setTimeout(() => setShowError(null), 3000);
+      return;
+    }
+    if (userId === user.id) {
+      setShowError('Δεν μπορείτε να διαγράψετε τον εαυτό σας.');
+      setTimeout(() => setShowError(null), 3000);
+      return;
+    }
+    
+    //if (!window.confirm('Θα διαγραφεί το προφίλ. Ο χρήστης πρέπει να διαγραφεί χειροκίνητα και από το Auth Tab στο Supabase.')) return;
+  
+    // 1. Άμεση αφαίρεση από την οθόνη χωρίς loading spinner
+    setAllUsers(prev => prev.filter(u => u.id !== userId));
+
+    try {
+      // 2. Διαγραφή στο παρασκήνιο
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      if (error) throw error;
+  
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    } catch (err: any) {
+      console.error("FULL DELETE ERROR:", err);
+      setShowError("Σφάλμα βάσης: " + err.message);
+      setTimeout(() => setShowError(null), 3000);
+      // Αν αποτύχει, επαναφέρουμε τον χρήστη στη λίστα κρυφά
+      fetchAllUsers(false); 
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAdminLoading(true); // Εδώ χρειαζόμαστε loading γιατί αργεί λίγο
+
+    try {
+      const supabaseUrl = (supabase as any).supabaseUrl || (import.meta as any).env?.VITE_SUPABASE_URL;
+      const supabaseKey = (supabase as any).supabaseKey || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+      
+      const { createClient } = await import('@supabase/supabase-js');
+      const tempClient = createClient(supabaseUrl, supabaseKey, {
+        auth: { 
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      });
+
+      const { data, error: authError } = await tempClient.auth.signUp({
+        email: newUserForm.email,
+        password: newUserForm.password,
+      });
+
+      if (authError && authError.status !== 422) {
+        throw authError;
+      }
+
+      const userId = data?.user?.id;
+      if (userId) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email: newUserForm.email,
+            role: newUserForm.role
+          });
+
+        if (profileError) throw profileError;
+      }
+
+      setShowSuccess(true);
+      setNewUserForm({ email: '', password: '', role: 'customer' });
+      setShowCreateUser(false);
+      // Ενημερώνουμε τη λίστα χωρίς να πετάξουμε ξανά loading spinner
+      await fetchAllUsers(false); 
+
+    } catch (err: any) {
+      console.error("Error creating user:", err);
+      setShowError(err.message || "Αποτυχία δημιουργίας χρήστη");
+    } finally {
+      setIsAdminLoading(false);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setShowError(null);
+      }, 3000);
+    }
+  };
+
   // Login Handler
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -467,12 +638,15 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+      localStorage.clear(); 
+      window.location.reload(); 
+    } catch (err) {
+      console.error(err);
+      window.location.reload(); 
+    }
   };
-
-  const [userToDelete, setUserToDelete] = useState<string | null>(null);
-  const [userToEdit, setUserToEdit] = useState<any | null>(null);
-  const [newRole, setNewRole] = useState<string>('');
 
   if (authLoading) {
     return (
@@ -505,7 +679,7 @@ export default function App() {
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-black" size={18} />
                 <input 
                   type="email"
                   required
@@ -519,7 +693,7 @@ export default function App() {
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-black" size={18} />
                 <input 
                   type={showPassword ? "text" : "password"}
                   required
@@ -533,7 +707,7 @@ export default function App() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-gusto-gold transition-colors"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                 </button>
               </div>
             </div>
@@ -587,14 +761,24 @@ export default function App() {
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-gusto-green leading-tight">GUSTO RARO</h1>
               <p className="text-[10px] text-slate-500 flex items-center gap-1 font-bold uppercase tracking-widest">
-                <UserIcon size={10} /> {user.email} ({user.role})
+                <UserIcon size={10} className="text-black" /> {user.email} ({user.role})
               </p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
             {isLoading && <span className="text-xs bg-gusto-gold/20 text-gusto-green px-2 py-1 rounded animate-pulse font-medium">Φόρτωση...</span>}
-            
+  
+            {user.role === 'admin' && (
+              <button 
+                onClick={() => { setShowAdminModal(true); fetchAllUsers(true); }}
+                className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                title="Ρυθμίσεις Διαχειριστή"
+              >
+                <Settings size={20} />
+              </button>
+            )}
+
             <button 
               onClick={handleLogout}
               className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
@@ -605,9 +789,6 @@ export default function App() {
           </div>
         </div>
       </header>
-
-      <AnimatePresence>
-      </AnimatePresence>
 
       <main className="max-w-7xl mx-auto p-4">
         {!selectedCustomer ? (
@@ -958,6 +1139,15 @@ export default function App() {
                     >
                       ΟΛΟΚΛΗΡΩΣΗ & ΑΠΟΣΤΟΛΗ
                     </button>
+
+<button 
+  disabled={cart.length === 0}
+  onClick={exportToExcel}
+  className="w-full mt-2 bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+>
+  <Download size={18} />
+  EXPORT EXCEL
+</button>
                   </div>
                 </div>
               </div>
@@ -1048,6 +1238,14 @@ export default function App() {
               >
                 ΑΠΟΣΤΟΛΗ ΠΑΡΑΓΓΕΛΙΑΣ
               </button>
+              <button 
+  disabled={cart.length === 0}
+  onClick={() => { exportToExcel(); setIsCartOpen(false); }}
+  className="w-full mt-2 bg-blue-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+>
+  <Download size={20} />
+  EXPORT EXCEL
+</button>
             </motion.div>
           </>
         )}
@@ -1314,6 +1512,7 @@ export default function App() {
             </motion.div>
           </div>
         )}
+
         {confirmSubmit && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <motion.div
@@ -1342,7 +1541,148 @@ export default function App() {
           </div>
         )}
 
-        {/* Removed management modals */}
+        {/* Admin Modal */}
+        {showAdminModal && (
+          <div className="fixed inset-0 flex items-center justify-center z-[150] p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAdminModal(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              <div className="bg-slate-800 p-6 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Settings className="text-gusto-gold" size={24} />
+                  <h2 className="text-xl font-black uppercase tracking-tight">Διαχείριση Χρηστών</h2>
+                  <button 
+                    onClick={() => setShowCreateUser(!showCreateUser)}
+                    className="ml-4 flex items-center gap-1 text-xs font-bold bg-gusto-green/20 text-gusto-gold px-3 py-1.5 rounded-full hover:bg-gusto-green/40 transition-colors border border-gusto-gold/30"
+                  >
+                    <Plus size={14} className={showCreateUser ? "rotate-45 transition-transform" : "transition-transform"} /> 
+                    {showCreateUser ? 'ΑΚΥΡΩΣΗ' : 'ΝΕΟΣ ΧΡΗΣΤΗΣ'}
+                  </button>
+                </div>
+                <button onClick={() => setShowAdminModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1">
+                
+                {/* Φόρμα Δημιουργίας Νέου Χρήστη */}
+                <AnimatePresence>
+                  {showCreateUser && (
+                    <motion.form 
+                      initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+                      animate={{ height: 'auto', opacity: 1, marginBottom: 24 }}
+                      exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                      onSubmit={handleCreateUser} 
+                      className="overflow-hidden"
+                    >
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                        <h3 className="text-sm font-black text-slate-700 mb-3 uppercase tracking-widest">ΣΤΟΙΧΕΙΑ ΝΕΟΥ ΧΡΗΣΤΗ</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <input
+                            type="email"
+                            placeholder="Email / Username"
+                            required
+                            value={newUserForm.email}
+                            onChange={e => setNewUserForm({...newUserForm, email: e.target.value})}
+                            className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700"
+                          />
+                          <input
+                            type="password"
+                            placeholder="Κωδικός"
+                            required
+                            minLength={6}
+                            value={newUserForm.password}
+                            onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
+                            className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700"
+                          />
+                          <div className="flex gap-2">
+                            <select
+                              value={newUserForm.role}
+                              onChange={e => setNewUserForm({...newUserForm, role: e.target.value})}
+                              className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700 bg-white"
+                            >
+                              <option value="customer">Πελάτης</option>
+                              <option value="seller">Πωλητής</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                            <button 
+                              type="submit" 
+                              disabled={isAdminLoading}
+                              className="bg-gusto-green text-white px-4 rounded-lg font-bold text-sm hover:bg-gusto-green-light transition-colors disabled:opacity-50"
+                            >
+                              ΑΠΟΘΗΚΕΥΣΗ
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
+
+                {isAdminLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-gusto-gold"></div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b-2 border-slate-100">
+                          <th className="px-4 py-3">EMAIL / USERNAME</th>
+                          <th className="px-4 py-3">ΡΟΛΟΣ</th>
+                          <th className="px-4 py-3 text-right">ΕΝΕΡΓΕΙΕΣ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {allUsers.map((u) => (
+                          <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-4 font-bold text-slate-700">{u.email}</td>
+                            <td className="px-4 py-4">
+                              <select 
+                                value={u.role}
+                                onChange={(e) => handleUpdateRole(u.id, e.target.value)}
+                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold focus:ring-1 focus:ring-gusto-gold outline-none"
+                              >
+                                <option value="customer">Πελάτης</option>
+                                <option value="seller">Πωλητής</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                            </td>
+                            <td className="px-4 py-4 text-right">
+                              {/* Έλεγχος Ασφαλείας: Δεν μπορούμε να διαγράψουμε admin ή τον εαυτό μας */}
+                              {u.role !== 'admin' && u.id !== user.id ? (
+                                <button 
+                                  onClick={() => handleDeleteUser(u.id, u.role)}
+                                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                  title="Διαγραφή Χρήστη"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 font-bold px-2 bg-slate-100 rounded-md py-1">ΜΗ ΔΙΑΓΡΑΨΙΜΟΣ</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </div>
   );
