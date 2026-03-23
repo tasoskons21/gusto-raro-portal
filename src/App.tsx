@@ -195,8 +195,6 @@ export default function App() {
   }, [products, selectedBrand, productSearch]);
 
   const totalNet = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const totalVAT = totalNet * 0.13;
-  const totalGross = totalNet + totalVAT;
 
   // Actions
   const updateCartQuantity = (product: Product, qty: number) => {
@@ -280,7 +278,7 @@ const exportToExcel = () => {
   XLSX.utils.book_append_sheet(workbook, worksheet, "Order");
 
   // Όνομα αρχείου μόνο ο κωδικός
-  XLSX.writeFile(workbook, `${selectedCustomer.code}.xlsx`);
+  XLSX.writeFile(workbook, `${selectedCustomer.name}.xlsx`);
 
   // 6. Καθαρισμός και Μήνυμα
   setCart([]);
@@ -300,7 +298,7 @@ const exportToExcel = () => {
     const success = await dataService.submitOrder({
       customer: selectedCustomer,
       items: cart,
-      total: totalGross
+      total: totalNet
     });
 
     if (success) {
@@ -311,7 +309,7 @@ const exportToExcel = () => {
         customerCode: selectedCustomer.code,
         customerAfm: selectedCustomer.afm,
         items: [...cart],
-        totalValue: totalGross,
+        totalValue: totalNet,
         notes: notes
       };
       setHistory([newRecord, ...history]);
@@ -1119,7 +1117,7 @@ const exportToExcel = () => {
                     <div className="space-y-1 mb-4">
                       <div className="flex justify-between text-lg font-black text-gusto-green pt-2 border-t border-slate-200">
                         <span>ΣΥΝΟΛΟ:</span>
-                        <span className="text-red-600">{totalGross.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</span>
+                        <span className="text-red-600">{totalNet.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</span>
                       </div>
                       <div className="mt-4">
                         <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">ΣΗΜΕΙΩΣΕΙΣ</label>
@@ -1217,7 +1215,7 @@ const exportToExcel = () => {
               <div className="bg-slate-50 p-6 rounded-2xl space-y-3 mb-6">
                 <div className="flex justify-between font-black text-2xl text-gusto-green">
                   <span>ΣΥΝΟΛΟ:</span>
-                  <span className="text-red-600">{totalGross.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</span>
+                  <span className="text-red-600">{totalNet.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</span>
                 </div>
                 <div className="mt-4">
                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">ΣΗΜΕΙΩΣΕΙΣ</label>
