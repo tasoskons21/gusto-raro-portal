@@ -911,38 +911,55 @@ const exportToExcel = () => {
                   </div>
                 </div>
 
-                <div className="p-2 space-y-1 max-h-[350px] overflow-y-auto custom-scrollbar">
-                  {allBrands
-                    .filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
-                    .map(brand => (
-                      <button 
-                        key={brand.name}
-                        onClick={() => setSelectedBrand(brand.name)}
-                        className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all flex items-center gap-3 ${
-                          selectedBrand === brand.name 
-                            ? 'bg-gusto-green text-white shadow-sm font-semibold' 
-                            : 'hover:bg-slate-50 text-slate-600 border border-transparent hover:border-slate-100'
-                        }`}
-                      >
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                          selectedBrand === brand.name ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {brand.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="truncate flex-1">{brand.name}</span>
-                        {selectedBrand === brand.name && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-gusto-gold animate-pulse" />
-                        )}
-                      </button>
-                    ))}
-                  
-                  {allBrands.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase())).length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-8 text-slate-400">
-                      <Building2 size={24} className="mb-2 opacity-20" />
-                      <p className="text-[10px] italic">Δεν βρέθηκαν εταιρίες</p>
-                    </div>
-                  )}
-                </div>
+                {/* Container με σταθερό ύψος για να χωράει 5 μεγάλα logos */}
+<div className="max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+  <div className="grid grid-cols-1 gap-4">
+    {allBrands
+      .filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
+      .map(brand => (
+        <button 
+          key={brand.name}
+          onClick={() => setSelectedBrand(brand.name)}
+          className={`group relative w-full h-[100px] rounded-2xl transition-all duration-300 flex items-center justify-center overflow-hidden border-2 ${
+            selectedBrand === brand.name 
+              ? 'bg-white border-gusto-green shadow-lg scale-[1.02]' 
+              : 'bg-white/40 border-slate-100 hover:border-slate-300 hover:bg-white'
+          }`}
+        >
+          {/* Logo Container */}
+          <div className="w-full h-full p-4 flex items-center justify-center">
+            {brand.logo_url ? (
+              <img 
+                src={brand.logo_url} 
+                alt={brand.name} 
+                className={`w-full h-full object-contain transition-transform duration-300 ${
+                  selectedBrand === brand.name ? 'scale-110' : 'group-hover:scale-105'
+                }`}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const span = document.createElement('span');
+                  span.className = "text-xs font-black text-slate-400 uppercase text-center";
+                  span.innerText = brand.name;
+                  e.currentTarget.parentElement?.appendChild(span);
+                }}
+              />
+            ) : (
+              <span className="text-xs font-black text-slate-400 uppercase text-center px-2">
+                {brand.name}
+              </span>
+            )}
+          </div>
+
+          {/* Indicator Επιλογής */}
+          {selectedBrand === brand.name && (
+            <div className="absolute top-3 right-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-gusto-green shadow-[0_0_8px_rgba(var(--gusto-green-rgb),0.4)]" />
+            </div>
+          )}
+        </button>
+      ))}
+  </div>
+</div>
               </div>
             </div>
 
