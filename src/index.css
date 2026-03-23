@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
+
+
 @theme {
   --color-gusto-green: #1e3932;
   --color-gusto-green-light: #2d5a27;

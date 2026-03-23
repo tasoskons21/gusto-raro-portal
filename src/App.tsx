@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import * as XLSX from 'xlsx';
+//import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { 
   Search, 
   ShoppingCart, 
@@ -238,20 +239,31 @@ export default function App() {
 const exportToExcel = () => {
   if (cart.length === 0 || !selectedCustomer) return;
 
-  // 1. Δομή Δεδομένων: Στοιχεία Πελάτη (Επικεφαλίδες)
-  const data = [
+  // 1. Βασικά Στοιχεία Πελάτη
+  const data: any[][] = [
     ['ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ'],
     ['Κωδικός:', selectedCustomer.code],
     ['Όνομα:', selectedCustomer.name],
     ['ΑΦΜ:', selectedCustomer.afm],
     ['Διεύθυνση:', selectedCustomer.address],
     ['Πόλη:', selectedCustomer.city],
-    [''], // Κενό για διαχωρισμό
-    ['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ'],
-    ['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ', 'ΤΙΜΗ ΜΟΝΑΔΟΣ'] // Επικεφαλίδες πίνακα
   ];
 
-  // 2. Προσθήκη Προϊόντων (Μόνο τα βασικά πεδία που ζήτησες)
+  // 2. ΠΡΟΣΘΗΚΗ ΠΑΡΑΤΗΡΗΣΕΩΝ ΜΕΤΑ ΤΗΝ ΠΟΛΗ (Μόνο αν υπάρχουν)
+  if (notes && notes.trim() !== '') {
+    data.push(['']); // Κενή γραμμή για ανάσα
+    data.push(['ΠΑΡΑΤΗΡΗΣΕΙΣ:']);
+    data.push([notes.toUpperCase()]); // Κεφαλαία για να ξεχωρίζουν
+  }
+
+  // 3. Επικεφαλίδες Προϊόντων
+  data.push(
+    [''], 
+    ['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ'],
+    ['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ', 'ΤΙΜΗ ΜΟΝΑΔΟΣ']
+  );
+
+  // 4. Προσθήκη Προϊόντων από το καλάθι
   cart.forEach(item => {
     data.push([
       item.code, 
@@ -261,26 +273,31 @@ const exportToExcel = () => {
     ]);
   });
 
-  // 3. Δημιουργία Worksheet
+  // 5. Δημιουργία Worksheet
   const worksheet = XLSX.utils.aoa_to_sheet(data);
 
-  // 4. Ρύθμιση Πλάτους Στηλών (για να φαίνεται όμορφο και στοιχισμένο)
-  const columnWidths = [
-    { wch: 15 }, // Κωδικός
-    { wch: 50 }, // Περιγραφή (πιο πλατιά)
-    { wch: 12 }, // Ποσότητα
-    { wch: 15 }, // Τιμή
-  ];
-  worksheet['!cols'] = columnWidths;
+  // 6. Εφαρμογή Style (Κόκκινο/Bold) - Απαιτεί τη βιβλιοθήκη xlsx-js-style
+  // Αν υπάρχουν παρατηρήσεις, θα βρίσκονται στις γραμμές 8 και 9 (κελιά A8, A9)
+  if (notes && notes.trim() !== '') {
+    const redBoldStyle = { font: { bold: true, color: { rgb: "FF0000" }, sz: 11 } };
+    if (worksheet['A8']) worksheet['A8'].s = redBoldStyle;
+    if (worksheet['A9']) worksheet['A9'].s = redBoldStyle;
+  }
 
-  // 5. Δημιουργία και Εξαγωγή αρχείου
+  // 7. Ρύθμιση Πλάτους Στηλών
+  worksheet['!cols'] = [
+    { wch: 20 }, // Στήλη Α
+    { wch: 50 }, // Στήλη Β
+    { wch: 12 }, // Στήλη Γ
+    { wch: 15 }, // Στήλη Δ
+  ];
+
+  // 8. Εξαγωγή
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Order");
-
-  // Όνομα αρχείου μόνο ο κωδικός
   XLSX.writeFile(workbook, `${selectedCustomer.name}.xlsx`);
 
-  // 6. Καθαρισμός και Μήνυμα
+  // 9. Καθαρισμός UI
   setCart([]);
   setNotes('');
   setShowSuccess(true);
@@ -635,16 +652,28 @@ const exportToExcel = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      localStorage.clear(); 
-      window.location.reload(); 
-    } catch (err) {
-      console.error(err);
-      window.location.reload(); 
-    }
-  };
+const handleLogout = async () => {
+  try {
+    // 1. Πρώτα καθαρίζουμε το state της React για να εξαφανιστούν τα δεδομένα από την οθόνη
+    setUser({ id: '', email: '', role: 'customer', isLoggedIn: false });
+    setCart([]);
+    setSelectedCustomer(null);
+
+    // 2. Έξοδος από το Supabase
+    await supabase.auth.signOut();
+    
+    // 3. Καθαρισμός LocalStorage
+    localStorage.clear(); 
+    
+    // 4. Αντί για reload, ανακατεύθυνση στην αρχική (ή απλά reload αν προτιμάς)
+    window.location.href = window.location.origin; 
+  } catch (err) {
+    console.error(err);
+    // Σε περίπτωση σφάλματος, εξαναγκασμός καθαρισμού και reload
+    localStorage.clear();
+    window.location.reload();
+  }
+};
 
   if (authLoading) {
     return (
@@ -999,25 +1028,25 @@ const exportToExcel = () => {
                     </div>
                   </div>
                   
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+<div className="w-full overflow-hidden"> {/* Αλλαγή από overflow-x-auto σε overflow-hidden */}
+  <table className="w-full text-left border-collapse table-fixed"> {/* Προσθήκη table-fixed */}
                       <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
-                        <tr>
-                          <th className="px-4 py-3">Προϊόν</th>
-                          <th className="px-4 py-3 text-right">Τιμή</th>
-                          <th className="px-4 py-3 text-center w-24">Ποσ.</th>
-                        </tr>
-                      </thead>
+  <tr>
+    <th className="px-4 py-3 w-[50%]">Προϊον</th>
+    <th className="px-4 py-3 text-right w-[20%]">Τιμη</th>
+    <th className="px-4 py-3 text-right w-[30%]">Ποσοτητα</th>
+  </tr>
+</thead>
                       <tbody className="divide-y divide-slate-100">
-                        {filteredProducts.map(prod => (
-                          <ProductRow 
-                            key={prod.code} 
-                            product={prod} 
-                            currentQty={cart.find(item => item.code === prod.code)?.quantity || 0}
-                            onUpdateQty={updateCartQuantity} 
-                            onImageClick={setViewingProduct}
-                          />
-                        ))}
+                        {filteredProducts.map((prod, index) => (
+  <ProductRow 
+    key={prod.code}
+    product={prod} 
+    currentQty={cart.find(item => item.code === prod.code)?.quantity || 0}
+    onUpdateQty={updateCartQuantity} 
+    onImageClick={setViewingProduct}
+  />
+))}
                       </tbody>
                     </table>
                   </div>
@@ -1714,58 +1743,89 @@ interface ProductRowProps {
   onImageClick: (p: Product) => void;
 }
 
-const ProductRow: React.FC<ProductRowProps> = ({ product, currentQty, onUpdateQty, onImageClick }) => {
+const ProductRow: React.FC<ProductRowProps> = ({ 
+  product, 
+  currentQty, 
+  onUpdateQty, 
+  onImageClick 
+}) => {
   return (
-    <tr className="hover:bg-slate-50/80 transition-colors group">
-      <td className="px-4 py-4">
-        <div className="flex items-center gap-3">
-          {product.imageUrl ? (
-            <img 
-              src={product.imageUrl} 
-              alt={product.description} 
-              className="w-12 h-12 rounded-lg object-cover shadow-sm border border-slate-100 cursor-zoom-in hover:scale-110 transition-transform"
-              referrerPolicy="no-referrer"
-              onClick={() => onImageClick(product)}
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-              <Package size={20} />
-            </div>
-          )}
-          <div className="min-w-0">
-            <div className="font-bold text-slate-800 text-sm leading-tight group-hover:text-gusto-green transition-colors truncate max-w-[200px] md:max-w-xs" title={product.description}>
+    <tr className="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
+      {/* 1. Εικόνα και Όνομα Προϊόντος */}
+      <td className="px-4 py-4 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Container Εικόνας - Το flex-shrink-0 είναι απαραίτητο */}
+          <div 
+            className="w-12 h-12 rounded-lg bg-slate-100 flex-shrink-0 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
+            onClick={() => onImageClick(product)}
+          >
+            {product.imageUrl ? (
+              <img 
+                src={product.imageUrl} 
+                alt="" 
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <Package className="w-6 h-6 text-slate-400" />
+            )}
+          </div>
+
+          {/* Κείμενο (Όνομα και Κωδικός) */}
+          <div className="min-w-0 flex-1">
+            <div 
+              className="font-black text-slate-800 text-[11px] uppercase truncate block" 
+              title={product.description}
+            >
               {product.description}
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">{product.code}</span>
+              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono truncate">
+                {product.code}
+              </span>
             </div>
           </div>
         </div>
       </td>
+
+      {/* 2. Τιμή */}
       <td className="px-4 py-4 text-right">
-        <div className="font-black text-gusto-green text-sm">{product.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</div>
+        <div className="font-black text-gusto-green text-sm whitespace-nowrap">
+          {product.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}
+        </div>
       </td>
+
+      {/* 3. Έλεγχος Ποσότητας (- 0 +) */}
       <td className="px-4 py-4">
-        <div className="flex items-center bg-slate-100 rounded-lg p-1">
-          <button 
-            onClick={() => onUpdateQty(product, Math.max(0, currentQty - 1))} 
-            className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-gusto-green"
-          >
-            -
-          </button>
-          <input 
-            type="number" 
-            className="w-10 bg-transparent text-center text-xs font-black outline-none border-none p-0"
-            value={currentQty || ''}
-            onChange={(e) => onUpdateQty(product, parseInt(e.target.value) || 0)}
-            placeholder="0"
-          />
-          <button 
-            onClick={() => onUpdateQty(product, currentQty + 1)} 
-            className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-gusto-green"
-          >
-            +
-          </button>
+        <div className="flex items-center justify-end">
+          <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200 flex-nowrap w-fit">
+            <button 
+              type="button"
+              onClick={() => onUpdateQty(product, Math.max(0, currentQty - 1))} 
+              className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-white rounded-md transition-all font-bold"
+            >
+              <Minus size={16} />
+            </button>
+            
+            <input 
+              type="number" 
+              className="w-8 bg-transparent text-center text-xs font-black outline-none border-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              value={currentQty || ''}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                onUpdateQty(product, isNaN(val) ? 0 : val);
+              }}
+              placeholder="0"
+            />
+            
+            <button 
+              type="button"
+              onClick={() => onUpdateQty(product, currentQty + 1)} 
+              className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-white rounded-md transition-all font-bold"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
         </div>
       </td>
     </tr>
