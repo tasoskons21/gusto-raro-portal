@@ -31,7 +31,7 @@ import { supabase } from './lib/supabase';
 
 export default function App() {
   // Auth State
-  const [user, setUser] = useState<User>({ id: '', email: '', role: 'customer', isLoggedIn: false });
+  const [user, setUser] = useState<User>({ id: '', email: '', role: 'customer', customer_id: null, isLoggedIn: false });
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [authLoading, setAuthLoading] = useState(true);
@@ -132,39 +132,60 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [custData, prodData, brandData] = await Promise.all([
-          dataService.fetchCustomers(),
-          dataService.fetchProducts(),
-          dataService.fetchBrands()
-        ]);
-        setCustomers(custData);
-        setProducts(prodData);
-        setAllBrands(brandData.sort((a, b) => a.name.localeCompare(b.name)));
-      } catch (err) {
-        console.error('Error loading data:', err);
-        setError('Σφάλμα κατά τη φόρτωση των δεδομένων.');
-      } finally {
-        setIsLoading(false);
+useEffect(() => {
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [custData, prodData, brandData] = await Promise.all([
+        dataService.fetchCustomers(),
+        dataService.fetchProducts(),
+        dataService.fetchBrands()
+      ]);
+      
+      setCustomers(custData);
+      setProducts(prodData);
+      setAllBrands(brandData.sort((a, b) => a.name.localeCompare(b.name)));
+
+      // ΑΥΤΟΜΑΤΗ ΕΠΙΛΟΓΗ ΠΕΛΑΤΗ
+      // Αν ο χρήστης είναι customer και έχει συνδεδεμένο customer_id στη βάση
+      if (user.isLoggedIn && user.role === 'customer' && (user as any).customer_id) {
+        const myCustomer = custData.find(c => c.id === (user as any).customer_id);
+        if (myCustomer) {
+          setSelectedCustomer(myCustomer);
+        }
       }
-    };
-    loadData();
-  }, []);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Σφάλμα κατά τη φόρτωση των δεδομένων.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  loadData();
+  // Προσθέτουμε τα dependencies για να ξανατρέξει αν αλλάξει ο χρήστης (π.χ. μετά από login)
+}, [user.isLoggedIn, user.role, (user as any).customer_id]);
 
   // Memoized Filters for performance
-  const filteredCustomers = useMemo(() => {
-    if (searchTerm.trim().length === 0) return [];
-    const term = searchTerm.toLowerCase().trim();
-    return customers.filter(c => 
-      c.name.toLowerCase().includes(term) || 
-      c.afm.includes(term) || 
-      c.code.toLowerCase().includes(term) ||
-      c.city.toLowerCase().includes(term)
-    ).slice(0, 30);
-  }, [customers, searchTerm]);
+const filteredCustomers = useMemo(() => {
+  // 1. Αν ο χρήστης είναι πελάτης, επιστρέφουμε ΜΟΝΟ τον εαυτό του
+  if (user.role === 'customer' && (user as any).customer_id) {
+    return customers.filter(c => c.id === (user as any).customer_id);
+  }
+
+  // 2. Αν είναι Admin ή Πωλητής, η αναζήτηση λειτουργεί κανονικά
+  if (searchTerm.trim().length === 0) return [];
+  
+  const term = searchTerm.toLowerCase().trim();
+  return customers.filter(c => 
+    c.name.toLowerCase().includes(term) || 
+    c.afm.includes(term) || 
+    c.code.toLowerCase().includes(term) ||
+    c.city.toLowerCase().includes(term)
+  ).slice(0, 30);
+  
+  // Προσθέτουμε το user.role και το customer_id στα dependencies
+}, [customers, searchTerm, user.role, (user as any).customer_id]);
 
   const brands = useMemo(() => {
     return allBrands.map(b => b.name);
@@ -607,14 +628,15 @@ const exportToExcel = () => {
           .upsert({
             id: userId,
             email: newUserForm.email,
-            role: newUserForm.role
+            role: newUserForm.role,
+            customer_id: newUserForm.role === 'customer' ? newUserForm.customerId : null
           });
 
         if (profileError) throw profileError;
       }
 
       setShowSuccess(true);
-      setNewUserForm({ email: '', password: '', role: 'customer' });
+      setNewUserForm({ email: '', password: '', role: 'customer',customerId: '' });
       setShowCreateUser(false);
       // Ενημερώνουμε τη λίστα χωρίς να πετάξουμε ξανά loading spinner
       await fetchAllUsers(false); 
@@ -632,25 +654,58 @@ const exportToExcel = () => {
   };
 
   // Login Handler
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    setAuthLoading(true);
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoginError('');
+  setAuthLoading(true);
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginForm.email,
-        password: loginForm.password,
-      });
+  try {
+    // 1. Σύνδεση στο Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: loginForm.email,
+      password: loginForm.password,
+    });
 
-      if (error) throw error;
-      setLoginError('');
-    } catch (err: any) {
-      setLoginError(err.message || 'Λάθος στοιχεία σύνδεσης. Δοκιμάστε ξανά.');
-    } finally {
-      setAuthLoading(false);
+    if (authError) throw authError;
+
+    if (authData.user) {
+      // 2. Τραβάμε το προφίλ του χρήστη για να μάθουμε τον Ρόλο και το Customer ID
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, customer_id')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        // Αν δεν βρει προφίλ, του δίνουμε default ρόλο για να μην κολλήσει
+        setUser({
+          id: authData.user.id,
+          email: authData.user.email || '',
+          role: 'customer',
+          isLoggedIn: true
+        });
+      } else {
+        // 3. Ενημερώνουμε το state με ΟΛΑ τα στοιχεία
+        setUser({
+          id: authData.user.id,
+          email: authData.user.email || '',
+          role: profile.role || 'customer',
+          // Εδώ είναι το κλειδί: Περνάμε το customer_id στο state του user
+          customer_id: profile.customer_id, 
+          isLoggedIn: true
+        } as any); // Χρησιμοποιούμε as any αν το interface User δεν έχει ακόμα το customer_id
+      }
     }
-  };
+
+    setLoginError('');
+  } catch (err: any) {
+    console.error("Login error:", err);
+    setLoginError(err.message || 'Λάθος στοιχεία σύνδεσης. Δοκιμάστε ξανά.');
+  } finally {
+    setAuthLoading(false);
+  }
+};
 
 const handleLogout = async () => {
   try {
@@ -899,12 +954,14 @@ const handleLogout = async () => {
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-slate-800">ΠΕΛΑΤΗΣ</h3>
+                  {user.role !== 'customer' && (
                   <button 
                     onClick={() => setSelectedCustomer(null)}
                     className="text-xs text-red-500 font-bold hover:underline"
                   >
                     ΑΛΛΑΓΗ
                   </button>
+                  )}
                 </div>
                 <div className="p-3 bg-gusto-green/5 rounded-xl border border-gusto-green/10">
                   <p className="font-bold text-gusto-green text-sm uppercase">{selectedCustomer.name}</p>
@@ -1640,43 +1697,62 @@ const handleLogout = async () => {
                     >
                       <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                         <h3 className="text-sm font-black text-slate-700 mb-3 uppercase tracking-widest">ΣΤΟΙΧΕΙΑ ΝΕΟΥ ΧΡΗΣΤΗ</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <input
-                            type="email"
-                            placeholder="Email / Username"
-                            required
-                            value={newUserForm.email}
-                            onChange={e => setNewUserForm({...newUserForm, email: e.target.value})}
-                            className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700"
-                          />
-                          <input
-                            type="password"
-                            placeholder="Κωδικός"
-                            required
-                            minLength={6}
-                            value={newUserForm.password}
-                            onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
-                            className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700"
-                          />
-                          <div className="flex gap-2">
-                            <select
-                              value={newUserForm.role}
-                              onChange={e => setNewUserForm({...newUserForm, role: e.target.value})}
-                              className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700 bg-white"
-                            >
-                              <option value="customer">Πελάτης</option>
-                              <option value="seller">Πωλητής</option>
-                              <option value="admin">Admin</option>
-                            </select>
-                            <button 
-                              type="submit" 
-                              disabled={isAdminLoading}
-                              className="bg-gusto-green text-white px-4 rounded-lg font-bold text-sm hover:bg-gusto-green-light transition-colors disabled:opacity-50"
-                            >
-                              ΑΠΟΘΗΚΕΥΣΗ
-                            </button>
-                          </div>
-                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"> {/* Αυξάνουμε τα columns */}
+  <input
+    type="email"
+    placeholder="Email / Username"
+    required
+    value={newUserForm.email}
+    onChange={e => setNewUserForm({...newUserForm, email: e.target.value})}
+    className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700"
+  />
+  
+  <input
+    type="password"
+    placeholder="Κωδικός"
+    required
+    minLength={6}
+    value={newUserForm.password}
+    onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
+    className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700"
+  />
+
+  <select
+    value={newUserForm.role}
+    onChange={e => setNewUserForm({...newUserForm, role: e.target.value as any, customerId: ''})}
+    className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700 bg-white"
+  >
+    <option value="customer">Πελάτης</option>
+    <option value="seller">Πωλητής</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  {/* Εμφάνιση επιλογής καταστήματος μόνο αν ο ρόλος είναι customer */}
+  {newUserForm.role === 'customer' && (
+    <select
+      required
+      value={newUserForm.customerId || ''}
+      onChange={e => setNewUserForm({...newUserForm, customerId: e.target.value})}
+      className="px-3 py-2 border border-blue-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700 bg-blue-50 animate-in fade-in zoom-in-95 duration-200"
+    >
+      <option value="">Επιλογή Καταστήματος...</option>
+      {customers
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(c => (
+          <option key={c.id} value={c.id}>{c.name} ({c.city})</option>
+        ))
+      }
+    </select>
+  )}
+
+  <button 
+    type="submit" 
+    disabled={isAdminLoading || (newUserForm.role === 'customer' && !newUserForm.customerId)}
+    className="bg-gusto-green text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-gusto-green-light transition-colors disabled:opacity-50 md:col-span-2 lg:col-span-1"
+  >
+    ΑΠΟΘΗΚΕΥΣΗ
+  </button>
+</div>
                       </div>
                     </motion.form>
                   )}
