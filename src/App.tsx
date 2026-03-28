@@ -1005,12 +1005,14 @@ const handleLogout = async () => {
                 >
                   <Package size={18} /> ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ
                 </button>
+                {false && (
                 <button 
                   onClick={() => setActiveTab('history')}
                   className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 'history' ? 'bg-gusto-green text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}
                 >
                   <History size={18} /> ΙΣΤΟΡΙΚΟ
                 </button>
+                )}
               </div>
 
               {activeTab === 'order' ? (
@@ -1180,6 +1182,7 @@ const handleLogout = async () => {
                         />
                       </div>
                     </div>
+                    {false && (
                     <button 
                       disabled={cart.length === 0}
                       onClick={submitOrder}
@@ -1187,15 +1190,16 @@ const handleLogout = async () => {
                     >
                       ΟΛΟΚΛΗΡΩΣΗ & ΑΠΟΣΤΟΛΗ
                     </button>
+                    )}
 
-<button 
-  disabled={cart.length === 0}
-  onClick={exportToExcel}
-  className="w-full mt-2 bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
->
-  <Download size={18} />
-  EXPORT EXCEL
-</button>
+                      <button 
+                        disabled={cart.length === 0}
+                        onClick={exportToExcel}
+                        className="w-full mt-2 bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                        >
+                          <Download size={18} />
+                            EXPORT EXCEL
+                          </button>
                   </div>
                 </div>
               </div>
