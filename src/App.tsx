@@ -754,7 +754,6 @@ const handleLogout = async () => {
               referrerPolicy="no-referrer"
             />
             <h1 className="text-2xl font-black text-gusto-green tracking-tight">B2B PORTAL</h1>
-            <p className="text-slate-400 text-sm font-medium mt-1 uppercase tracking-widest">Σύνδεση Πωλητή</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -821,7 +820,7 @@ const handleLogout = async () => {
           </form>
 
           <p className="text-center text-[10px] text-slate-300 mt-8 font-medium uppercase tracking-tighter">
-            © 2026 GUSTO RARO - POWERED BY SOFT1 ERP
+            © 2026 GUSTO RARO
           </p>
         </motion.div>
       </div>
