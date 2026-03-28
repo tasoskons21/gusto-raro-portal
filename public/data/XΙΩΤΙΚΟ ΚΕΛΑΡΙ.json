@@ -1,0 +1,51 @@
+[
+  {
+    "Code": "XK-0266",
+    "Description": "ΚΟΥΛΟΥΡΙΔΑ ΧΙΟΥ 500g",
+    "Brand": "XΙΩΤΙΚΟ ΚΕΛΑΡΙ",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/5200366200266-600x600.jpg"
+  },
+  {
+    "Code": "XK-0679",
+    "Description": "ΣΤΡΙΦΤΑΡΙ ΜΕΛΑΝΙ ΣΟΥΠΙΑΣΣ 500g",
+    "Brand": "XΙΩΤΙΚΟ ΚΕΛΑΡΙ",
+    "Price": 2.75,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/5200366200679-400x400.jpg"
+  },
+  {
+    "Code": "XK-0433",
+    "Description": "ΣΤΡΙΦΤΑΡΙ ΜΑΝΤΑΡΙΝΙ 500g",
+    "Brand": "XΙΩΤΙΚΟ ΚΕΛΑΡΙ",
+    "Price": 2.95,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/5200366200433-600x600.jpg"
+  },
+  {
+    "Code": "XK-0709",
+    "Description": "ΚΟΥΣ ΚΟΥΣ ΛΑΧΑΝΙΚΩΝ 500γ",
+    "Brand": "XΙΩΤΙΚΟ ΚΕΛΑΡΙ",
+    "Price": 3.35,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/5200366200709-600x600.jpg"
+  },
+  {
+    "Code": "XK-0600",
+    "Description": "ΣΤΡΙΦΤΑΡΙ ΠΑΡΜΕΖΑΝΑ 500g",
+    "Brand": "XΙΩΤΙΚΟ ΚΕΛΑΡΙ",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/5200366200600-600x600.jpg"
+  },
+  {
+    "Code": "XK-0617",
+    "Description": "ΣΤΡΙΦΤΑΡΙ ΡΟΚΑ ΠΑΡΜΕΖΑΝΑ 500g",
+    "Brand": "XΙΩΤΙΚΟ ΚΕΛΑΡΙ",
+    "Price": 3.15,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/5200366200617-600x600.jpg"
+  },
+  {
+    "Code": "XK-0655",
+    "Description": "ΧΟΡΤΟΣΟΥΠΑ 500g “S”",
+    "Brand": "XΙΩΤΙΚΟ ΚΕΛΑΡΙ",
+    "Price": 2.55,
+    "ImageUrl": "https://gustoraro.gr/wp-content/uploads/2023/09/5200366200655-600x600.jpg"
+  }
+]
