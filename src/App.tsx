@@ -93,52 +93,60 @@ export default function App() {
   const handleCreateBrand = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. Reset & Start Loading
+    // 1. Reset & Start
     setShowError(null);
     setShowSuccess(false);
     setIsAdminLoading(true);
 
-    // 2. Ανάκτηση - Δοκιμάζουμε ΟΛΑ τα πιθανά κλειδιά (logo, logoUrl, logo_url)
-    // για να είμαστε σίγουροι ότι δεν φταίει το όνομα στο State
+    // 2. Ανάκτηση δεδομένων από το state (χρησιμοποιώντας το .logo που έχει το input σου)
     const finalName = (newBrandForm?.name || "").toString().trim().toUpperCase();
-    const finalLogo = (newBrandForm?.logo || newBrandForm?.logoUrl || "").toString().trim();
-
-    // DEBUG ALERT: Θα σου δείξει τι πάει να στείλει. 
-    // Αν το URL είναι κενό στο alert, τότε φταίει το input name!
-    // console.log("DATA TO SEND:", { name: finalName, logo: finalLogo });
+    const finalLogo = (newBrandForm?.logo || "").toString().trim();
 
     if (!finalName) {
-      setShowError("ΤΟ ΟΝΟΜΑ ΕΙΝΑΙ ΥΠΟΧΡΕΩΤΙΚΟ");
+      setShowError("ΤΟ ΟΝΟΜΑ ΤΗΣ ΜΑΡΚΑΣ ΕΙΝΑΙ ΥΠΟΧΡΕΩΤΙΚΟ");
       setIsAdminLoading(false);
       return;
     }
 
     try {
-      // 3. Αποστολή στο Supabase - Χρήση Array [] για μέγιστη συμβατότητα
-      const { error } = await supabase
+      // 3. Αποστολή στη Supabase
+      const { data, error } = await supabase
         .from('brands')
         .insert([
           {
             name: finalName,
-            // Χρησιμοποιούμε το URL όπως είναι, αλλά προσθέτουμε ένα log για επιβεβαίωση
-            logo_url: finalLogo.trim() || null
+            logo_url: finalLogo || null // Εδώ μπαίνει το κείμενο του URL
           }
-        ]);
+        ])
+        .select(); // Φέρνουμε πίσω το record για να ενημερώσουμε το UI αμέσως
 
       if (error) {
-        console.error("Supabase Error Details:", error);
+        console.error("Supabase Error:", error);
         throw error;
       }
 
-      // 4. Επιτυχία
+      // 4. Ενημέρωση του UI χωρίς loadInitialData (για να μην κολλάει)
+      if (data && data[0]) {
+        setAllBrands(prev => {
+          const newState = [...prev, data[0]];
+          return newState.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        });
+      }
+
+      // 5. Καθαρισμός και Επιτυχία
       setShowSuccess(true);
-      setNewBrandForm({ name: '', logo: '', logoUrl: '' }); // Καθαρίζουμε όλα τα πιθανά κλειδιά
-      await loadInitialData();
+      setNewBrandForm({ name: '', logo: '' }); // Καθαρίζουμε το form state
+
+      // Αν έχεις κάποιο state που κλείνει το modal, βάλτο εδώ:
+      // setIsAddingBrand(false);
+
       setTimeout(() => setShowSuccess(false), 3000);
 
     } catch (err: any) {
-      console.error("CRITICAL ERROR:", err);
-      setShowError("ΑΠΟΤΥΧΙΑ: " + (err.message || "ΣΦΑΛΜΑ ΒΑΣΗΣ").toUpperCase());
+      console.error("Brand Create Error:", err);
+      let msg = err.message || "ΣΦΑΛΜΑ ΒΑΣΗΣ";
+      if (err.code === '23505') msg = "Η ΜΑΡΚΑ ΥΠΑΡΧΕΙ ΗΔΗ";
+      setShowError("ΑΠΟΤΥΧΙΑ: " + msg.toUpperCase());
     } finally {
       setIsAdminLoading(false);
     }
