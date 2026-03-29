@@ -3,15 +3,15 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 //import * as XLSX from 'xlsx';
 import XLSX from 'xlsx-js-style';
-import { 
-  Search, 
-  ShoppingCart, 
-  LogOut, 
-  User as UserIcon, 
-  ChevronRight, 
-  X, 
-  CheckCircle2, 
-  History, 
+import {
+  Search,
+  ShoppingCart,
+  LogOut,
+  User as UserIcon,
+  ChevronRight,
+  X,
+  CheckCircle2,
+  History,
   Package,
   Plus,
   Minus,
@@ -22,7 +22,9 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Settings
+  Settings,
+  Pencil,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Customer, Product, CartItem, OrderRecord, User, Brand } from './types';
@@ -36,7 +38,7 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [authLoading, setAuthLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // Data State
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -50,6 +52,12 @@ export default function App() {
   const [isAdminLoading, setIsAdminLoading] = useState(false);
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [newUserForm, setNewUserForm] = useState({ email: '', password: '', role: 'customer' });
+  const [adminTab, setAdminTab] = useState<'users' | 'brands' | 'products'>('users');
+  const [adminStatus, setAdminStatus] = useState<{ msg: string, type: 'success' | 'error' } | null>(null);
+  const [searchCode, setSearchCode] = useState('');
+  const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ description: '', price: '', imageUrl: '' });
+  const [adminSearchResults, setAdminSearchResults] = useState<Product[]>([]);
 
   // UI State
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -67,6 +75,302 @@ export default function App() {
   const [viewingOrder, setViewingOrder] = useState<OrderRecord | null>(null);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  // State για τη φόρμα των Brands
+  const [newBrandForm, setNewBrandForm] = useState({
+    name: '',
+    logo: ''
+  });
+
+  // State για τη φόρμα των Προϊόντων
+  const [newProductForm, setNewProductForm] = useState({
+    code: '',
+    description: '',
+    brand: '',
+    price: '',
+    imageUrl: ''
+  });
+
+  const handleCreateBrand = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 1. Reset & Start Loading
+    setShowError(null);
+    setShowSuccess(false);
+    setIsAdminLoading(true);
+
+    // 2. Ανάκτηση - Δοκιμάζουμε ΟΛΑ τα πιθανά κλειδιά (logo, logoUrl, logo_url)
+    // για να είμαστε σίγουροι ότι δεν φταίει το όνομα στο State
+    const finalName = (newBrandForm?.name || "").toString().trim().toUpperCase();
+    const finalLogo = (newBrandForm?.logo || newBrandForm?.logoUrl || "").toString().trim();
+
+    // DEBUG ALERT: Θα σου δείξει τι πάει να στείλει. 
+    // Αν το URL είναι κενό στο alert, τότε φταίει το input name!
+    // console.log("DATA TO SEND:", { name: finalName, logo: finalLogo });
+
+    if (!finalName) {
+      setShowError("ΤΟ ΟΝΟΜΑ ΕΙΝΑΙ ΥΠΟΧΡΕΩΤΙΚΟ");
+      setIsAdminLoading(false);
+      return;
+    }
+
+    try {
+      // 3. Αποστολή στο Supabase - Χρήση Array [] για μέγιστη συμβατότητα
+      const { error } = await supabase
+        .from('brands')
+        .insert([
+          {
+            name: finalName,
+            // Χρησιμοποιούμε το URL όπως είναι, αλλά προσθέτουμε ένα log για επιβεβαίωση
+            logo_url: finalLogo.trim() || null
+          }
+        ]);
+
+      if (error) {
+        console.error("Supabase Error Details:", error);
+        throw error;
+      }
+
+      // 4. Επιτυχία
+      setShowSuccess(true);
+      setNewBrandForm({ name: '', logo: '', logoUrl: '' }); // Καθαρίζουμε όλα τα πιθανά κλειδιά
+      await loadInitialData();
+      setTimeout(() => setShowSuccess(false), 3000);
+
+    } catch (err: any) {
+      console.error("CRITICAL ERROR:", err);
+      setShowError("ΑΠΟΤΥΧΙΑ: " + (err.message || "ΣΦΑΛΜΑ ΒΑΣΗΣ").toUpperCase());
+    } finally {
+      setIsAdminLoading(false);
+    }
+  };
+
+  const handleDeleteBrand = async (brandId: string | number) => {
+    // Διατηρούμε το confirm για ασφάλεια πριν τη διαγραφή
+    if (!window.confirm("Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το Brand;")) return;
+
+    // Καθαρισμός προηγούμενων μηνυμάτων
+    setShowError(null);
+    setShowSuccess(false);
+
+    try {
+      const { error } = await supabase
+        .from('brands')
+        .delete()
+        .eq('id', brandId);
+
+      if (error) throw error;
+
+      // ΕΠΙΤΥΧΙΑ ΔΙΑΓΡΑΦΗΣ
+      setShowSuccess(true);
+      await loadInitialData(); // Ανανέωση της λίστας για να εξαφανιστεί το brand
+
+      // Αυτόματη απόκρυψη του success μετά από 3 δευτερόλεπτα
+      setTimeout(() => setShowSuccess(false), 3000);
+
+    } catch (error: any) {
+      console.error("Error deleting brand:", error);
+      // ΣΦΑΛΜΑ ΔΙΑΓΡΑΦΗΣ
+      setShowError("Αποτυχία διαγραφής: " + error.message);
+    }
+  };
+
+  const handleCreateProduct = async (e: React.FormEvent) => {
+
+    e.preventDefault();
+
+    // 1. Καθαρισμός προηγούμενων μηνυμάτων
+    setShowError(null);
+    setShowSuccess(false);
+
+    try {
+      setIsAdminLoading(true);
+
+      // 2. Ασφαλής ανάκτηση & Μετατροπή σε ΚΕΦΑΛΑΙΑ (εκεί που χρειάζεται)
+      const rawCode = (newProductForm?.code || "").toString();
+      const rawDesc = (newProductForm?.description || "").toString();
+      const rawBrand = (newProductForm?.brand || "").toString();
+      const rawPrice = (newProductForm?.price || "").toString();
+      const rawImg = (newProductForm?.imageUrl || "").toString();
+
+      const finalCode = rawCode.trim().toUpperCase();
+      const finalDesc = rawDesc.trim().toUpperCase();
+      const finalBrand = rawBrand.trim(); // Το Brand το παίρνουμε όπως είναι από το select
+      const finalPrice = parseFloat(rawPrice);
+      const finalImg = rawImg.trim();
+
+      // 3. Βασικός έλεγχος εγκυρότητας
+      if (!finalCode || !finalDesc || !finalBrand || isNaN(finalPrice)) {
+        setShowError("ΠΑΡΑΚΑΛΩ ΣΥΜΠΛΗΡΩΣΤΕ ΟΛΑ ΤΑ ΥΠΟΧΡΕΩΤΙΚΑ ΠΕΔΙΑ (*) ΜΕ ΕΓΚΥΡΕΣ ΤΙΜΕΣ");
+        setIsAdminLoading(false);
+        return;
+      }
+
+
+      // 4. Αποστολή στο Supabase
+      // ΠΡΟΣΟΧΗ: Βεβαιώσου ότι τα ονόματα των στηλών (Code, Description κλπ) 
+      // είναι ακριβώς όπως στη βάση σου (Case Sensitive)
+      const { error } = await supabase
+        .from('products')
+        .insert([{
+          Code: finalCode,
+          Description: finalDesc,
+          Brand: finalBrand,
+          Price: finalPrice,
+          ImageUrl: finalImg || null // Χρήση Image_Url με underscore αν έτσι είναι στη βάση
+        }]);
+
+      if (error) {
+        console.error("Supabase Insert Error:", error);
+        throw error;
+      }
+
+      // 5. ΕΠΙΤΥΧΙΑ
+      setShowSuccess(true);
+
+      // Καθαρισμός της φόρμας
+      setNewProductForm({
+        code: '',
+        description: '',
+        brand: '',
+        price: '',
+        imageUrl: ''
+      });
+
+      // Ανανέωση των δεδομένων
+      await loadInitialData();
+
+      // Αυτόματη απόκρυψη του success μετά από 3 δευτερόλεπτα
+      setTimeout(() => setShowSuccess(false), 3000);
+
+    } catch (error: any) {
+      console.error("Error creating product:", error);
+
+      let msg = error.message || "ΑΓΝΩΣΤΟ ΣΦΑΛΜΑ";
+      if (error.code === '23505') msg = "Ο ΚΩΔΙΚΟΣ ΠΡΟΪΟΝΤΟΣ ΥΠΑΡΧΕΙ ΗΔΗ";
+
+      setShowError("ΣΦΑΛΜΑ ΚΑΤΑ ΤΗΝ ΑΠΟΘΗΚΕΥΣΗ: " + msg.toUpperCase());
+    } finally {
+      setIsAdminLoading(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productCode: string) => {
+    if (!productCode) {
+      setShowError("Σφάλμα: Ο κωδικός προϊόντος είναι κενός.");
+      return;
+    }
+
+    if (!window.confirm(`Οριστική διαγραφή του προϊόντος με κωδικό: ${productCode};`)) return;
+
+    setShowError(null);
+    setShowSuccess(false);
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('Code', productCode); // Χρήση του Code ως κλειδί διαγραφής
+
+      if (error) throw error;
+
+      setShowSuccess(true);
+      await loadInitialData();
+      setTimeout(() => setShowSuccess(false), 3000);
+
+    } catch (error: any) {
+      console.error("Error deleting product:", error);
+      setShowError("Αποτυχία διαγραφής: " + error.message);
+    }
+  };
+
+  const handleSearchProduct = async () => {
+    if (!searchCode.trim()) {
+      setAdminSearchResults([]); // Καθαρίζει τη λίστα αν το search είναι κενό
+      return;
+    }
+
+    try {
+      setIsAdminLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .ilike('Code', `%${searchCode.toUpperCase()}%`)
+        .order('Code', { ascending: true })
+        .limit(50);
+
+      if (error) throw error;
+
+      // ΕΔΩ Η ΑΛΛΑΓΗ: Ενημερώνουμε το νέο state, όχι το γενικό products
+      setAdminSearchResults(data || []);
+
+    } catch (error: any) {
+      console.error("Search Error:", error);
+      setShowError("ΣΦΑΛΜΑ ΑΝΑΖΗΤΗΣΗΣ");
+    } finally {
+      setIsAdminLoading(false);
+    }
+  };
+
+  const handleUpdateProduct = async (code: string) => {
+    try {
+      setIsAdminLoading(true);
+      setShowError(null);
+
+      // 1. Προετοιμασία δεδομένων - Χρήση 'ImageUrl' όπως επιβεβαιώσαμε
+      const updatedData = {
+        Description: (editForm.description || '').trim().toUpperCase(),
+        Price: Number(editForm.price || 0),
+        // Εδώ χρησιμοποιούμε το ακριβές όνομα της κολώνας στη βάση
+        ImageUrl: (editForm.imageUrl || '').trim() || null
+      };
+
+      if (!updatedData.Description) {
+        setShowError("Η ΠΕΡΙΓΡΑΦΗ ΕΙΝΑΙ ΥΠΟΧΡΕΩΤΙΚΗ");
+        setIsAdminLoading(false);
+        return;
+      }
+
+      // 2. Ενημέρωση στη βάση δεδομένων (Supabase)
+      const { error } = await supabase
+        .from('products')
+        .update(updatedData)
+        .eq('Code', code);
+
+      if (error) throw error;
+
+      // 3. ΕΝΗΜΕΡΩΣΗ ΤΟΠΙΚΩΝ STATES ΓΙΑ ΑΜΕΣΟ REFRESH ΣΤΗΝ ΟΘΟΝΗ
+
+      // Ενημέρωση της λίστας που χρησιμοποιείται στις παραγγελίες
+      setProducts(prev => prev.map(p =>
+        (p.Code === code || p.code === code) ? { ...p, ...updatedData, code: code } : p
+      ));
+
+      // Ενημέρωση της λίστας που βλέπεις στο Admin Tab (Search Results)
+      setAdminSearchResults(prev => prev.map(p =>
+        (p.Code === code || p.code === code) ? { ...p, ...updatedData, Code: code } : p
+      ));
+
+      // 4. Επαναφορά των states και εμφάνιση επιτυχίας
+      setEditingProduct(null);
+      setEditForm({ description: '', price: '', imageUrl: '' });
+      setShowSuccess(true);
+
+      // Εξαφάνιση του μηνύματος επιτυχίας μετά από 3 δευτερόλεπτα
+      setTimeout(() => setShowSuccess(false), 3000);
+
+    } catch (error: any) {
+      console.error("Update error:", error);
+      setShowError("ΑΠΟΤΥΧΙΑ ΕΝΗΜΕΡΩΣΗΣ: " + error.message.toUpperCase());
+    } finally {
+      setIsAdminLoading(false);
+    }
+  };
+
+
+  const showStatus = (msg: string, type: 'success' | 'error') => {
+    setAdminStatus({ msg, type });
+    setTimeout(() => setAdminStatus(null), 3000);
+  };
 
   // Order State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -76,8 +380,8 @@ export default function App() {
   useEffect(() => {
     const checkSession = async () => {
       setAuthLoading(true);
-      
-      const timeoutPromise = new Promise((_, reject) => 
+
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Auth check timed out')), 5000)
       );
 
@@ -93,7 +397,7 @@ export default function App() {
             .select('role')
             .eq('id', session.user.id)
             .single();
-          
+
           setUser({
             id: session.user.id,
             email: session.user.email || '',
@@ -132,60 +436,78 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-useEffect(() => {
-  const loadData = async () => {
-    setIsLoading(true);
+  // App.tsx
+
+  // 1. Ορίζουμε τη συνάρτηση ως αυτόνομη μέσα στο App component
+  const loadInitialData = async () => {
+    setIsLoading(true); // Ή isAdminLoading αν είσαι στο admin modal
     try {
+      // Τραβάμε τα πάντα από το DataService
       const [custData, prodData, brandData] = await Promise.all([
         dataService.fetchCustomers(),
         dataService.fetchProducts(),
         dataService.fetchBrands()
       ]);
-      
+
       setCustomers(custData);
       setProducts(prodData);
-      setAllBrands(brandData.sort((a, b) => a.name.localeCompare(b.name)));
 
-      // ΑΥΤΟΜΑΤΗ ΕΠΙΛΟΓΗ ΠΕΛΑΤΗ
-      // Αν ο χρήστης είναι customer και έχει συνδεδεμένο customer_id στη βάση
+      // Ταξινόμηση και αποθήκευση των brands
+      const sortedBrands = (brandData || []).sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '')
+      );
+      setAllBrands(sortedBrands);
+
+      // Αυτόματη επιλογή πελάτη αν είναι ρόλος customer
       if (user.isLoggedIn && user.role === 'customer' && (user as any).customer_id) {
-        const myCustomer = custData.find(c => c.id === (user as any).customer_id);
+        const myCustomer = custData.find(c => String(c.id) === String((user as any).customer_id));
         if (myCustomer) {
           setSelectedCustomer(myCustomer);
         }
       }
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('Σφάλμα κατά τη φόρτωση των δεδομένων.');
     } finally {
       setIsLoading(false);
     }
   };
-  
-  loadData();
-  // Προσθέτουμε τα dependencies για να ξανατρέξει αν αλλάξει ο χρήστης (π.χ. μετά από login)
-}, [user.isLoggedIn, user.role, (user as any).customer_id]);
 
-  // Memoized Filters for performance
-const filteredCustomers = useMemo(() => {
-  // 1. Αν ο χρήστης είναι πελάτης, επιστρέφουμε ΜΟΝΟ τον εαυτό του
-  if (user.role === 'customer' && (user as any).customer_id) {
-    return customers.filter(c => c.id === (user as any).customer_id);
-  }
+  // 2. Το useEffect απλά καλεί τη συνάρτηση
+  useEffect(() => {
+    loadInitialData();
+  }, [user.isLoggedIn, user.role, (user as any).customer_id]);
 
-  // 2. Αν είναι Admin ή Πωλητής, η αναζήτηση λειτουργεί κανονικά
-  if (searchTerm.trim().length === 0) return [];
-  
-  const term = searchTerm.toLowerCase().trim();
-  return customers.filter(c => 
-    c.name.toLowerCase().includes(term) || 
-    c.afm.includes(term) || 
-    c.code.toLowerCase().includes(term) ||
-    c.city.toLowerCase().includes(term)
-  ).slice(0, 30);
-  
-  // Προσθέτουμε το user.role και το customer_id στα dependencies
-}, [customers, searchTerm, user.role, (user as any).customer_id]);
+  const filteredCustomers = useMemo(() => {
+    // 1. Αν ο χρήστης είναι πελάτης, επιστρέφουμε ΜΟΝΟ τον εαυτό του
+    if (user.role === 'customer' && (user as any).customer_id) {
+      const myId = String((user as any).customer_id);
+      return customers.filter(c => String(c.id) === myId);
+    }
+
+    // 2. Αν είναι Admin ή Πωλητής, η αναζήτηση λειτουργεί κανονικά
+    const trimmedSearch = (searchTerm || '').trim();
+    if (trimmedSearch.length === 0) return [];
+
+    const term = trimmedSearch.toLowerCase();
+
+    return customers
+      .filter(c => {
+        // Χρησιμοποιούμε || '' παντού για να μην κρασάρει σε null τιμές από τη βάση
+        const name = (c.name || '').toLowerCase();
+        const afm = (c.afm || '').toLowerCase();
+        const city = (c.city || '').toLowerCase();
+
+        // Ελέγχουμε και το 'customer_code' (βάση) και το 'code' (frontend)
+        const code = (c.customer_code || c.code || '').toLowerCase();
+
+        return name.includes(term) ||
+          afm.includes(term) ||
+          code.includes(term) ||
+          city.includes(term);
+      })
+      .slice(0, 30); // Κρατάμε το slice για ταχύτητα στην εμφάνιση
+
+  }, [customers, searchTerm, user.role, (user as any).customer_id]);
 
   const brands = useMemo(() => {
     return allBrands.map(b => b.name);
@@ -198,20 +520,31 @@ const filteredCustomers = useMemo(() => {
   }, [brands, selectedBrand]);
 
   const filteredProducts = useMemo(() => {
-    const term = productSearch.toLowerCase().trim();
+    // 1. Προετοιμασία term με ασφάλεια
+    const term = (productSearch || '').toLowerCase().trim();
+
     const filtered = products.filter(p => {
-      const matchesBrand = (selectedBrand === '' || p.brand === selectedBrand);
-      
-      return matchesBrand &&
-        (term === '' || 
-         p.description.toLowerCase().includes(term) || 
-         p.code.toLowerCase().includes(term));
+      // 2. Ασφαλής έλεγχος Brand (προσθήκη || '' για αποφυγή null)
+      // Ελέγχουμε αν το p.brand υπάρχει πριν το συγκρίνουμε
+      const productBrand = p.brand || p.Brand || '';
+      const matchesBrand = (selectedBrand === '' || productBrand === selectedBrand);
+
+      // 3. Ασφαλής έλεγχος Description και Code
+      // Χρησιμοποιούμε (p.description || '') για να μην χτυπάει αν η βάση έχει null
+      const desc = (p.description || p.Description || '').toLowerCase();
+      const code = (p.code || p.Code || '').toLowerCase();
+
+      const matchesSearch = term === '' || desc.includes(term) || code.includes(term);
+
+      return matchesBrand && matchesSearch;
     });
-    
+
+    // 4. Αφαίρεση διπλότυπων βάσει κωδικού (Unique by Code)
     const seen = new Set();
     return filtered.filter(p => {
-      if (seen.has(p.code)) return false;
-      seen.add(p.code);
+      const productCode = p.code || p.Code;
+      if (!productCode || seen.has(productCode)) return false;
+      seen.add(productCode);
       return true;
     });
   }, [products, selectedBrand, productSearch]);
@@ -257,73 +590,73 @@ const filteredCustomers = useMemo(() => {
     });
   };
 
-const exportToExcel = () => {
-  if (cart.length === 0 || !selectedCustomer) return;
+  const exportToExcel = () => {
+    if (cart.length === 0 || !selectedCustomer) return;
 
-  // 1. Βασικά Στοιχεία Πελάτη
-  const data: any[][] = [
-    ['ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ'],
-    ['Κωδικός:', selectedCustomer.code],
-    ['Όνομα:', selectedCustomer.name],
-    ['ΑΦΜ:', selectedCustomer.afm],
-    ['Διεύθυνση:', selectedCustomer.address],
-    ['Πόλη:', selectedCustomer.city],
-  ];
+    // 1. Βασικά Στοιχεία Πελάτη
+    const data: any[][] = [
+      ['ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ'],
+      ['Κωδικός:', selectedCustomer.code],
+      ['Όνομα:', selectedCustomer.name],
+      ['ΑΦΜ:', selectedCustomer.afm],
+      ['Διεύθυνση:', selectedCustomer.address],
+      ['Πόλη:', selectedCustomer.city],
+    ];
 
-  // 2. ΠΡΟΣΘΗΚΗ ΠΑΡΑΤΗΡΗΣΕΩΝ ΜΕΤΑ ΤΗΝ ΠΟΛΗ (Μόνο αν υπάρχουν)
-  if (notes && notes.trim() !== '') {
-    data.push(['']); // Κενή γραμμή για ανάσα
-    data.push(['ΠΑΡΑΤΗΡΗΣΕΙΣ:']);
-    data.push([notes.toUpperCase()]); // Κεφαλαία για να ξεχωρίζουν
-  }
+    // 2. ΠΡΟΣΘΗΚΗ ΠΑΡΑΤΗΡΗΣΕΩΝ ΜΕΤΑ ΤΗΝ ΠΟΛΗ (Μόνο αν υπάρχουν)
+    if (notes && notes.trim() !== '') {
+      data.push(['']); // Κενή γραμμή για ανάσα
+      data.push(['ΠΑΡΑΤΗΡΗΣΕΙΣ:']);
+      data.push([notes.toUpperCase()]); // Κεφαλαία για να ξεχωρίζουν
+    }
 
-  // 3. Επικεφαλίδες Προϊόντων
-  data.push(
-    [''], 
-    ['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ'],
-    ['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ', 'ΤΙΜΗ ΜΟΝΑΔΟΣ']
-  );
+    // 3. Επικεφαλίδες Προϊόντων
+    data.push(
+      [''],
+      ['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ'],
+      ['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ', 'ΤΙΜΗ ΜΟΝΑΔΟΣ']
+    );
 
-  // 4. Προσθήκη Προϊόντων από το καλάθι
-  cart.forEach(item => {
-    data.push([
-      item.code, 
-      item.description, 
-      item.quantity, 
-      item.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })
-    ]);
-  });
+    // 4. Προσθήκη Προϊόντων από το καλάθι
+    cart.forEach(item => {
+      data.push([
+        item.code,
+        item.description,
+        item.quantity,
+        item.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })
+      ]);
+    });
 
-  // 5. Δημιουργία Worksheet
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
+    // 5. Δημιουργία Worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
 
-  // 6. Εφαρμογή Style (Κόκκινο/Bold) - Απαιτεί τη βιβλιοθήκη xlsx-js-style
-  // Αν υπάρχουν παρατηρήσεις, θα βρίσκονται στις γραμμές 8 και 9 (κελιά A8, A9)
-  if (notes && notes.trim() !== '') {
-    const redBoldStyle = { font: { bold: true, color: { rgb: "FF0000" }, sz: 11 } };
-    if (worksheet['A8']) worksheet['A8'].s = redBoldStyle;
-    if (worksheet['A9']) worksheet['A9'].s = redBoldStyle;
-  }
+    // 6. Εφαρμογή Style (Κόκκινο/Bold) - Απαιτεί τη βιβλιοθήκη xlsx-js-style
+    // Αν υπάρχουν παρατηρήσεις, θα βρίσκονται στις γραμμές 8 και 9 (κελιά A8, A9)
+    if (notes && notes.trim() !== '') {
+      const redBoldStyle = { font: { bold: true, color: { rgb: "FF0000" }, sz: 11 } };
+      if (worksheet['A8']) worksheet['A8'].s = redBoldStyle;
+      if (worksheet['A9']) worksheet['A9'].s = redBoldStyle;
+    }
 
-  // 7. Ρύθμιση Πλάτους Στηλών
-  worksheet['!cols'] = [
-    { wch: 20 }, // Στήλη Α
-    { wch: 50 }, // Στήλη Β
-    { wch: 12 }, // Στήλη Γ
-    { wch: 15 }, // Στήλη Δ
-  ];
+    // 7. Ρύθμιση Πλάτους Στηλών
+    worksheet['!cols'] = [
+      { wch: 20 }, // Στήλη Α
+      { wch: 50 }, // Στήλη Β
+      { wch: 12 }, // Στήλη Γ
+      { wch: 15 }, // Στήλη Δ
+    ];
 
-  // 8. Εξαγωγή
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Order");
-  XLSX.writeFile(workbook, `${selectedCustomer.name}.xlsx`);
+    // 8. Εξαγωγή
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Order");
+    XLSX.writeFile(workbook, `${selectedCustomer.name}.xlsx`);
 
-  // 9. Καθαρισμός UI
-  setCart([]);
-  setNotes('');
-  setShowSuccess(true);
-  setTimeout(() => setShowSuccess(false), 3000);
-};
+    // 9. Καθαρισμός UI
+    setCart([]);
+    setNotes('');
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
 
   const submitOrder = () => {
     if (!selectedCustomer) return;
@@ -360,9 +693,9 @@ const exportToExcel = () => {
 
   const filteredHistory = useMemo(() => {
     if (!selectedCustomer) return [];
-    
+
     const customerHistory = history.filter(order => order.customerCode === selectedCustomer.code);
-    
+
     if (historyFilter === 'all') return customerHistory;
     const now = new Date();
     if (historyFilter === 'year') {
@@ -385,7 +718,7 @@ const exportToExcel = () => {
       const originalOverflow = input.style.overflow;
       const originalWidth = input.style.width;
       const originalMaxHeight = input.style.maxHeight;
-      
+
       input.style.width = '800px';
       const originalPosition = input.style.position;
       input.style.position = 'relative';
@@ -396,8 +729,8 @@ const exportToExcel = () => {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const captureScale = isMobile ? 1.5 : 2;
 
-      const canvas = await html2canvas(input, { 
-        scale: captureScale, 
+      const canvas = await html2canvas(input, {
+        scale: captureScale,
         useCORS: true,
         allowTaint: false,
         logging: false,
@@ -412,7 +745,7 @@ const exportToExcel = () => {
             el.style.maxHeight = 'none';
             el.style.overflow = 'visible';
             el.style.position = 'relative';
-            el.style.padding = '40px'; 
+            el.style.padding = '40px';
 
             const style = clonedDoc.createElement('style');
             style.innerHTML = `
@@ -460,13 +793,13 @@ const exportToExcel = () => {
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
+
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      
+
       let heightLeft = imgHeight;
       let position = 0;
 
@@ -479,7 +812,7 @@ const exportToExcel = () => {
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pdfHeight;
       }
-      
+
       pdf.save(`${viewingOrder?.customerCode || 'order'}.pdf`);
     } catch (err) {
       console.error('Error generating PDF:', err);
@@ -533,7 +866,7 @@ const exportToExcel = () => {
         .from('profiles')
         .select('*')
         .order('email');
-  
+
       if (error) throw error;
       setAllUsers(data || []);
     } catch (err: any) {
@@ -547,18 +880,18 @@ const exportToExcel = () => {
   const handleUpdateRole = async (userId: string, newRole: string) => {
     // 1. Άμεση ενημέρωση (Optimistic Update) για να αλλάξει ακαριαία στην οθόνη χωρίς loading
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-    
+
     // 2. Ενημέρωση της βάσης στο παρασκήνιο
     const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-    
-    if (error) { 
-      setShowError('Αποτυχία αλλαγής ρόλου.'); 
-      setTimeout(() => setShowError(null), 3000); 
+
+    if (error) {
+      setShowError('Αποτυχία αλλαγής ρόλου.');
+      setTimeout(() => setShowError(null), 3000);
       // Αν αποτύχει, επαναφέρουμε τα δεδομένα κρυφά
-      fetchAllUsers(false); 
-    } else { 
-      setShowSuccess(true); 
-      setTimeout(() => setShowSuccess(false), 2000); 
+      fetchAllUsers(false);
+    } else {
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
     }
   };
 
@@ -573,9 +906,9 @@ const exportToExcel = () => {
       setTimeout(() => setShowError(null), 3000);
       return;
     }
-    
+
     //if (!window.confirm('Θα διαγραφεί το προφίλ. Ο χρήστης πρέπει να διαγραφεί χειροκίνητα και από το Auth Tab στο Supabase.')) return;
-  
+
     // 1. Άμεση αφαίρεση από την οθόνη χωρίς loading spinner
     setAllUsers(prev => prev.filter(u => u.id !== userId));
 
@@ -583,7 +916,7 @@ const exportToExcel = () => {
       // 2. Διαγραφή στο παρασκήνιο
       const { error } = await supabase.from('profiles').delete().eq('id', userId);
       if (error) throw error;
-  
+
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
     } catch (err: any) {
@@ -591,7 +924,7 @@ const exportToExcel = () => {
       setShowError("Σφάλμα βάσης: " + err.message);
       setTimeout(() => setShowError(null), 3000);
       // Αν αποτύχει, επαναφέρουμε τον χρήστη στη λίστα κρυφά
-      fetchAllUsers(false); 
+      fetchAllUsers(false);
     }
   };
 
@@ -602,10 +935,10 @@ const exportToExcel = () => {
     try {
       const supabaseUrl = (supabase as any).supabaseUrl || (import.meta as any).env?.VITE_SUPABASE_URL;
       const supabaseKey = (supabase as any).supabaseKey || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
-      
+
       const { createClient } = await import('@supabase/supabase-js');
       const tempClient = createClient(supabaseUrl, supabaseKey, {
-        auth: { 
+        auth: {
           persistSession: false,
           autoRefreshToken: false,
           detectSessionInUrl: false
@@ -636,10 +969,10 @@ const exportToExcel = () => {
       }
 
       setShowSuccess(true);
-      setNewUserForm({ email: '', password: '', role: 'customer',customerId: '' });
+      setNewUserForm({ email: '', password: '', role: 'customer', customerId: '' });
       setShowCreateUser(false);
       // Ενημερώνουμε τη λίστα χωρίς να πετάξουμε ξανά loading spinner
-      await fetchAllUsers(false); 
+      await fetchAllUsers(false);
 
     } catch (err: any) {
       console.error("Error creating user:", err);
@@ -654,81 +987,81 @@ const exportToExcel = () => {
   };
 
   // Login Handler
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoginError('');
-  setAuthLoading(true);
-
-  try {
-    // 1. Σύνδεση στο Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: loginForm.email,
-      password: loginForm.password,
-    });
-
-    if (authError) throw authError;
-
-    if (authData.user) {
-      // 2. Τραβάμε το προφίλ του χρήστη για να μάθουμε τον Ρόλο και το Customer ID
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, customer_id')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        // Αν δεν βρει προφίλ, του δίνουμε default ρόλο για να μην κολλήσει
-        setUser({
-          id: authData.user.id,
-          email: authData.user.email || '',
-          role: 'customer',
-          isLoggedIn: true
-        });
-      } else {
-        // 3. Ενημερώνουμε το state με ΟΛΑ τα στοιχεία
-        setUser({
-          id: authData.user.id,
-          email: authData.user.email || '',
-          role: profile.role || 'customer',
-          // Εδώ είναι το κλειδί: Περνάμε το customer_id στο state του user
-          customer_id: profile.customer_id, 
-          isLoggedIn: true
-        } as any); // Χρησιμοποιούμε as any αν το interface User δεν έχει ακόμα το customer_id
-      }
-    }
-
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoginError('');
-  } catch (err: any) {
-    console.error("Login error:", err);
-    setLoginError(err.message || 'Λάθος στοιχεία σύνδεσης. Δοκιμάστε ξανά.');
-  } finally {
-    setAuthLoading(false);
-  }
-};
+    setAuthLoading(true);
 
-const handleLogout = async () => {
-  try {
-    // 1. Πρώτα καθαρίζουμε το state της React για να εξαφανιστούν τα δεδομένα από την οθόνη
-    setUser({ id: '', email: '', role: 'customer', isLoggedIn: false });
-    setCart([]);
-    setSelectedCustomer(null);
+    try {
+      // 1. Σύνδεση στο Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginForm.email,
+        password: loginForm.password,
+      });
 
-    // 2. Έξοδος από το Supabase
-    await supabase.auth.signOut();
-    
-    // 3. Καθαρισμός LocalStorage
-    localStorage.clear(); 
-    
-    // 4. Αντί για reload, ανακατεύθυνση στην αρχική (ή απλά reload αν προτιμάς)
-    window.location.href = window.location.origin; 
-  } catch (err) {
-    console.error(err);
-    // Σε περίπτωση σφάλματος, εξαναγκασμός καθαρισμού και reload
-    localStorage.clear();
-    window.location.reload();
-  }
-};
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // 2. Τραβάμε το προφίλ του χρήστη για να μάθουμε τον Ρόλο και το Customer ID
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, customer_id')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          // Αν δεν βρει προφίλ, του δίνουμε default ρόλο για να μην κολλήσει
+          setUser({
+            id: authData.user.id,
+            email: authData.user.email || '',
+            role: 'customer',
+            isLoggedIn: true
+          });
+        } else {
+          // 3. Ενημερώνουμε το state με ΟΛΑ τα στοιχεία
+          setUser({
+            id: authData.user.id,
+            email: authData.user.email || '',
+            role: profile.role || 'customer',
+            // Εδώ είναι το κλειδί: Περνάμε το customer_id στο state του user
+            customer_id: profile.customer_id,
+            isLoggedIn: true
+          } as any); // Χρησιμοποιούμε as any αν το interface User δεν έχει ακόμα το customer_id
+        }
+      }
+
+      setLoginError('');
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setLoginError(err.message || 'Λάθος στοιχεία σύνδεσης. Δοκιμάστε ξανά.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      // 1. Πρώτα καθαρίζουμε το state της React για να εξαφανιστούν τα δεδομένα από την οθόνη
+      setUser({ id: '', email: '', role: 'customer', isLoggedIn: false });
+      setCart([]);
+      setSelectedCustomer(null);
+
+      // 2. Έξοδος από το Supabase
+      await supabase.auth.signOut();
+
+      // 3. Καθαρισμός LocalStorage
+      localStorage.clear();
+
+      // 4. Αντί για reload, ανακατεύθυνση στην αρχική (ή απλά reload αν προτιμάς)
+      window.location.href = window.location.origin;
+    } catch (err) {
+      console.error(err);
+      // Σε περίπτωση σφάλματος, εξαναγκασμός καθαρισμού και reload
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
 
   if (authLoading) {
     return (
@@ -741,16 +1074,16 @@ const handleLogout = async () => {
   if (!user.isLoggedIn) {
     return (
       <div className="order-page-bg flex items-center justify-center p-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white p-8 rounded-[32px] shadow-2xl w-full max-w-md border-4 border-gusto-gold/20"
         >
           <div className="text-center mb-8">
-            <img 
-              src="https://gustoraro.gr/wp-content/uploads/2023/09/gustoraro.jpg" 
-              className="w-24 mx-auto mb-4 rounded-2xl shadow-lg border-2 border-slate-50" 
-              alt="Gusto Raro Logo" 
+            <img
+              src="https://gustoraro.gr/wp-content/uploads/2023/09/gustoraro.jpg"
+              className="w-24 mx-auto mb-4 rounded-2xl shadow-lg border-2 border-slate-50"
+              alt="Gusto Raro Logo"
               referrerPolicy="no-referrer"
             />
             <h1 className="text-2xl font-black text-gusto-green tracking-tight">B2B PORTAL</h1>
@@ -761,7 +1094,7 @@ const handleLogout = async () => {
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
               <div className="relative">
                 <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-black" size={18} />
-                <input 
+                <input
                   type="email"
                   required
                   className="w-full pl-10 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-gusto-gold focus:ring-0 transition-all outline-none font-bold text-slate-700"
@@ -775,7 +1108,7 @@ const handleLogout = async () => {
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-black" size={18} />
-                <input 
+                <input
                   type={showPassword ? "text" : "password"}
                   required
                   className="w-full pl-10 pr-12 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-gusto-gold focus:ring-0 transition-all outline-none font-bold text-slate-700"
@@ -794,7 +1127,7 @@ const handleLogout = async () => {
             </div>
 
             {loginError && (
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg border border-red-100"
@@ -803,7 +1136,7 @@ const handleLogout = async () => {
               </motion.p>
             )}
 
-            <button 
+            <button
               type="submit"
               disabled={authLoading}
               className="w-full bg-gusto-green text-white font-black py-5 rounded-2xl shadow-xl shadow-gusto-green/20 hover:bg-gusto-green-light hover:scale-[1.02] active:scale-[0.98] transition-all text-lg mt-4 flex items-center justify-center gap-2"
@@ -833,10 +1166,10 @@ const handleLogout = async () => {
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img 
-              src="https://gustoraro.gr/wp-content/uploads/2023/09/gustoraro.jpg" 
-              className="w-10 h-10 rounded shadow-sm" 
-              alt="Logo" 
+            <img
+              src="https://gustoraro.gr/wp-content/uploads/2023/09/gustoraro.jpg"
+              className="w-10 h-10 rounded shadow-sm"
+              alt="Logo"
               referrerPolicy="no-referrer"
             />
             <div className="hidden sm:block">
@@ -846,12 +1179,12 @@ const handleLogout = async () => {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {isLoading && <span className="text-xs bg-gusto-gold/20 text-gusto-green px-2 py-1 rounded animate-pulse font-medium">Φόρτωση...</span>}
-  
+
             {user.role === 'admin' && (
-              <button 
+              <button
                 onClick={() => { setShowAdminModal(true); fetchAllUsers(true); }}
                 className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
                 title="Ρυθμίσεις Διαχειριστή"
@@ -860,7 +1193,7 @@ const handleLogout = async () => {
               </button>
             )}
 
-            <button 
+            <button
               onClick={handleLogout}
               className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
               title="Έξοδος"
@@ -883,7 +1216,7 @@ const handleLogout = async () => {
               <div className="p-6">
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                  <input 
+                  <input
                     type="text"
                     placeholder="Όνομα, ΑΦΜ, Κωδικός ή Πόλη..."
                     className="w-full pl-12 pr-12 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-gusto-gold focus:ring-0 transition-all text-lg"
@@ -892,7 +1225,7 @@ const handleLogout = async () => {
                     autoFocus
                   />
                   {searchTerm && (
-                    <button 
+                    <button
                       onClick={() => setSearchTerm('')}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     >
@@ -914,7 +1247,7 @@ const handleLogout = async () => {
                     </div>
                   ) : filteredCustomers.length > 0 ? (
                     filteredCustomers.map(cust => (
-                      <button 
+                      <button
                         key={cust.id}
                         onClick={() => setSelectedCustomer(cust)}
                         className="w-full text-left p-4 rounded-xl bg-white hover:bg-gusto-gold/5 border border-slate-100 hover:border-gusto-gold/30 transition-all flex items-center justify-between group shadow-sm"
@@ -938,7 +1271,6 @@ const handleLogout = async () => {
                   ) : (
                     <div className="text-center py-12 text-slate-400 italic">
                       <p>Ξεκινήστε να πληκτρολογείτε για αναζήτηση...</p>
-                      <p className="text-[10px] mt-2 uppercase tracking-widest opacity-60">Σύνολο αρχείου: {customers.length} πελάτες</p>
                     </div>
                   )}
                 </div>
@@ -954,12 +1286,12 @@ const handleLogout = async () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-slate-800">ΠΕΛΑΤΗΣ</h3>
                   {user.role !== 'customer' && (
-                  <button 
-                    onClick={() => setSelectedCustomer(null)}
-                    className="text-xs text-red-500 font-bold hover:underline"
-                  >
-                    ΑΛΛΑΓΗ
-                  </button>
+                    <button
+                      onClick={() => setSelectedCustomer(null)}
+                      className="text-xs text-red-500 font-bold hover:underline"
+                    >
+                      ΑΛΛΑΓΗ
+                    </button>
                   )}
                 </div>
                 <div className="p-3 bg-gusto-green/5 rounded-xl border border-gusto-green/10">
@@ -974,11 +1306,11 @@ const handleLogout = async () => {
                 <div className="bg-slate-800 p-3 text-white text-xs font-bold tracking-wider">
                   ΕΤΑΙΡΙΕΣ
                 </div>
-                
+
                 <div className="p-2 border-b border-slate-100">
                   <div className="relative">
                     <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input 
+                    <input
                       type="text"
                       placeholder="Αναζήτηση εταιρίας..."
                       value={brandSearch}
@@ -986,7 +1318,7 @@ const handleLogout = async () => {
                       className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gusto-green/30 focus:border-gusto-green/30"
                     />
                     {brandSearch && (
-                      <button 
+                      <button
                         onClick={() => setBrandSearch('')}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                       >
@@ -998,50 +1330,48 @@ const handleLogout = async () => {
 
                 <div className="p-2 space-y-1 max-h-[350px] overflow-y-auto custom-scrollbar">
                   {allBrands
-  .filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
-  .map(brand => (
-    <button 
-      key={brand.name}
-      onClick={() => setSelectedBrand(brand.name)}
-      className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all flex items-center gap-3 ${
-        selectedBrand === brand.name 
-          ? 'bg-gusto-green text-white shadow-sm font-semibold' 
-          : 'hover:bg-slate-50 text-slate-600 border border-transparent hover:border-slate-100'
-      }`}
-    >
-      {/* Container για το Logo */}
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden shrink-0 bg-white border ${
-        selectedBrand === brand.name ? 'border-white/20' : 'border-slate-100'
-      }`}>
-        {brand.logo_url ? (
-          <img 
-            src={brand.logo_url} 
-            alt={brand.name} 
-            className="w-full h-full object-contain p-1"
-            onError={(e) => {
-              // Αν η εικόνα λείπει, δείξε το πρώτο γράμμα
-              e.currentTarget.style.display = 'none';
-              const span = document.createElement('span');
-              span.className = "text-xs font-bold text-slate-400";
-              span.innerText = brand.name.charAt(0);
-              e.currentTarget.parentElement?.appendChild(span);
-            }}
-          />
-        ) : (
-          <span className={`text-xs font-bold ${selectedBrand === brand.name ? 'text-white' : 'text-slate-400'}`}>
-            {brand.name.charAt(0).toUpperCase()}
-          </span>
-        )}
-      </div>
+                    .filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
+                    .map(brand => (
+                      <button
+                        key={brand.name}
+                        onClick={() => setSelectedBrand(brand.name)}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all flex items-center gap-3 ${selectedBrand === brand.name
+                          ? 'bg-gusto-green text-white shadow-sm font-semibold'
+                          : 'hover:bg-slate-50 text-slate-600 border border-transparent hover:border-slate-100'
+                          }`}
+                      >
+                        {/* Container για το Logo */}
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden shrink-0 bg-white border ${selectedBrand === brand.name ? 'border-white/20' : 'border-slate-100'
+                          }`}>
+                          {brand.logo_url ? (
+                            <img
+                              src={brand.logo_url}
+                              alt={brand.name}
+                              className="w-full h-full object-contain p-1"
+                              onError={(e) => {
+                                // Αν η εικόνα λείπει, δείξε το πρώτο γράμμα
+                                e.currentTarget.style.display = 'none';
+                                const span = document.createElement('span');
+                                span.className = "text-xs font-bold text-slate-400";
+                                span.innerText = brand.name.charAt(0);
+                                e.currentTarget.parentElement?.appendChild(span);
+                              }}
+                            />
+                          ) : (
+                            <span className={`text-xs font-bold ${selectedBrand === brand.name ? 'text-white' : 'text-slate-400'}`}>
+                              {brand.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
 
-      <span className="truncate flex-1">{brand.name}</span>
-      
-      {selectedBrand === brand.name && (
-        <div className="w-1.5 h-1.5 rounded-full bg-gusto-gold animate-pulse" />
-      )}
-    </button>
-  ))}
-                  
+                        <span className="truncate flex-1">{brand.name}</span>
+
+                        {selectedBrand === brand.name && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-gusto-gold animate-pulse" />
+                        )}
+                      </button>
+                    ))}
+
                   {allBrands.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase())).length === 0 && (
                     <div className="flex flex-col items-center justify-center py-8 text-slate-400">
                       <Building2 size={24} className="mb-2 opacity-20" />
@@ -1055,19 +1385,19 @@ const handleLogout = async () => {
             {/* Center: Product List */}
             <div className="lg:col-span-6 space-y-4">
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => setActiveTab('order')}
                   className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 'order' ? 'bg-gusto-green text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}
                 >
                   <Package size={18} /> ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ
                 </button>
                 {false && (
-                <button 
-                  onClick={() => setActiveTab('history')}
-                  className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 'history' ? 'bg-gusto-green text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}
-                >
-                  <History size={18} /> ΙΣΤΟΡΙΚΟ
-                </button>
+                  <button
+                    onClick={() => setActiveTab('history')}
+                    className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 'history' ? 'bg-gusto-green text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}
+                  >
+                    <History size={18} /> ΙΣΤΟΡΙΚΟ
+                  </button>
                 )}
               </div>
 
@@ -1076,7 +1406,7 @@ const handleLogout = async () => {
                   <div className="p-4 border-bottom border-slate-100">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <input 
+                      <input
                         type="text"
                         placeholder="Αναζήτηση προϊόντος..."
                         className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-gusto-gold outline-none"
@@ -1085,26 +1415,26 @@ const handleLogout = async () => {
                       />
                     </div>
                   </div>
-                  
-<div className="w-full overflow-hidden"> {/* Αλλαγή από overflow-x-auto σε overflow-hidden */}
-  <table className="w-full text-left border-collapse table-fixed"> {/* Προσθήκη table-fixed */}
+
+                  <div className="w-full overflow-hidden">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
-  <tr>
-    <th className="px-4 py-3 w-[50%]">Προϊον</th>
-    <th className="px-4 py-3 text-right w-[20%]">Τιμη</th>
-    <th className="px-4 py-3 text-right w-[30%]">Ποσοτητα</th>
-  </tr>
-</thead>
+                        <tr>
+                          <th className="px-4 py-3 w-[50%]">Προϊον</th>
+                          <th className="px-4 py-3 text-right w-[20%]">Τιμη</th>
+                          <th className="px-4 py-3 text-right w-[30%]">Ποσοτητα</th>
+                        </tr>
+                      </thead>
                       <tbody className="divide-y divide-slate-100">
                         {filteredProducts.map((prod, index) => (
-  <ProductRow 
-    key={prod.code}
-    product={prod} 
-    currentQty={cart.find(item => item.code === prod.code)?.quantity || 0}
-    onUpdateQty={updateCartQuantity} 
-    onImageClick={setViewingProduct}
-  />
-))}
+                          <ProductRow
+                            key={prod.code}
+                            product={prod}
+                            currentQty={cart.find(item => item.code === prod.code)?.quantity || 0}
+                            onUpdateQty={updateCartQuantity}
+                            onImageClick={setViewingProduct}
+                          />
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -1114,19 +1444,19 @@ const handleLogout = async () => {
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="font-bold text-slate-800">Πρόσφατες Παραγγελίες</h3>
                     <div className="flex bg-slate-100 p-1 rounded-lg">
-                      <button 
+                      <button
                         onClick={() => setHistoryFilter('month')}
                         className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${historyFilter === 'month' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500'}`}
                       >
                         ΤΕΛ. ΜΗΝΑΣ
                       </button>
-                      <button 
+                      <button
                         onClick={() => setHistoryFilter('year')}
                         className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${historyFilter === 'year' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500'}`}
                       >
                         ΕΤΟΣ
                       </button>
-                      <button 
+                      <button
                         onClick={() => setHistoryFilter('all')}
                         className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${historyFilter === 'all' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500'}`}
                       >
@@ -1137,14 +1467,14 @@ const handleLogout = async () => {
                   <div className="space-y-3">
                     {filteredHistory.map(order => (
                       <div key={order.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-gusto-gold/30 transition-colors cursor-pointer group" onClick={() => setViewingOrder(order)}>
-                      <div className="flex-1">
-                        <p className="text-xs text-slate-500">{new Date(order.date).toLocaleString('el-GR')}</p>
-                        <p className="font-bold text-gusto-green text-sm">{order.customerName}</p>
-                        <p className="text-[10px] text-slate-400">ID: {order.id} | ΑΦΜ: {order.customerAfm || '-'}</p>
-                        {order.notes && (
-                          <p className="text-[10px] text-slate-500 mt-1 italic truncate max-w-[200px]">Σημείωση: {order.notes}</p>
-                        )}
-                      </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-slate-500">{new Date(order.date).toLocaleString('el-GR')}</p>
+                          <p className="font-bold text-gusto-green text-sm">{order.customerName}</p>
+                          <p className="text-[10px] text-slate-400">ID: {order.id} | ΑΦΜ: {order.customerAfm || '-'}</p>
+                          {order.notes && (
+                            <p className="text-[10px] text-slate-500 mt-1 italic truncate max-w-[200px]">Σημείωση: {order.notes}</p>
+                          )}
+                        </div>
                         <div className="text-right flex items-center gap-4">
                           <div>
                             <p className="font-bold text-red-600">{order.totalValue.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</p>
@@ -1176,15 +1506,15 @@ const handleLogout = async () => {
                     </div>
                     <span className="bg-gusto-gold text-gusto-green text-[10px] font-black px-2 py-0.5 rounded-full">{cart.length} ΕΙΔΗ</span>
                   </div>
-                  
+
                   <div className="p-0 max-h-[400px] overflow-y-auto customer-scroll">
                     {cart.map(item => (
                       <div key={item.code} className="p-3 border-b border-slate-50 flex items-center justify-between group hover:bg-slate-50 transition-colors">
                         <div className="flex items-center flex-1 min-w-0 pr-2">
                           {item.imageUrl ? (
-                            <img 
-                              src={item.imageUrl} 
-                              alt={item.description} 
+                            <img
+                              src={item.imageUrl}
+                              alt={item.description}
                               className="w-12 h-12 rounded-lg object-cover shadow-sm border border-slate-100 mr-3 shrink-0"
                               referrerPolicy="no-referrer"
                             />
@@ -1205,7 +1535,7 @@ const handleLogout = async () => {
                             </div>
                           </div>
                         </div>
-                        <button 
+                        <button
                           onClick={() => removeFromCart(item.code)}
                           className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                         >
@@ -1239,23 +1569,23 @@ const handleLogout = async () => {
                       </div>
                     </div>
                     {false && (
-                    <button 
-                      disabled={cart.length === 0}
-                      onClick={submitOrder}
-                      className="w-full bg-gusto-green text-white font-black py-4 rounded-xl shadow-lg shadow-gusto-green/20 hover:bg-gusto-green-light disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
-                    >
-                      ΟΛΟΚΛΗΡΩΣΗ & ΑΠΟΣΤΟΛΗ
-                    </button>
+                      <button
+                        disabled={cart.length === 0}
+                        onClick={submitOrder}
+                        className="w-full bg-gusto-green text-white font-black py-4 rounded-xl shadow-lg shadow-gusto-green/20 hover:bg-gusto-green-light disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                      >
+                        ΟΛΟΚΛΗΡΩΣΗ & ΑΠΟΣΤΟΛΗ
+                      </button>
                     )}
 
-                      <button 
-                        disabled={cart.length === 0}
-                        onClick={exportToExcel}
-                        className="w-full mt-2 bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-                        >
-                          <Download size={18} />
-                            EXPORT EXCEL
-                          </button>
+                    <button
+                      disabled={cart.length === 0}
+                      onClick={exportToExcel}
+                      className="w-full mt-2 bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Download size={18} />
+                      EXPORT EXCEL
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1268,14 +1598,14 @@ const handleLogout = async () => {
       <AnimatePresence>
         {isCartOpen && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsCartOpen(false)}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
             />
-            <motion.div 
+            <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -1287,15 +1617,15 @@ const handleLogout = async () => {
                 <h2 className="text-xl font-black text-gusto-green">Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ</h2>
                 <button onClick={() => setIsCartOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={20} /></button>
               </div>
-              
+
               <div className="space-y-4 mb-8">
                 {cart.map(item => (
                   <div key={item.code} className="flex items-center justify-between py-3 border-b border-slate-100">
                     <div className="flex items-center flex-1 min-w-0 pr-2">
                       {item.imageUrl ? (
-                        <img 
-                          src={item.imageUrl} 
-                          alt={item.description} 
+                        <img
+                          src={item.imageUrl}
+                          alt={item.description}
                           className="w-14 h-14 rounded-xl object-cover shadow-sm border border-slate-100 mr-3 shrink-0"
                           referrerPolicy="no-referrer"
                         />
@@ -1339,21 +1669,21 @@ const handleLogout = async () => {
                 </div>
               </div>
 
-              <button 
+              <button
                 disabled={cart.length === 0}
                 onClick={() => { submitOrder(); setIsCartOpen(false); }}
                 className="w-full bg-gusto-green text-white font-black py-5 rounded-2xl shadow-xl hover:bg-gusto-green-light disabled:opacity-50 transition-all text-lg"
               >
                 ΑΠΟΣΤΟΛΗ ΠΑΡΑΓΓΕΛΙΑΣ
               </button>
-              <button 
-  disabled={cart.length === 0}
-  onClick={() => { exportToExcel(); setIsCartOpen(false); }}
-  className="w-full mt-2 bg-blue-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
->
-  <Download size={20} />
-  EXPORT EXCEL
-</button>
+              <button
+                disabled={cart.length === 0}
+                onClick={() => { exportToExcel(); setIsCartOpen(false); }}
+                className="w-full mt-2 bg-blue-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+              >
+                <Download size={20} />
+                EXPORT EXCEL
+              </button>
             </motion.div>
           </>
         )}
@@ -1363,13 +1693,13 @@ const handleLogout = async () => {
       <AnimatePresence>
         {showSuccess && (
           <div className="fixed inset-0 flex items-center justify-center z-[200] p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-gusto-green/80 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
@@ -1380,7 +1710,7 @@ const handleLogout = async () => {
               </div>
               <h2 className="text-2xl font-black text-gusto-green mb-2">ΕΠΙΤΥΧΙΑ!</h2>
               <p className="text-slate-600 mb-8 font-medium">Η ενέργεια ολοκληρώθηκε με επιτυχία.</p>
-              <button 
+              <button
                 onClick={() => setShowSuccess(false)}
                 className="w-full bg-gusto-green text-white font-bold py-4 rounded-xl hover:bg-gusto-green-light transition-all"
               >
@@ -1395,13 +1725,13 @@ const handleLogout = async () => {
       <AnimatePresence>
         {showError && (
           <div className="fixed inset-0 flex items-center justify-center z-[200] p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-red-600/80 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
@@ -1412,7 +1742,7 @@ const handleLogout = async () => {
               </div>
               <h2 className="text-2xl font-black text-red-600 mb-2">ΣΦΑΛΜΑ!</h2>
               <p className="text-slate-600 mb-8 font-medium">{showError}</p>
-              <button 
+              <button
                 onClick={() => setShowError(null)}
                 className="w-full bg-red-600 text-white font-bold py-4 rounded-xl hover:bg-red-700 transition-all"
               >
@@ -1427,14 +1757,14 @@ const handleLogout = async () => {
       <AnimatePresence>
         {viewingOrder && (
           <div className="fixed inset-0 flex items-center justify-center z-[100] p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setViewingOrder(null)}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -1453,10 +1783,10 @@ const handleLogout = async () => {
               <div id="printable-order" className="p-10 overflow-y-auto flex-1 bg-white text-slate-900 border border-slate-200">
                 <div className="flex justify-between items-start mb-10 border-b-2 border-gusto-green pb-6">
                   <div>
-                    <img 
-                      src="https://images.weserv.nl/?url=https://gustoraro.gr/wp-content/uploads/2023/09/gustoraro.jpg" 
-                      className="w-24 mb-4 rounded shadow-sm" 
-                      alt="Logo" 
+                    <img
+                      src="https://images.weserv.nl/?url=https://gustoraro.gr/wp-content/uploads/2023/09/gustoraro.jpg"
+                      className="w-24 mb-4 rounded shadow-sm"
+                      alt="Logo"
                       crossOrigin="anonymous"
                       referrerPolicy="no-referrer"
                     />
@@ -1516,17 +1846,17 @@ const handleLogout = async () => {
                     </div>
                   </div>
                 </div>
-                
+
               </div>
 
               <div className="p-6 bg-slate-50 border-t border-slate-200 flex gap-4 print:hidden">
-                <button 
+                <button
                   onClick={() => setViewingOrder(null)}
                   className="flex-1 px-6 py-4 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all"
                 >
                   ΚΛΕΙΣΙΜΟ
                 </button>
-                <button 
+                <button
                   onClick={exportToPDF}
                   disabled={isExporting}
                   className={`flex-[2] px-6 py-4 bg-gusto-green text-white font-black rounded-2xl shadow-xl shadow-gusto-green/20 hover:bg-gusto-green-light transition-all flex items-center justify-center gap-2 ${isExporting ? 'opacity-70 cursor-not-allowed' : ''}`}
@@ -1553,20 +1883,20 @@ const handleLogout = async () => {
       <AnimatePresence>
         {viewingProduct && (
           <div className="fixed inset-0 flex items-center justify-center z-[110] p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setViewingProduct(null)}
               className="fixed inset-0 bg-black/80 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-[32px] shadow-2xl w-full max-w-sm relative z-10 overflow-hidden"
             >
-              <button 
+              <button
                 onClick={() => setViewingProduct(null)}
                 className="absolute top-3 right-3 p-1.5 bg-black/10 hover:bg-black/20 rounded-full transition-colors z-20"
               >
@@ -1575,8 +1905,8 @@ const handleLogout = async () => {
 
               <div className="aspect-square w-full bg-slate-100 relative">
                 {viewingProduct.imageUrl ? (
-                  <img 
-                    src={viewingProduct.imageUrl} 
+                  <img
+                    src={viewingProduct.imageUrl}
                     alt={viewingProduct.description}
                     className="w-full h-full object-contain p-4"
                     referrerPolicy="no-referrer"
@@ -1597,7 +1927,7 @@ const handleLogout = async () => {
                 <h2 className="text-lg font-black text-gusto-green leading-tight mb-4">
                   {viewingProduct.description}
                 </h2>
-                
+
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                   <div>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">ΤΙΜΗ ΜΟΝΑΔΟΣ</p>
@@ -1605,8 +1935,8 @@ const handleLogout = async () => {
                       {viewingProduct.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}
                     </p>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={() => {
                       addToCart(viewingProduct, 1);
                       setViewingProduct(null);
@@ -1649,161 +1979,291 @@ const handleLogout = async () => {
           </div>
         )}
 
-        {/* Admin Modal */}
         {showAdminModal && (
           <div className="fixed inset-0 flex items-center justify-center z-[150] p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowAdminModal(false)}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden flex flex-col max-h-[85vh]"
+              className="bg-white rounded-[32px] shadow-2xl w-full max-w-5xl relative z-10 overflow-hidden flex flex-col max-h-[85vh]"
             >
-              <div className="bg-slate-800 p-6 text-white flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Settings className="text-gusto-gold" size={24} />
-                  <h2 className="text-xl font-black uppercase tracking-tight">Διαχείριση Χρηστών</h2>
-                  <button 
-                    onClick={() => setShowCreateUser(!showCreateUser)}
-                    className="ml-4 flex items-center gap-1 text-xs font-bold bg-gusto-green/20 text-gusto-gold px-3 py-1.5 rounded-full hover:bg-gusto-green/40 transition-colors border border-gusto-gold/30"
-                  >
-                    <Plus size={14} className={showCreateUser ? "rotate-45 transition-transform" : "transition-transform"} /> 
-                    {showCreateUser ? 'ΑΚΥΡΩΣΗ' : 'ΝΕΟΣ ΧΡΗΣΤΗΣ'}
+              {/* --- HEADER & TABS --- */}
+              <div className="bg-slate-800 p-6 text-white">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <Settings className="text-gusto-gold" size={24} />
+                    <h2 className="text-xl font-black uppercase tracking-tight">Admin Dashboard</h2>
+                  </div>
+                  <button onClick={() => setShowAdminModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <X size={24} />
                   </button>
                 </div>
-                <button onClick={() => setShowAdminModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                  <X size={24} />
-                </button>
+
+                <div className="flex gap-4 border-b border-white/10">
+                  {[
+                    { id: 'users', label: 'ΧΡΗΣΤΕΣ' },
+                    { id: 'brands', label: 'BRANDS' },
+                    { id: 'products', label: 'ΠΡΟΪΟΝΤΑ' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setAdminTab(tab.id as any);
+                        setShowError(null);
+                        setShowSuccess(false);
+                      }}
+                      className={`pb-2 px-1 text-xs font-black tracking-widest transition-colors ${adminTab === tab.id ? 'text-gusto-gold border-b-2 border-gusto-gold' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="p-6 overflow-y-auto flex-1">
-                
-                {/* Φόρμα Δημιουργίας Νέου Χρήστη */}
-                <AnimatePresence>
-                  {showCreateUser && (
-                    <motion.form 
-                      initial={{ height: 0, opacity: 0, marginBottom: 0 }}
-                      animate={{ height: 'auto', opacity: 1, marginBottom: 24 }}
-                      exit={{ height: 0, opacity: 0, marginBottom: 0 }}
-                      onSubmit={handleCreateUser} 
-                      className="overflow-hidden"
-                    >
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                        <h3 className="text-sm font-black text-slate-700 mb-3 uppercase tracking-widest">ΣΤΟΙΧΕΙΑ ΝΕΟΥ ΧΡΗΣΤΗ</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"> {/* Αυξάνουμε τα columns */}
-  <input
-    type="email"
-    placeholder="Email / Username"
-    required
-    value={newUserForm.email}
-    onChange={e => setNewUserForm({...newUserForm, email: e.target.value})}
-    className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700"
-  />
-  
-  <input
-    type="password"
-    placeholder="Κωδικός"
-    required
-    minLength={6}
-    value={newUserForm.password}
-    onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
-    className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700"
-  />
+              <div className="p-6 overflow-y-auto flex-1 bg-white">
 
-  <select
-    value={newUserForm.role}
-    onChange={e => setNewUserForm({...newUserForm, role: e.target.value as any, customerId: ''})}
-    className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700 bg-white"
-  >
-    <option value="customer">Πελάτης</option>
-    <option value="seller">Πωλητής</option>
-    <option value="admin">Admin</option>
-  </select>
-
-  {/* Εμφάνιση επιλογής καταστήματος μόνο αν ο ρόλος είναι customer */}
-  {newUserForm.role === 'customer' && (
-    <select
-      required
-      value={newUserForm.customerId || ''}
-      onChange={e => setNewUserForm({...newUserForm, customerId: e.target.value})}
-      className="px-3 py-2 border border-blue-200 rounded-lg text-sm outline-none focus:border-gusto-gold font-bold text-slate-700 bg-blue-50 animate-in fade-in zoom-in-95 duration-200"
-    >
-      <option value="">Επιλογή Καταστήματος...</option>
-      {customers
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map(c => (
-          <option key={c.id} value={c.id}>{c.name} ({c.city})</option>
-        ))
-      }
-    </select>
-  )}
-
-  <button 
-    type="submit" 
-    disabled={isAdminLoading || (newUserForm.role === 'customer' && !newUserForm.customerId)}
-    className="bg-gusto-green text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-gusto-green-light transition-colors disabled:opacity-50 md:col-span-2 lg:col-span-1"
-  >
-    ΑΠΟΘΗΚΕΥΣΗ
-  </button>
-</div>
-                      </div>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
-
-                {isAdminLoading ? (
-                  <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-gusto-gold"></div>
+                {/* --- STATUS MESSAGES --- */}
+                {(showError || showSuccess) && (
+                  <div className={`mb-6 p-4 rounded-2xl flex items-center gap-3 border animate-in slide-in-from-top-2 ${showSuccess ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'}`}>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${showSuccess ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{showSuccess ? 'Η ΕΝΕΡΓΕΙΑ ΟΛΟΚΛΗΡΩΘΗΚΕ ΕΠΙΤΥΧΩΣ' : showError}</span>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b-2 border-slate-100">
-                          <th className="px-4 py-3">EMAIL / USERNAME</th>
-                          <th className="px-4 py-3">ΡΟΛΟΣ</th>
-                          <th className="px-4 py-3 text-right">ΕΝΕΡΓΕΙΕΣ</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {allUsers.map((u) => (
-                          <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-4 py-4 font-bold text-slate-700">{u.email}</td>
-                            <td className="px-4 py-4">
-                              <select 
-                                value={u.role}
-                                onChange={(e) => handleUpdateRole(u.id, e.target.value)}
-                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold focus:ring-1 focus:ring-gusto-gold outline-none"
-                              >
-                                <option value="customer">Πελάτης</option>
-                                <option value="seller">Πωλητής</option>
-                                <option value="admin">Admin</option>
-                              </select>
-                            </td>
-                            <td className="px-4 py-4 text-right">
-                              {/* Έλεγχος Ασφαλείας: Δεν μπορούμε να διαγράψουμε admin ή τον εαυτό μας */}
-                              {u.role !== 'admin' && u.id !== user.id ? (
-                                <button 
-                                  onClick={() => handleDeleteUser(u.id, u.role)}
-                                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                  title="Διαγραφή Χρήστη"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              ) : (
-                                <span className="text-[10px] text-slate-400 font-bold px-2 bg-slate-100 rounded-md py-1">ΜΗ ΔΙΑΓΡΑΨΙΜΟΣ</span>
-                              )}
-                            </td>
+                )}
+
+                {/* --- TAB 1: ΧΡΗΣΤΕΣ --- */}
+                {adminTab === 'users' && (
+                  <div className="animate-in fade-in duration-300">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-black text-slate-800 uppercase italic">Διαχείριση Χρηστών</h3>
+                      <button
+                        onClick={() => setShowCreateUser(!showCreateUser)}
+                        className="flex items-center gap-2 text-xs font-black bg-slate-800 text-gusto-gold px-5 py-2.5 rounded-full hover:bg-slate-700 transition-all border border-gusto-gold/30 shadow-lg active:scale-95"
+                      >
+                        <Plus size={16} className={`${showCreateUser ? "rotate-45" : "rotate-0"} transition-transform duration-300`} />
+                        {showCreateUser ? 'ΑΚΥΡΩΣΗ' : 'ΝΕΟΣ ΧΡΗΣΤΗΣ'}
+                      </button>
+                    </div>
+
+                    <AnimatePresence>
+                      {showCreateUser && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-8">
+                          <form onSubmit={handleCreateUser} className="p-6 bg-slate-50 border border-slate-200 rounded-[24px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <input required placeholder="EMAIL" type="email" value={newUserForm.email || ''} onChange={e => setNewUserForm({ ...newUserForm, email: e.target.value })} className="px-4 py-3 border rounded-xl text-sm font-bold outline-none focus:border-gusto-gold bg-white" />
+                            <input required placeholder="PASSWORD" type="password" value={newUserForm.password || ''} onChange={e => setNewUserForm({ ...newUserForm, password: e.target.value })} className="px-4 py-3 border rounded-xl text-sm font-bold outline-none focus:border-gusto-gold bg-white" />
+                            <select value={newUserForm.role} onChange={e => setNewUserForm({ ...newUserForm, role: e.target.value as any })} className="px-4 py-3 border rounded-xl text-sm font-bold bg-white outline-none focus:border-gusto-gold">
+                              <option value="customer">Πελάτης</option>
+                              <option value="seller">Πωλητής</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                            <button type="submit" className="bg-gusto-green text-white h-[46px] rounded-xl font-black text-xs hover:bg-gusto-green-light transition-all uppercase tracking-widest">ΔΗΜΙΟΥΡΓΙΑ</button>
+                            {newUserForm.role === 'customer' && (
+                              <div className="md:col-span-2 lg:col-span-4 animate-in slide-in-from-top-2">
+                                <select required value={newUserForm.customerId || ''} onChange={e => setNewUserForm({ ...newUserForm, customerId: e.target.value })} className="w-full px-4 py-3 border border-blue-200 rounded-xl text-sm font-bold bg-blue-50 outline-none focus:border-blue-400">
+                                  <option value="">Επιλέξτε Κατάστημα...</option>
+                                  {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.city})</option>)}
+                                </select>
+                              </div>
+                            )}
+                          </form>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm bg-white">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                          <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <th className="px-6 py-4">EMAIL</th>
+                            <th className="px-6 py-4">ΡΟΛΟΣ</th>
+                            <th className="px-6 py-4 text-right">ΕΝΕΡΓΕΙΕΣ</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {allUsers?.map((u) => (
+                            <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-6 py-4 font-bold text-slate-700">{u.email}</td>
+                              <td className="px-6 py-4">
+                                <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black uppercase text-slate-600 border border-slate-200">{u.role}</span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                {u.role !== 'admin' && (
+                                  <button onClick={() => handleDeleteUser(u.id, u.role)} className="p-2 text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* --- TAB 2: BRANDS --- */}
+                {adminTab === 'brands' && (
+                  <div className="animate-in fade-in duration-300">
+                    <div className="bg-slate-50 p-6 rounded-[24px] border border-slate-200 mb-8">
+                      <h3 className="text-sm font-black text-slate-700 mb-4 uppercase tracking-widest">Προσθήκη Brand (Μόνο Κεφαλαία)</h3>
+                      <form onSubmit={handleCreateBrand} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input
+                          required
+                          placeholder="ΟΝΟΜΑ BRAND *"
+                          className="px-4 py-3 border rounded-xl font-bold text-slate-700 outline-none focus:border-gusto-gold uppercase"
+                          value={newBrandForm.name || ''}
+                          onChange={e => setNewBrandForm({ ...newBrandForm, name: e.target.value.toUpperCase() })}
+                        />
+                        <input
+                          placeholder="URL ΛΟΓΟΤΥΠΟΥ"
+                          className="px-4 py-3 border rounded-xl font-bold text-slate-700 outline-none focus:border-gusto-gold"
+                          value={newBrandForm.logo || ''}
+                          onChange={e => setNewBrandForm({ ...newBrandForm, logo: e.target.value })}
+                        />
+                        <button type="submit" disabled={isAdminLoading} className="bg-gusto-green text-white px-6 py-3 rounded-xl font-black hover:bg-gusto-green-light transition-all uppercase tracking-widest disabled:opacity-50">
+                          {isAdminLoading ? '...' : 'ΠΡΟΣΘΗΚΗ'}
+                        </button>
+                      </form>
+                    </div>
+
+                    <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-sm">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                          <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <th className="px-6 py-4">LOGOTYPE</th>
+                            <th className="px-6 py-4">ΟΝΟΜΑ BRAND</th>
+                            <th className="px-6 py-4 text-right">ΕΝΕΡΓΕΙΕΣ</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {allBrands?.map((b, idx) => (
+                            <tr key={b.id || idx} className="hover:bg-slate-50">
+                              <td className="px-6 py-3">
+                                {b.logo_url ? <img src={b.logo_url} className="h-8 w-8 object-contain rounded" alt="" /> : <div className="h-8 w-8 bg-slate-100 rounded flex items-center justify-center text-[8px] font-bold text-slate-400">N/A</div>}
+                              </td>
+                              <td className="px-6 py-3 font-bold text-slate-700 uppercase">{b.name}</td>
+                              <td className="px-6 py-3 text-right">
+                                <button onClick={() => handleDeleteBrand(b.id || b.ID)} className="p-2 text-red-400 hover:text-red-600"><Trash2 size={18} /></button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* --- TAB 3: ΠΡΟΪΟΝΤΑ --- */}
+                {adminTab === 'products' && (
+                  <div className="animate-in fade-in duration-300">
+                    {/* ΦΟΡΜΑ ΝΕΟΥ ΠΡΟΪΟΝΤΟΣ (Όπως την είχες) */}
+                    <div className="bg-slate-50 p-6 rounded-[24px] border border-slate-200 mb-8">
+                      <h3 className="text-sm font-black text-slate-700 mb-4 uppercase tracking-widest">Νέο Προϊόν (Μόνο Κεφαλαία)</h3>
+                      <form onSubmit={handleCreateProduct}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                          <input required placeholder="ΚΩΔΙΚΟΣ *" className="px-4 py-3 border rounded-xl font-bold text-slate-700 outline-none focus:border-gusto-gold uppercase" value={newProductForm.code || ''} onChange={e => setNewProductForm({ ...newProductForm, code: e.target.value.toUpperCase() })} />
+                          <input required placeholder="ΠΕΡΙΓΡΑΦΗ *" className="px-4 py-3 border rounded-xl font-bold text-slate-700 outline-none focus:border-gusto-gold uppercase" value={newProductForm.description || ''} onChange={e => setNewProductForm({ ...newProductForm, description: e.target.value.toUpperCase() })} />
+                          <select required className="px-4 py-3 border rounded-xl font-bold text-slate-700 outline-none focus:border-gusto-gold bg-white" value={newProductForm.brand || ''} onChange={e => setNewProductForm({ ...newProductForm, brand: e.target.value })}>
+                            <option value="">ΕΠΙΛΟΓΗ BRAND *</option>
+                            {allBrands?.map(b => <option key={b.id || b.ID} value={b.name}>{b.name}</option>)}
+                          </select>
+                          <input required placeholder="ΤΙΜΗ *" type="number" step="0.01" className="px-4 py-3 border rounded-xl font-bold text-slate-700 outline-none focus:border-gusto-gold" value={newProductForm.price || ''} onChange={e => setNewProductForm({ ...newProductForm, price: e.target.value })} />
+                          <input placeholder="URL ΕΙΚΟΝΑΣ" className="px-4 py-3 border rounded-xl font-bold text-slate-700 outline-none focus:border-gusto-gold md:col-span-2" value={newProductForm.imageUrl || ''} onChange={e => setNewProductForm({ ...newProductForm, imageUrl: e.target.value })} />
+                        </div>
+                        <button type="submit" className="w-full bg-slate-800 text-gusto-gold py-4 rounded-xl font-black hover:bg-slate-700 transition-all uppercase tracking-widest border border-gusto-gold/30">ΑΠΟΘΗΚΕΥΣΗ ΠΡΟΪΟΝΤΟΣ</button>
+                      </form>
+                    </div>
+
+                    {/* SEARCH BAR (Όπως τον είχες) */}
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                      <div className="flex-1 w-full relative">
+                        <input type="text" placeholder="ΑΝΑΖΗΤΗΣΗ ΜΕ ΚΩΔΙΚΟ (ENTER)..." className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 focus:ring-2 focus:ring-gusto-gold uppercase" value={searchCode} onChange={(e) => setSearchCode(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === 'Enter' && handleSearchProduct()} />
+                        <Search className="absolute left-3 top-3.5 text-slate-400" size={18} />
+                      </div>
+                      <div className="flex gap-2 w-full md:w-auto">
+                        <button onClick={handleSearchProduct} className="flex-1 md:flex-none bg-blue-600 text-white px-6 py-3 rounded-xl font-black hover:bg-blue-700 transition-all text-xs uppercase">ΑΝΑΖΗΤΗΣΗ</button>
+                        <button onClick={() => { setSearchCode(''); setProducts([]); }} className="bg-slate-200 text-slate-600 px-4 py-3 rounded-xl font-black hover:bg-slate-300 transition-all text-xs uppercase">ΚΑΘΑΡΙΣΜΟΣ</button>
+                      </div>
+                    </div>
+
+                    {/* ΠΙΝΑΚΑΣ ΠΡΟΪΟΝΤΩΝ ΜΕ EDIT MODE */}
+                    <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-sm">
+                      {products.length === 0 ? (
+                        <div className="p-20 text-center text-slate-400 font-bold uppercase tracking-widest">Πληκτρολογήστε κωδικό για αναζήτηση</div>
+                      ) : (
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-50 border-b border-slate-100">
+                            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              <th className="px-6 py-4">IMG</th>
+                              <th className="px-6 py-4">ΚΩΔΙΚΟΣ</th>
+                              <th className="px-6 py-4">ΠΕΡΙΓΡΑΦΗ</th>
+                              <th className="px-6 py-4 text-right">ΤΙΜΗ</th>
+                              <th className="px-6 py-4 text-right">ΕΝΕΡΓΕΙΕΣ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50">
+                            {adminSearchResults.map((p, idx) => {
+                              const pCode = p.Code || p.code;
+                              const isEditing = editingProduct === pCode;
+
+                              return (
+                                <tr key={pCode + idx} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-6 py-3">
+                                    {isEditing ? (
+                                      <input className="border rounded px-2 py-1 text-[10px] w-20" value={editForm.imageUrl} onChange={e => setEditForm({ ...editForm, imageUrl: e.target.value })} placeholder="URL" />
+                                    ) : (
+                                      <img src={p.ImageUrl || p.imageurl || 'https://via.placeholder.com/40'} className="w-10 h-10 object-contain rounded-lg border border-slate-100" />
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-3 text-[11px] font-black text-slate-500 uppercase tracking-tighter">{pCode}</td>
+                                  <td className="px-6 py-3 text-[11px] font-bold text-slate-700 uppercase">
+                                    {isEditing ? (
+                                      <input className="border rounded px-2 py-1 w-full uppercase" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value.toUpperCase() })} />
+                                    ) : (p.Description || p.description)}
+                                  </td>
+                                  <td className="px-6 py-3 text-[11px] text-right font-black text-slate-900">
+                                    {isEditing ? (
+                                      <input type="number" step="0.01" className="border rounded px-2 py-1 w-20 text-right" value={editForm.price} onChange={e => setEditForm({ ...editForm, price: e.target.value })} />
+                                    ) : `${Number(p.Price || p.price || 0).toFixed(2)}€`}
+                                  </td>
+                                  <td className="px-6 py-3 text-right">
+                                    <div className="flex justify-end gap-2">
+                                      {isEditing ? (
+                                        <>
+                                          <button onClick={() => handleUpdateProduct(pCode)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={16} /></button>
+                                          <button onClick={() => setEditingProduct(null)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg"><X size={16} /></button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <button
+                                            onClick={() => {
+                                              setEditingProduct(pCode);
+                                              setEditForm({
+                                                description: p.Description || p.description,
+                                                price: p.Price || p.price,
+                                                imageUrl: p.ImageUrl || p.imageurl || ''
+                                              });
+                                            }}
+                                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"
+                                          >
+                                            <Pencil size={16} />
+                                          </button>
+                                          <button onClick={() => handleDeleteProduct(pCode)} className="p-2 text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1822,11 +2282,11 @@ interface ProductRowProps {
   onImageClick: (p: Product) => void;
 }
 
-const ProductRow: React.FC<ProductRowProps> = ({ 
-  product, 
-  currentQty, 
-  onUpdateQty, 
-  onImageClick 
+const ProductRow: React.FC<ProductRowProps> = ({
+  product,
+  currentQty,
+  onUpdateQty,
+  onImageClick
 }) => {
   return (
     <tr className="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
@@ -1834,14 +2294,14 @@ const ProductRow: React.FC<ProductRowProps> = ({
       <td className="px-4 py-4 min-w-0">
         <div className="flex items-center gap-3 min-w-0">
           {/* Container Εικόνας - Το flex-shrink-0 είναι απαραίτητο */}
-          <div 
+          <div
             className="w-12 h-12 rounded-lg bg-slate-100 flex-shrink-0 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
             onClick={() => onImageClick(product)}
           >
             {product.imageUrl ? (
-              <img 
-                src={product.imageUrl} 
-                alt="" 
+              <img
+                src={product.imageUrl}
+                alt=""
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
@@ -1852,8 +2312,8 @@ const ProductRow: React.FC<ProductRowProps> = ({
 
           {/* Κείμενο (Όνομα και Κωδικός) */}
           <div className="min-w-0 flex-1">
-            <div 
-              className="font-black text-slate-800 text-[11px] uppercase truncate block" 
+            <div
+              className="font-black text-slate-800 text-[11px] uppercase truncate block"
               title={product.description}
             >
               {product.description}
@@ -1878,16 +2338,16 @@ const ProductRow: React.FC<ProductRowProps> = ({
       <td className="px-4 py-4">
         <div className="flex items-center justify-end">
           <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200 flex-nowrap w-fit">
-            <button 
+            <button
               type="button"
-              onClick={() => onUpdateQty(product, Math.max(0, currentQty - 1))} 
+              onClick={() => onUpdateQty(product, Math.max(0, currentQty - 1))}
               className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-white rounded-md transition-all font-bold"
             >
               <Minus size={16} />
             </button>
-            
-            <input 
-              type="number" 
+
+            <input
+              type="number"
               className="w-8 bg-transparent text-center text-xs font-black outline-none border-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               value={currentQty || ''}
               onChange={(e) => {
@@ -1896,10 +2356,10 @@ const ProductRow: React.FC<ProductRowProps> = ({
               }}
               placeholder="0"
             />
-            
-            <button 
+
+            <button
               type="button"
-              onClick={() => onUpdateQty(product, currentQty + 1)} 
+              onClick={() => onUpdateQty(product, currentQty + 1)}
               className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-white rounded-md transition-all font-bold"
             >
               <Plus size={16} />
@@ -1908,5 +2368,6 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </div>
       </td>
     </tr>
+
   );
 };
