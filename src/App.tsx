@@ -376,22 +376,39 @@ export default function App() {
   };
 
   const handleCreateBrand = async (e: React.FormEvent) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    const brandName = newBrandForm.name.toUpperCase().trim();
+    const brandLogo = newBrandForm.logo?.trim() || null;
+
+    if (!brandName) return;
+
     setIsAdminLoading(true);
+    setAdminStatus(null);
+    
     try {
-      const { error } = await supabase.from('brands').insert([{
-        name: newBrandForm.name.toUpperCase(),
-        logo_url: newBrandForm.logo || null
-      }]);
+      const { data, error } = await supabase
+        .from('brands')
+        .insert([{
+          name: brandName,
+          logo_url: brandLogo
+        }])
+        .select();
+
       if (error) throw error;
+
       setAdminStatus({ msg: 'ΤΟ BRAND ΔΗΜΙΟΥΡΓΗΘΗΚΕ', type: 'success' });
       setNewBrandForm({ name: '', logo: '' });
       await loadInitialData();
     } catch (err: any) {
-      setAdminStatus({ msg: err.message, type: 'error' });
+      console.error('Error creating brand:', err);
+      setAdminStatus({ msg: (err.message || 'ΣΦΑΛΜΑ ΚΑΤΑ ΤΗΝ ΚΑΤΑΧΩΡΗΣΗ').toUpperCase(), type: 'error' });
     } finally {
       setIsAdminLoading(false);
-      setTimeout(() => setAdminStatus(null), 3000);
+      setTimeout(() => setAdminStatus(null), 5000);
     }
   };
 
@@ -546,6 +563,7 @@ export default function App() {
                   if (window.innerWidth < 1024) setActiveTab('products');
                 }}
                 userRole={user.role}
+                isLoading={isLoading}
               />
             </div>
 
@@ -559,6 +577,7 @@ export default function App() {
                 cart={cart}
                 onUpdateCartQuantity={updateCartQuantity}
                 onViewProduct={setViewingProduct}
+                isLoading={isLoading}
               />
             </div>
 

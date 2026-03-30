@@ -10,6 +10,7 @@ interface ProductListProps {
   cart: CartItem[];
   onUpdateCartQuantity: (product: Product, qty: number) => void;
   onViewProduct: (product: Product) => void;
+  isLoading?: boolean;
 }
 
 export const ProductList: React.FC<ProductListProps> = ({
@@ -20,6 +21,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   cart,
   onUpdateCartQuantity,
   onViewProduct,
+  isLoading = false,
 }) => {
   return (
     <div className="w-full lg:col-span-6 flex flex-col min-h-0 h-full">
@@ -27,7 +29,7 @@ export const ProductList: React.FC<ProductListProps> = ({
         <div className="flex items-center justify-between mb-4 shrink-0">
           <h3 className="font-bold text-slate-800 uppercase tracking-tight flex items-center gap-2">
             <span className="w-2 h-2 bg-gusto-green rounded-full"></span>
-            {selectedBrand}
+            {selectedBrand || 'Επιλέξτε Εταιρία'}
           </h3>
           <div className="relative w-48 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -59,19 +61,42 @@ export const ProductList: React.FC<ProductListProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredProducts.map((product) => (
-                <ProductRow
-                  key={product.code}
-                  product={product}
-                  currentQty={cart.find(item => item.code === product.code)?.quantity || 0}
-                  onUpdateQty={onUpdateCartQuantity}
-                  onViewProduct={onViewProduct}
-                />
-              ))}
+              {isLoading ? (
+                // Product Skeletons
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-lg bg-slate-100 shrink-0"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 bg-slate-100 rounded-full w-3/4"></div>
+                          <div className="h-2 bg-slate-50 rounded-full w-1/2"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <div className="h-3 bg-slate-100 rounded-full w-12 ml-auto"></div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="h-10 bg-slate-50 rounded-xl w-24 mx-auto"></div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                filteredProducts.map((product) => (
+                  <ProductRow
+                    key={product.code}
+                    product={product}
+                    currentQty={cart.find(item => item.code === product.code)?.quantity || 0}
+                    onUpdateQty={onUpdateCartQuantity}
+                    onViewProduct={onViewProduct}
+                  />
+                ))
+              )}
             </tbody>
           </table>
 
-          {filteredProducts.length === 0 && (
+          {!isLoading && filteredProducts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                 <Search size={32} className="opacity-20" />

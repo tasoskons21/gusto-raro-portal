@@ -77,7 +77,7 @@ export const CustomerSelection: React.FC<CustomerSelectionProps> = ({
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                       <span className="text-[10px] bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded font-mono border border-slate-100">Κωδ: {cust.code}</span>
                       <span className="text-[10px] bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded font-mono border border-slate-100">ΑΦΜ: {cust.afm}</span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">{cust.city}</span>
+                      <span className="text-[10px] font-black text-amber-600 uppercase tracking-wide">{cust.city}</span>
                     </div>
                   </div>
                   <ChevronRight className="text-slate-300 group-hover:text-gusto-green transition-transform group-hover:translate-x-1" size={20} />

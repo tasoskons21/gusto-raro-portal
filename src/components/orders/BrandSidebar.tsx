@@ -11,6 +11,7 @@ interface BrandSidebarProps {
   selectedBrand: string;
   onSelectBrand: (brand: string) => void;
   userRole: string;
+  isLoading?: boolean;
 }
 
 export const BrandSidebar: React.FC<BrandSidebarProps> = ({
@@ -22,6 +23,7 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
   selectedBrand,
   onSelectBrand,
   userRole,
+  isLoading = false,
 }) => {
   return (
     <div className="w-full lg:col-span-3 flex flex-col gap-4 min-h-0">
@@ -43,7 +45,9 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
             <p className="text-[10px] text-slate-500 font-medium">ΑΦΜ: <span className="font-bold">{selectedCustomer.afm}</span></p>
             <p className="text-[10px] text-slate-500 font-medium">ΚΩΔ: <span className="font-bold">{selectedCustomer.customer_code || selectedCustomer.code}</span></p>
           </div>
-          <p className="text-[10px] text-slate-500 mt-2 font-medium">{selectedCustomer.address}, {selectedCustomer.city}</p>
+          <p className="text-[10px] text-slate-500 mt-2 font-medium">
+            {selectedCustomer.address}, <span className="font-black text-amber-600 uppercase tracking-wide">{selectedCustomer.city}</span>
+          </p>
         </div>
       </div>
 
@@ -75,34 +79,44 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
 
         <div className="p-2 space-y-1 overflow-y-auto customer-scroll flex-1">
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
-            {allBrands
-              .filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
-              .map(brand => {
-                const logoUrl = brand.logo_url || brand.imageUrl;
-                return (
-                  <button
-                    key={brand.name}
-                    onClick={() => onSelectBrand(brand.name)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all flex items-center gap-3 ${selectedBrand === brand.name
-                      ? 'bg-gusto-green text-white shadow-md font-semibold'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-gusto-green'
-                      }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${selectedBrand === brand.name ? 'bg-white/20 border-white/20' : 'bg-white border-slate-100 shadow-sm'
-                      }`}>
-                      {logoUrl ? (
-                        <img src={logoUrl} alt="" className="w-6 h-6 object-contain" />
-                      ) : (
-                        <Building2 size={14} className={selectedBrand === brand.name ? 'text-white' : 'text-slate-400'} />
-                      )}
-                    </div>
-                    <span className="truncate flex-1 font-bold uppercase text-[11px] leading-tight">{brand.name}</span>
-                  </button>
-                );
-              })}
+            {isLoading ? (
+              // Brand Skeletons
+              Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-xl animate-pulse">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 shrink-0"></div>
+                  <div className="h-3 bg-slate-100 rounded-full flex-1"></div>
+                </div>
+              ))
+            ) : (
+              allBrands
+                .filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
+                .map(brand => {
+                  const logoUrl = brand.logo_url || brand.imageUrl;
+                  return (
+                    <button
+                      key={brand.name}
+                      onClick={() => onSelectBrand(brand.name)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all flex items-center gap-3 ${selectedBrand === brand.name
+                        ? 'bg-gusto-green text-white shadow-md font-semibold'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-gusto-green'
+                        }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${selectedBrand === brand.name ? 'bg-white/20 border-white/20' : 'bg-white border-slate-100 shadow-sm'
+                        }`}>
+                        {logoUrl ? (
+                          <img src={logoUrl} alt="" className="w-6 h-6 object-contain" />
+                        ) : (
+                          <Building2 size={14} className={selectedBrand === brand.name ? 'text-white' : 'text-slate-400'} />
+                        )}
+                      </div>
+                      <span className="truncate flex-1 font-bold uppercase text-[11px] leading-tight">{brand.name}</span>
+                    </button>
+                  );
+                })
+            )}
           </div>
 
-          {allBrands.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase())).length === 0 && (
+          {!isLoading && allBrands.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase())).length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 text-slate-300">
               <Building2 size={24} className="mb-2 opacity-20" />
               <p className="text-[10px] italic">Δεν βρέθηκαν εταιρίες</p>
