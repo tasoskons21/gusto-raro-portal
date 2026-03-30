@@ -2194,7 +2194,7 @@ export default function App() {
                       </div>
                       <div className="flex gap-2 w-full md:w-auto">
                         <button onClick={handleSearchProduct} className="flex-1 md:flex-none bg-blue-600 text-white px-6 py-3 rounded-xl font-black hover:bg-blue-700 transition-all text-xs uppercase">ΑΝΑΖΗΤΗΣΗ</button>
-                        <button onClick={() => { setSearchCode(''); setProducts([]); }} className="bg-slate-200 text-slate-600 px-4 py-3 rounded-xl font-black hover:bg-slate-300 transition-all text-xs uppercase">ΚΑΘΑΡΙΣΜΟΣ</button>
+                        <button onClick={() => { setSearchCode(''); setAdminSearchResults([]); }} className="bg-slate-200 text-slate-600 px-4 py-3 rounded-xl font-black hover:bg-slate-300 transition-all text-xs uppercase">ΚΑΘΑΡΙΣΜΟΣ</button>
                       </div>
                     </div>
 
