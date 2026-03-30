@@ -1212,7 +1212,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-4">
+      <main className="max-w-7xl mx-auto p-4 overflow-hidden">
         {!selectedCustomer ? (
           /* Customer Selection */
           <div className="max-w-2xl mx-auto mt-8">
@@ -1317,12 +1317,12 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                <div className="bg-slate-800 p-3 text-white text-xs font-bold tracking-wider">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[355px]">
+                <div className="bg-slate-800 p-3 text-white text-xs font-bold tracking-wider shrink-0 text-center uppercase">
                   ΕΤΑΙΡΙΕΣ
                 </div>
 
-                <div className="p-2 border-b border-slate-100">
+                <div className="p-2 border-b border-slate-100 shrink-0">
                   <div className="relative">
                     <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -1343,7 +1343,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="p-2 space-y-1 max-h-[350px] overflow-y-auto custom-scrollbar">
+                <div className="p-2 space-y-1 overflow-y-auto customer-scroll flex-1">
                   {allBrands
                     .filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
                     .map(brand => (
@@ -1379,7 +1379,7 @@ export default function App() {
                           )}
                         </div>
 
-                        <span className="truncate flex-1">{brand.name}</span>
+                        <span className="truncate flex-1 font-bold uppercase">{brand.name}</span>
 
                         {selectedBrand === brand.name && (
                           <div className="w-1.5 h-1.5 rounded-full bg-gusto-gold animate-pulse" />
@@ -1398,8 +1398,8 @@ export default function App() {
             </div>
 
             {/* Center: Product List */}
-            <div className="lg:col-span-6 space-y-4">
-              <div className="flex gap-2">
+            <div className="lg:col-span-6 flex flex-col min-h-0 h-[calc(100vh-180px)]">
+              <div className="flex gap-2 mb-4 shrink-0">
                 <button
                   onClick={() => setActiveTab('order')}
                   className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 'order' ? 'bg-gusto-green text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}
@@ -1417,8 +1417,8 @@ export default function App() {
               </div>
 
               {activeTab === 'order' ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="p-4 border-bottom border-slate-100">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-0">
+                  <div className="p-4 border-b border-slate-100 shrink-0">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input
@@ -1431,9 +1431,9 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="w-full overflow-hidden">
+                  <div className="w-full overflow-y-auto customer-scroll flex-1">
                     <table className="w-full text-left border-collapse table-fixed">
-                      <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                      <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 sticky top-0 z-10">
                         <tr>
                           <th className="px-4 py-3 w-[50%]">Προϊον</th>
                           <th className="px-4 py-3 text-right w-[20%]">Τιμη</th>
@@ -1455,7 +1455,7 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 overflow-y-auto customer-scroll flex-1">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="font-bold text-slate-800">Πρόσφατες Παραγγελίες</h3>
                     <div className="flex bg-slate-100 p-1 rounded-lg">
@@ -1513,8 +1513,8 @@ export default function App() {
             {/* Right: Cart (Desktop) / Drawer (Mobile) */}
             {activeTab === 'order' && (
               <div className="lg:col-span-3">
-                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden sticky top-20">
-                  <div className="bg-slate-800 p-4 text-white flex items-center justify-between">
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-180px)]">
+                  <div className="bg-slate-800 p-4 text-white flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2">
                       <ShoppingCart size={18} className="text-gusto-gold" />
                       <span className="font-bold text-sm">ΚΑΛΑΘΙ</span>
@@ -1522,7 +1522,7 @@ export default function App() {
                     <span className="bg-gusto-gold text-gusto-green text-[10px] font-black px-2 py-0.5 rounded-full">{cart.length} ΕΙΔΗ</span>
                   </div>
 
-                  <div className="p-0 max-h-[400px] overflow-y-auto customer-scroll">
+                  <div className="p-0 overflow-y-auto customer-scroll flex-1">
                     {cart.map(item => (
                       <div key={item.code} className="p-3 border-b border-slate-50 flex items-center justify-between group hover:bg-slate-50 transition-colors">
                         <div className="flex items-center flex-1 min-w-0 pr-2">
