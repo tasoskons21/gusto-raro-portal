@@ -1219,7 +1219,14 @@ export default function App() {
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
               <div className="bg-gusto-green p-6 text-white text-center">
                 <h2 className="text-xl font-bold">Αναζήτηση Πελάτη</h2>
-                <p className="text-gusto-gold/80 text-sm mt-1">Επιλέξτε πελάτη για να ξεκινήσετε την παραγγελία</p>
+                <div className="flex flex-col gap-1 mt-1">
+                  <p className="text-gusto-gold/80 text-sm">Επιλέξτε πελάτη για να ξεκινήσετε την παραγγελία</p>
+                  {customers.length > 0 && (
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-white/60">
+                      Συνολο Πελατων στη Βαση: {customers.length}
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="p-6">
                 <div className="relative">
