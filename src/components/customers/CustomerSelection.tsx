@@ -20,12 +20,12 @@ export const CustomerSelection: React.FC<CustomerSelectionProps> = ({
   onSelectCustomer,
 }) => {
   return (
-    <div className="max-w-2xl mx-auto mt-8">
+    <div className="max-w-2xl mx-auto mt-4 sm:mt-8 px-2 sm:px-0">
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-        <div className="bg-slate-800 p-6 text-white text-center">
-          <h2 className="text-xl font-bold uppercase tracking-tight">Αναζήτηση Πελάτη</h2>
+        <div className="bg-slate-800 p-4 sm:p-6 text-white text-center">
+          <h2 className="text-lg sm:text-xl font-bold uppercase tracking-tight">Αναζήτηση Πελάτη</h2>
           <div className="flex flex-col gap-1 mt-1">
-            <p className="text-slate-300 text-sm">Επιλέξτε πελάτη για να ξεκινήσετε την παραγγελία</p>
+            <p className="text-slate-300 text-xs sm:text-sm">Επιλέξτε πελάτη για να ξεκινήσετε την παραγγελία</p>
             {customers.length > 0 && (
               <p className="text-[10px] uppercase tracking-widest font-bold text-white/40 mt-1">
                 Συνολο Πελατων στη Βαση: {customers.length}
@@ -33,13 +33,13 @@ export const CustomerSelection: React.FC<CustomerSelectionProps> = ({
             )}
           </div>
         </div>
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
               placeholder="Όνομα, ΑΦΜ, Κωδικός ή Πόλη..."
-              className="w-full pl-12 pr-12 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-gusto-green focus:ring-0 transition-all text-lg shadow-sm"
+              className="w-full pl-12 pr-12 py-3 sm:py-4 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-gusto-green focus:ring-0 transition-all text-base sm:text-lg shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               autoFocus
@@ -54,7 +54,7 @@ export const CustomerSelection: React.FC<CustomerSelectionProps> = ({
             )}
           </div>
 
-          <div className="mt-4 max-h-[450px] overflow-y-auto customer-scroll space-y-2">
+          <div className="mt-3 sm:mt-4 max-h-[50vh] sm:max-h-[calc(100vh-400px)] overflow-y-auto customer-scroll space-y-2">
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="w-10 h-10 border-4 border-gusto-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>

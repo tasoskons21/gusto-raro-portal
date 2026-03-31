@@ -344,13 +344,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           onChange={val => setNewBrandForm({ ...newBrandForm, name: val.toUpperCase() })}
                           className="uppercase"
                         />
-                        <SmartInput 
-                          label="URL Λογοτύπου"
-                          placeholder="https://..."
-                          value={newBrandForm.logo || ''}
-                          onChange={val => setNewBrandForm({ ...newBrandForm, logo: val })}
-                          previewImage
-                        />
                         <div className="flex items-end">
                           <button type="submit" disabled={isLoading} className="w-full bg-slate-900 text-white h-[48px] rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-50">
                             {isLoading ? 'Αποθήκευση...' : 'Προσθήκη'}
@@ -448,13 +441,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             value={newProductForm.price || ''}
                             onChange={val => setNewProductForm({ ...newProductForm, price: val })}
                           />
-                          <SmartInput 
-                            label="Εικόνα (URL)"
-                            placeholder="https://..."
-                            value={newProductForm.imageUrl || ''}
-                            onChange={val => setNewProductForm({ ...newProductForm, imageUrl: val })}
-                            previewImage
-                          />
                         </div>
                         <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">Αποθήκευση Προϊόντος</button>
                       </form>
@@ -515,14 +501,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 ) : (
                                   <span className="font-bold text-slate-800 uppercase leading-tight">{p.description || (p as any).Description}</span>
                                 )}
-                                {isEditing && (
-                                  <SmartInput 
-                                    className="mt-2 text-[10px]"
-                                    value={editForm.imageUrl}
-                                    onChange={val => setEditForm({ ...editForm, imageUrl: val })}
-                                    placeholder="Image URL"
-                                  />
-                                )}
+                                
                               </div>
                             </div>
                           </td>
@@ -558,8 +537,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                     setEditingProduct(pCode);
                                     setEditForm({
                                       description: p.description || (p as any).Description,
-                                      price: p.price || (p as any).Price,
-                                      imageUrl: p.imageUrl || (p as any).ImageUrl || ''
+                                      price: (() => {
+                                        const raw = p.price || (p as any).Price || 0;
+                                        const normalized = String(raw).replace(',', '.');
+                                        const num = Number(normalized);
+                                        return isNaN(num) ? '0.00' : num.toFixed(2);
+                                      })()
                                     });
                                   }} className="w-9 h-9 bg-blue-50 hover:bg-blue-100 text-blue-500 rounded-lg transition-all flex items-center justify-center"><Pencil size={16} /></button>
                                   <button onClick={() => onDeleteProduct(pCode)} className="w-9 h-9 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center"><Trash2 size={16} /></button>

@@ -17,6 +17,7 @@ import { Cart } from './components/orders/Cart';
 import { AdminModal } from './components/admin/AdminModal';
 import { ProductDetailsModal } from './components/orders/ProductDetailsModal';
 import { OrderConfirmationModal } from './components/orders/OrderConfirmationModal';
+import { ExportPreviewModal } from './components/orders/ExportPreviewModal';
 import { LayoutGrid, ShoppingBag, ShoppingCart } from 'lucide-react';
 
 export default function App() {
@@ -61,6 +62,7 @@ export default function App() {
   const [viewingOrder, setViewingOrder] = useState<OrderRecord | null>(null);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportPreview, setShowExportPreview] = useState(false);
 
   // Order State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -269,12 +271,15 @@ export default function App() {
   // Order Handlers
   const handleCheckout = async () => {
     if (!selectedCustomer) return;
+    setShowExportPreview(true);
+  };
+
+  const handleConfirmExport = async () => {
+    setShowExportPreview(false);
     setIsExporting(true);
     try {
-      // 1. Export Excel ALWAYS
       dataService.exportToExcel(selectedCustomer, cart, totalNet, notes);
 
-      // 2. Show Success Modal (Skip database submission as per user request)
       const newRecord: OrderRecord = {
         id: Math.random().toString(36).substr(2, 9),
         date: new Date().toISOString(),
@@ -680,6 +685,16 @@ export default function App() {
           setSelectedCustomer(null);
         }}
         orderId={viewingOrder?.id || null}
+      />
+
+      <ExportPreviewModal
+        show={showExportPreview}
+        onClose={() => setShowExportPreview(false)}
+        onConfirm={handleConfirmExport}
+        customer={selectedCustomer}
+        cart={cart}
+        totalNet={totalNet}
+        notes={notes}
       />
     </div>
   );
