@@ -48,7 +48,7 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
                     Προεπισκόπηση Παραγγελίας
                   </h2>
                   <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
-                    Έλεγχος πριν την εξαγωγή
+                    Έλεγχος πριν την αποθήκευση
                   </p>
                 </div>
               </div>
@@ -153,9 +153,7 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
                 onClick={onConfirm}
                 className="flex-[2] py-4 rounded-2xl font-black text-sm bg-gusto-green text-white hover:bg-gusto-green-light hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-gusto-green/20 flex items-center justify-center gap-3"
               >
-                <FileSpreadsheet size={18} />
-                ΕΞΑΓΩΓΗ ΣΕ EXCEL
-                <Download size={18} />
+                ΑΠΟΘΗΚΕΥΣΗ
               </button>
             </div>
           </motion.div>

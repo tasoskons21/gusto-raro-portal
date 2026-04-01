@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Settings, Plus, Trash2, Pencil, Check, Search, 
   Users as UsersIcon, Building2, Package, Mail, Lock, 
-  AlertCircle, CheckCircle2, Image as ImageIcon, ExternalLink
+  AlertCircle, CheckCircle2, Image as ImageIcon, ExternalLink,
+  Hash, FileText, Award, ChevronDown
 } from 'lucide-react';
 import { Profile, Brand, Product, Customer } from '../../types';
 
@@ -405,44 +406,83 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               <AnimatePresence>
                 {showAddForm && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm mb-6">
-                      <form onSubmit={onAddProduct} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <SmartInput 
-                            label="Κωδικός"
-                            required
-                            placeholder="Π.Χ. 10-20-30"
-                            value={newProductForm.code || ''}
-                            onChange={val => setNewProductForm({ ...newProductForm, code: val.toUpperCase() })}
-                            className="uppercase"
-                          />
-                          <div className="md:col-span-2">
-                            <SmartInput 
-                              label="Περιγραφή"
-                              required
-                              placeholder="ΠΕΡΙΓΡΑΦΗ ΠΡΟΪΟΝΤΟΣ"
-                              value={newProductForm.description || ''}
-                              onChange={val => setNewProductForm({ ...newProductForm, description: val.toUpperCase() })}
-                              className="uppercase"
-                            />
+                    <div className="bg-gradient-to-br from-white to-slate-50/50 p-8 rounded-[32px] border border-slate-200 shadow-lg shadow-slate-100/50 mb-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
+                          <Plus size={20} className="text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">Στοιχεία Προϊόντος</h3>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Συμπληρώστε τα απαραίτητα πεδία</p>
+                        </div>
+                      </div>
+                      <form onSubmit={onAddProduct} className="space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Κωδικός Προϊόντος *</label>
+                            <div className="relative">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <Hash size={16} />
+                              </div>
+                              <input 
+                                required
+                                placeholder="Π.Χ. 10-20-30"
+                                value={newProductForm.code || ''}
+                                onChange={e => setNewProductForm({ ...newProductForm, code: e.target.value.toUpperCase() })}
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all uppercase"
+                              />
+                            </div>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Brand</label>
-                            <select required value={newProductForm.brand || ''} onChange={e => setNewProductForm({ ...newProductForm, brand: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-900 transition-all">
-                              <option value="">Επιλέξτε Brand...</option>
-                              {allBrands?.map(b => <option key={b.id || (b as any).ID} value={b.name}>{b.name}</option>)}
-                            </select>
+                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Τιμή (€) *</label>
+                            <div className="relative">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">€</div>
+                              <input 
+                                required
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={newProductForm.price || ''}
+                                onChange={e => setNewProductForm({ ...newProductForm, price: e.target.value })}
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all"
+                              />
+                            </div>
                           </div>
-                          <SmartInput 
-                            label="Τιμή"
-                            required
-                            type="number"
-                            step="0.01"
-                            value={newProductForm.price || ''}
-                            onChange={val => setNewProductForm({ ...newProductForm, price: val })}
-                          />
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Περιγραφή Προϊόντος *</label>
+                            <div className="relative">
+                              <div className="absolute left-4 top-4 text-slate-400">
+                                <FileText size={16} />
+                              </div>
+                              <input 
+                                required
+                                placeholder="ΠΕΡΙΓΡΑΦΗ ΠΡΟΪΟΝΤΟΣ"
+                                value={newProductForm.description || ''}
+                                onChange={e => setNewProductForm({ ...newProductForm, description: e.target.value.toUpperCase() })}
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all uppercase"
+                              />
+                            </div>
+                          </div>
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Brand *</label>
+                            <div className="relative">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <Award size={16} />
+                              </div>
+                              <select required value={newProductForm.brand || ''} onChange={e => setNewProductForm({ ...newProductForm, brand: e.target.value })} className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all appearance-none cursor-pointer">
+                                <option value="">Επιλέξτε Brand...</option>
+                                {allBrands?.map(b => <option key={b.id || (b as any).ID} value={b.name}>{b.name}</option>)}
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                <ChevronDown size={16} />
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">Αποθήκευση Προϊόντος</button>
+                        <button type="submit" className="w-full bg-gradient-to-r from-slate-900 to-slate-800 text-white py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:from-slate-800 hover:to-slate-700 transition-all shadow-xl shadow-slate-200/50 flex items-center justify-center gap-2">
+                          <Check size={16} />
+                          Αποθήκευση Προϊόντος
+                        </button>
                       </form>
                     </div>
                   </motion.div>
@@ -485,18 +525,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <td className="px-8 py-4">
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center overflow-hidden p-2">
-                                {isEditing ? (
-                                  <ImageIcon size={20} className="text-slate-200" />
-                                ) : (
-                                  <img src={p.imageUrl || (p as any).ImageUrl || 'https://via.placeholder.com/40'} className="max-w-full max-h-full object-contain" alt="" />
-                                )}
+                                <img src={p.imageUrl || (p as any).ImageUrl || 'https://via.placeholder.com/40'} className="max-w-full max-h-full object-contain" alt="" />
                               </div>
                               <div className="flex flex-col">
                                 {isEditing ? (
-                                  <SmartInput 
-                                    className="text-sm"
+                                  <input 
+                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-sm focus:bg-white focus:border-slate-900 outline-none transition-all uppercase"
                                     value={editForm.description}
-                                    onChange={val => setEditForm({ ...editForm, description: val.toUpperCase() })}
+                                    onChange={e => setEditForm({ ...editForm, description: e.target.value.toUpperCase() })}
                                   />
                                 ) : (
                                   <span className="font-bold text-slate-800 uppercase leading-tight">{p.description || (p as any).Description}</span>
@@ -511,12 +547,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <td className="px-8 py-4 text-right">
                             {isEditing ? (
                               <div className="flex items-center justify-end gap-1">
-                                <SmartInput 
+                                <input 
                                   type="number"
                                   step="0.01"
-                                  className="w-20 text-right"
+                                  className="w-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-right focus:bg-white focus:border-slate-900 outline-none transition-all"
                                   value={editForm.price}
-                                  onChange={val => setEditForm({ ...editForm, price: val })}
+                                  onChange={e => setEditForm({ ...editForm, price: e.target.value })}
                                 />
                                 <span className="font-black">€</span>
                               </div>
@@ -542,7 +578,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                         const normalized = String(raw).replace(',', '.');
                                         const num = Number(normalized);
                                         return isNaN(num) ? '0.00' : num.toFixed(2);
-                                      })()
+                                      })(),
+                                      imageUrl: p.imageUrl || (p as any).ImageUrl || ''
                                     });
                                   }} className="w-9 h-9 bg-blue-50 hover:bg-blue-100 text-blue-500 rounded-lg transition-all flex items-center justify-center"><Pencil size={16} /></button>
                                   <button onClick={() => onDeleteProduct(pCode)} className="w-9 h-9 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center"><Trash2 size={16} /></button>

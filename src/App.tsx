@@ -18,7 +18,9 @@ import { AdminModal } from './components/admin/AdminModal';
 import { ProductDetailsModal } from './components/orders/ProductDetailsModal';
 import { OrderConfirmationModal } from './components/orders/OrderConfirmationModal';
 import { ExportPreviewModal } from './components/orders/ExportPreviewModal';
-import { LayoutGrid, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { OrdersList } from './components/orders/OrdersList';
+import { OrderViewModal } from './components/orders/OrderViewModal';
+import { LayoutGrid, ShoppingBag, ShoppingCart, ClipboardList } from 'lucide-react';
 
 export default function App() {
   // Auth State
@@ -66,6 +68,10 @@ export default function App() {
 
   // Order State
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [savedOrders, setSavedOrders] = useState<any[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [activeView, setActiveView] = useState<'order' | 'orders'>('order');
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
   // Load Initial Data Function
   const loadInitialData = async () => {
@@ -161,6 +167,12 @@ export default function App() {
       loadInitialData();
     }
   }, [user.isLoggedIn, user.role, user.customer_id]);
+
+  useEffect(() => {
+    if (activeView === 'orders' && user.isLoggedIn) {
+      loadSavedOrders();
+    }
+  }, [activeView, user.isLoggedIn]);
 
   // Memoized Data
   const filteredCustomers = useMemo(() => {
@@ -278,10 +290,30 @@ export default function App() {
     setShowExportPreview(false);
     setIsExporting(true);
     try {
-      dataService.exportToExcel(selectedCustomer, cart, totalNet, notes);
+      const orderData = {
+        user_id: user.id,
+        user_email: user.email,
+        user_role: user.role,
+        customer_id: selectedCustomer?.id || null,
+        customer_name: selectedCustomer?.name || '',
+        customer_code: selectedCustomer?.customer_code || selectedCustomer?.code || '',
+        customer_afm: selectedCustomer?.afm || '',
+        items: cart,
+        total_value: totalNet,
+        notes: notes,
+        status: 'submitted' as const
+      };
+
+      if (editingOrderId) {
+        const { error } = await supabase.from('orders').update(orderData).eq('id', editingOrderId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('orders').insert(orderData);
+        if (error) throw error;
+      }
 
       const newRecord: OrderRecord = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: editingOrderId || Math.random().toString(36).substr(2, 9),
         date: new Date().toISOString(),
         customerName: selectedCustomer.name,
         customerCode: selectedCustomer.customer_code || selectedCustomer.code,
@@ -290,13 +322,166 @@ export default function App() {
         totalValue: totalNet,
         notes: notes
       };
-      setViewingOrder(newRecord);
       setShowSuccess(true);
-      
-    } catch (err) {
+      setCart([]);
+      setNotes('');
+      setSelectedCustomer(null);
+      setEditingOrderId(null);
+    } catch (err: any) {
       console.error('Order checkout failed:', err);
+      console.error('Error details:', JSON.stringify(err, null, 2));
+      setShowError(`Αποτυχία αποθήκευσης παραγγελίας: ${err?.message || err?.code || 'Άγνωστο σφάλμα'}`);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!selectedCustomer || cart.length === 0) return;
+    setIsExporting(true);
+    try {
+      const orderData = {
+        user_id: user.id,
+        user_email: user.email,
+        user_role: user.role,
+        customer_id: selectedCustomer.id || null,
+        customer_name: selectedCustomer.name,
+        customer_code: selectedCustomer.customer_code || selectedCustomer.code,
+        customer_afm: selectedCustomer.afm,
+        items: cart,
+        total_value: totalNet,
+        notes: notes,
+        status: 'draft' as const
+      };
+
+      if (editingOrderId) {
+        const { error } = await supabase.from('orders').update(orderData).eq('id', editingOrderId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('orders').insert(orderData);
+        if (error) throw error;
+      }
+
+      setShowSuccess(true);
+      setCart([]);
+      setNotes('');
+      setEditingOrderId(null);
+    } catch (err) {
+      console.error('Save draft failed:', err);
+      setShowError('Αποτυχία αποθήκευσης προσχεδίου');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const loadSavedOrders = async () => {
+    setIsLoadingOrders(true);
+    try {
+      let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+
+      if (user.role === 'customer' || user.role === 'seller') {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setSavedOrders(data || []);
+    } catch (err) {
+      console.error('Load orders failed:', err);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!window.confirm('Διαγραφή παραγγελίας;')) return;
+    try {
+      console.log('Deleting order:', orderId);
+      const { error } = await supabase.from('orders').delete().eq('id', orderId);
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
+      await loadSavedOrders();
+    } catch (err: any) {
+      console.error('Delete order failed:', err);
+      setShowError(`Αποτυχία διαγραφής: ${err?.message || 'Άγνωστο σφάλμα'}`);
+    }
+  };
+
+  const handleViewOrder = (order: any) => {
+    setViewingOrder(order);
+  };
+
+  const handleLoadDraft = async (order: any) => {
+    const items = order.items || [];
+    setCart(items);
+    setNotes(order.notes || '');
+    setEditingOrderId(order.id);
+    setActiveView('order');
+    setSelectedCustomer({
+      id: order.customer_id,
+      name: order.customer_name,
+      customer_code: order.customer_code,
+      code: order.customer_code,
+      afm: order.customer_afm,
+      address: '',
+      city: ''
+    } as Customer);
+  };
+
+  const handleSendOrder = (order: any) => {
+    const customer = {
+      id: order.customer_id,
+      name: order.customer_name,
+      customer_code: order.customer_code,
+      code: order.customer_code,
+      afm: order.customer_afm,
+      address: '',
+      city: ''
+    };
+    dataService.exportToExcel(customer, order.items || [], order.total_value, order.notes);
+  };
+
+  const handleSendToSoft1 = async (order: any) => {
+    try {
+      const soft1Payload = {
+        customer_code: order.customer_code,
+        customer_name: order.customer_name,
+        customer_afm: order.customer_afm,
+        items: (order.items || []).map((item: any) => ({
+          code: item.code,
+          description: item.description,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.price * item.quantity
+        })),
+        total_value: order.total_value,
+        notes: order.notes,
+        order_date: order.created_at || new Date().toISOString()
+      };
+
+      console.log('Sending to Soft1:', soft1Payload);
+      
+      const response = await fetch('SOFT1_API_URL_HERE', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer SOFT1_API_KEY_HERE'
+        },
+        body: JSON.stringify(soft1Payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Soft1 API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Soft1 response:', result);
+      setShowSuccess(true);
+    } catch (err: any) {
+      console.error('Send to Soft1 failed:', err);
+      setShowError(`Αποτυχία αποστολής στο Soft1: ${err?.message || 'Άγνωστο σφάλμα'}`);
     }
   };
 
@@ -475,11 +660,17 @@ export default function App() {
   const handleUpdateProduct = async (code: string) => {
     setIsAdminLoading(true);
     try {
-      const { error } = await supabase.from('products').update({
+      const updateData: any = {
         Description: editForm.description.toUpperCase(),
-        Price: parseFloat(editForm.price),
-        ImageUrl: editForm.imageUrl || null
-      }).eq('Code', code);
+        Price: parseFloat(editForm.price)
+      };
+
+      // Μόνο αν υπάρχει imageUrl στο form το στέλνουμε, αλλιώς δεν το πειράζουμε
+      if (editForm.imageUrl) {
+        updateData.ImageUrl = editForm.imageUrl;
+      }
+
+      const { error } = await supabase.from('products').update(updateData).eq('Code', code);
       if (error) throw error;
       setAdminStatus({ msg: 'ΤΟ ΠΡΟΪΟΝ ΕΝΗΜΕΡΩΘΗΚΕ', type: 'success' });
       setEditingProduct(null);
@@ -538,10 +729,27 @@ export default function App() {
         isLoading={isLoading}
         onShowAdminModal={() => { setShowAdminModal(true); fetchAllUsers(true); }}
         onLogout={handleLogout}
+        activeView={activeView}
+        onViewChange={setActiveView}
       />
 
       <main className="w-full px-2 sm:px-4 py-2 sm:py-4 flex-1 min-h-0 overflow-hidden relative">
-        {!selectedCustomer ? (
+        {activeView === 'orders' ? (
+          <div className="max-w-5xl mx-auto w-full h-full overflow-y-auto pb-20 lg:pb-4">
+            <OrdersList
+              orders={savedOrders}
+              user={user}
+              customers={customers}
+              isLoading={isLoadingOrders}
+              onView={handleViewOrder}
+              onLoadDraft={handleLoadDraft}
+              onSendOrder={handleSendOrder}
+              onSendToSoft1={handleSendToSoft1}
+              onDelete={handleDeleteOrder}
+              onRefresh={loadSavedOrders}
+            />
+          </div>
+        ) : !selectedCustomer ? (
           <div className="max-w-7xl mx-auto w-full">
             <CustomerSelection
               customers={customers}
@@ -603,24 +811,24 @@ export default function App() {
             {/* Mobile Bottom Navigation */}
             <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
               <button 
-                onClick={() => setActiveTab('brands')}
-                className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'brands' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+                onClick={() => { setActiveTab('brands'); setActiveView('order'); }}
+                className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'brands' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
               >
                 <LayoutGrid size={24} />
                 <span className="text-[10px] font-black uppercase tracking-widest">Εταιρειες</span>
               </button>
               
               <button 
-                onClick={() => setActiveTab('products')}
-                className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'products' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+                onClick={() => { setActiveTab('products'); setActiveView('order'); }}
+                className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'products' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
               >
                 <ShoppingBag size={24} />
                 <span className="text-[10px] font-black uppercase tracking-widest">Προϊοντα</span>
               </button>
               
               <button 
-                onClick={() => setActiveTab('cart')}
-                className={`flex flex-col items-center gap-1 transition-all relative ${activeTab === 'cart' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+                onClick={() => { setActiveTab('cart'); setActiveView('order'); }}
+                className={`flex flex-col items-center gap-1 transition-all relative ${activeTab === 'cart' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
               >
                 <ShoppingCart size={24} />
                 <span className="text-[10px] font-black uppercase tracking-widest">Καλαθι</span>
@@ -629,6 +837,14 @@ export default function App() {
                     {cart.length}
                   </span>
                 )}
+              </button>
+
+              <button 
+                onClick={() => { setActiveView('orders'); loadSavedOrders(); }}
+                className={`flex flex-col items-center gap-1 transition-all ${activeView === 'orders' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+              >
+                <ClipboardList size={24} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Παραγγελιες</span>
               </button>
             </div>
           </div>
@@ -683,6 +899,7 @@ export default function App() {
           setShowSuccess(false);
           setCart([]);
           setSelectedCustomer(null);
+          setNotes('');
         }}
         orderId={viewingOrder?.id || null}
       />
@@ -695,6 +912,12 @@ export default function App() {
         cart={cart}
         totalNet={totalNet}
         notes={notes}
+      />
+
+      <OrderViewModal
+        order={viewingOrder}
+        isOpen={!!viewingOrder}
+        onClose={() => setViewingOrder(null)}
       />
     </div>
   );

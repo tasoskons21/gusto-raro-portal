@@ -142,7 +142,7 @@ export const Cart: React.FC<CartProps> = ({
             ) : (
               <>
                 <Download size={18} />
-                ΟΛΟΚΛΗΡΩΣΗ
+                ΑΠΟΘΗΚΕΥΣΗ
               </>
             )}
           </button>
