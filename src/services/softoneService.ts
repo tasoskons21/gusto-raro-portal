@@ -48,6 +48,87 @@ async function loginToSoftOne(): Promise<string | null> {
   }
 }
 
+export interface SoftOneOrder {
+  TRD_AAA: string;
+  TRD_DATE: string;
+  TRD_CODE: string;
+  TRD_NAME: string;
+  TRD_AFM: string;
+  TOTAL_VALUE: number;
+  TRD_TYPE_DESC: string;
+  ITEMS_COUNT?: number;
+}
+
+export async function fetchOrderHistoryFromSoftOne(
+  customerCode?: string,
+  daysBack: number = 30
+): Promise<{ success: boolean; orders: SoftOneOrder[]; message: string }> {
+  if (!SOFTONE_API_URL) {
+    return {
+      success: false,
+      orders: [],
+      message: 'Δεν έχει ρυθμιστεί το SoftOne API URL. Επικοινώνησε με τον διαχειριστή.',
+    };
+  }
+
+  try {
+    const token = await loginToSoftOne();
+    if (!token) {
+      return {
+        success: false,
+        orders: [],
+        message: 'Αποτυχία σύνδεσης στο SoftOne. Έλεγχε τα credentials.',
+      };
+    }
+
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - daysBack);
+    const formattedFromDate = fromDate.toISOString().split('T')[0];
+
+    let url = `${SOFTONE_API_URL}/trd_docs?from_date=${formattedFromDate}`;
+    if (customerCode) {
+      url += `&customer_code=${customerCode}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const orders: SoftOneOrder[] = (data.orders || data || []).map((order: any) => ({
+      TRD_AAA: order.TRD_AAA || 'N/A',
+      TRD_DATE: order.TRD_DATE || '',
+      TRD_CODE: order.TRD_CODE || '',
+      TRD_NAME: order.TRD_NAME || order.CUSTOMER_NAME || '',
+      TRD_AFM: order.TRD_AFM || '',
+      TOTAL_VALUE: Number(order.TOTAL_VALUE || order.VALUE || 0),
+      TRD_TYPE_DESC: order.TRD_TYPE_DESC || order.DOC_TYPE || '',
+      ITEMS_COUNT: order.ITEMS_COUNT || order.ITEMS?.length || 0,
+    }));
+
+    return {
+      success: true,
+      orders,
+      message: `Βρέθηκαν ${orders.length} παραγγελίες από το SoftOne.`,
+    };
+  } catch (error: any) {
+    console.error('Failed to fetch order history from SoftOne:', error);
+    return {
+      success: false,
+      orders: [],
+      message: `Αποτυχία ανάκτησης ιστορικού: ${error?.message || 'Άγνωστο σφάλμα'}`,
+    };
+  }
+}
+
 export async function sendOrderToSoftOne(order: any): Promise<{ success: boolean; message: string; docNumber?: string }> {
   if (!SOFTONE_API_URL) {
     return {

@@ -1,6 +1,8 @@
-import React from 'react';
-import { Search, X, Building2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, X, Building2, Database } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Brand, Customer } from '../../types';
+import { SoftOneHistory } from './SoftOneHistory';
 
 interface BrandSidebarProps {
   selectedCustomer: Customer;
@@ -25,19 +27,31 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
   userRole,
   isLoading = false,
 }) => {
+  const [showHistory, setShowHistory] = useState(false);
+
   return (
+    <>
     <div className="w-full lg:col-span-3 flex flex-col gap-4 min-h-0">
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 shrink-0">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-slate-800 uppercase tracking-tight text-sm">ΠΕΛΑΤΗΣ</h3>
-          {userRole !== 'customer' && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={onChangeCustomer}
-              className="text-[10px] text-red-500 font-black hover:underline uppercase tracking-widest"
+              onClick={() => setShowHistory(true)}
+              className="p-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
+              title="Ιστορικό SoftOne"
             >
-              ΑΛΛΑΓΗ
+              <Database size={14} />
             </button>
-          )}
+            {userRole !== 'customer' && (
+              <button
+                onClick={onChangeCustomer}
+                className="text-[10px] text-red-500 font-black hover:underline uppercase tracking-widest"
+              >
+                ΑΛΛΑΓΗ
+              </button>
+            )}
+          </div>
         </div>
         <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
           <p className="font-black text-slate-900 text-sm uppercase leading-tight">{selectedCustomer.name}</p>
@@ -125,5 +139,42 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
         </div>
       </div>
     </div>
+
+    <AnimatePresence>
+      {showHistory && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowHistory(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+          >
+            <div className="bg-slate-800 p-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-bold text-lg">Ιστορικό SoftOne</h3>
+                <p className="text-slate-300 text-sm">{selectedCustomer.name} ({selectedCustomer.customer_code || selectedCustomer.code})</p>
+              </div>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-4">
+              <SoftOneHistory customerCode={selectedCustomer.customer_code || selectedCustomer.code} />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 };

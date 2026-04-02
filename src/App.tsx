@@ -295,6 +295,13 @@ export default function App() {
     }
   };
 
+  const handleChangeCustomer = () => {
+    setCart([]);
+    setNotes('');
+    setEditingOrderId(null);
+    setSelectedCustomer(null);
+  };
+
   // Cart Handlers
   const updateCartQuantity = (product: Product, qty: number) => {
     setCart(prev => {
@@ -815,7 +822,7 @@ export default function App() {
             <div className={`${activeTab === 'brands' ? 'flex' : 'hidden'} lg:flex lg:col-span-3 h-full min-h-0`}>
               <BrandSidebar
                 selectedCustomer={selectedCustomer}
-                onChangeCustomer={() => setSelectedCustomer(null)}
+                onChangeCustomer={handleChangeCustomer}
                 brandSearch={brandSearch}
                 setBrandSearch={setBrandSearch}
                 allBrands={allBrands}

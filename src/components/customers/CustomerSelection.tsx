@@ -72,7 +72,7 @@ export const CustomerSelection: React.FC<CustomerSelectionProps> = ({
                   onClick={() => onSelectCustomer(cust)}
                   className="w-full text-left p-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-100 hover:border-gusto-green/30 transition-all flex items-center justify-between group shadow-sm"
                 >
-                  <div className="flex-1 min-w-0 pr-4">
+                  <div className="flex-1 min-w-0 pr-4 text-left">
                     <h3 className="font-bold text-slate-800 uppercase truncate group-hover:text-gusto-green transition-colors">{cust.name}</h3>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                       <span className="text-[10px] bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded font-mono border border-slate-100">Κωδ: {cust.code}</span>
