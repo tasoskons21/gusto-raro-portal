@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Settings, Plus, Trash2, Pencil, Check, Search, 
   Users as UsersIcon, Building2, Package, Mail, Lock, 
-  AlertCircle, CheckCircle2, Image as ImageIcon, ExternalLink,
+  Image as ImageIcon, ExternalLink,
   Hash, FileText, Award, ChevronDown
 } from 'lucide-react';
 import { Profile, Brand, Product, Customer } from '../../types';
@@ -38,7 +38,6 @@ interface AdminModalProps {
   editForm: any;
   setEditForm: (form: any) => void;
   isLoading: boolean;
-  status: { msg: string, type: 'success' | 'error' } | null;
   currentUser: { id: string };
 }
 
@@ -130,7 +129,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   products, newProductForm, setNewProductForm, onAddProduct, onDeleteProduct,
   onUpdateProduct, searchCode, setSearchCode, onSearchProduct,
   adminSearchResults, setAdminSearchResults, editingProduct, setEditingProduct,
-  editForm, setEditForm, isLoading, status, currentUser
+  editForm, setEditForm, isLoading, currentUser
 }) => {
   const [activeTab, setActiveTab] = React.useState<'users' | 'brands' | 'products'>('users');
   const [showAddForm, setShowAddForm] = React.useState(false);
@@ -194,22 +193,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
         {/* --- CONTENT AREA --- */}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30 customer-scroll">
-          <AnimatePresence mode="wait">
-            {status && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-                className={`mb-6 p-4 rounded-2xl flex items-center gap-3 border ${
-                  status.type === 'success' 
-                  ? 'bg-emerald-50 border-emerald-100 text-emerald-700' 
-                  : 'bg-rose-50 border-rose-100 text-rose-700'
-                }`}
-              >
-                {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-                <span className="text-xs font-black uppercase tracking-wider">{status.msg}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* --- TAB 1: USERS --- */}
           {activeTab === 'users' && (
             <div className="space-y-6">
@@ -227,47 +210,102 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               <AnimatePresence>
                 {showAddForm && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm mb-6">
+                    <div className="bg-gradient-to-br from-white to-slate-50/50 p-8 rounded-[32px] border border-slate-200 shadow-lg shadow-slate-100/50 mb-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
+                          <UsersIcon size={20} className="text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">Στοιχεία Χρήστη</h3>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Συμπληρώστε τα απαραίτητα πεδία</p>
+                        </div>
+                      </div>
                       <form onSubmit={(e) => { 
                         onAddUser(e); 
                         setShowAddForm(false); 
-                      }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <SmartInput 
-                          label="Email"
-                          required
-                          type="email"
-                          value={newUser.email || ''}
-                          onChange={val => setNewUser({ ...newUser, email: val })}
-                          icon={<Mail size={18} />}
-                        />
-                        <SmartInput 
-                          label="Κωδικός"
-                          required
-                          type="password"
-                          value={newUser.password || ''}
-                          onChange={val => setNewUser({ ...newUser, password: val })}
-                          icon={<Lock size={18} />}
-                        />
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Ρόλος</label>
-                          <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value as any })} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-900 transition-all appearance-none">
-                            <option value="customer">Πελάτης</option>
-                            <option value="seller">Πωλητής</option>
-                            <option value="admin">Admin</option>
-                          </select>
+                      }}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Email *</label>
+                            <div className="relative">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <Mail size={16} />
+                              </div>
+                              <input 
+                                required
+                                type="email"
+                                placeholder="user@example.com"
+                                value={newUser.email || ''}
+                                onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Κωδικός *</label>
+                            <div className="relative">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <Lock size={16} />
+                              </div>
+                              <input 
+                                required
+                                type="password"
+                                placeholder="••••••••"
+                                value={newUser.password || ''}
+                                onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-end">
-                          <button type="submit" className="w-full bg-slate-900 text-white h-[48px] rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all">Δημιουργία</button>
+                        <div className="mb-5">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Ρόλος *</label>
+                            <div className="relative max-w-md">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <Award size={16} />
+                              </div>
+                              <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value as any })} className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all appearance-none cursor-pointer">
+                                <option value="customer">Πελάτης</option>
+                                <option value="seller">Πωλητής</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                <ChevronDown size={16} />
+                              </div>
+                            </div>
+                          </div>
                         </div>
                         {newUser.role === 'customer' && (
-                          <div className="md:col-span-2 lg:col-span-4 pt-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Σύνδεση με Κατάστημα</label>
-                            <select required value={newUser.customerId || ''} onChange={e => setNewUser({ ...newUser, customerId: e.target.value })} className="w-full mt-1.5 px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-xl font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-400 transition-all">
-                              <option value="">Επιλέξτε Κατάστημα...</option>
-                              {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.city})</option>)}
-                            </select>
-                          </div>
+                          <motion.div 
+                            initial={{ opacity: 0, y: -10 }} 
+                            animate={{ opacity: 1, y: 0 }} 
+                            className="bg-blue-50/50 border-2 border-blue-100 rounded-xl p-5"
+                          >
+                            <div className="flex items-center gap-2 mb-3">
+                              <Building2 size={16} className="text-blue-600" />
+                              <label className="text-[10px] font-black text-blue-700 uppercase tracking-wider">Σύνδεση με Κατάστημα</label>
+                            </div>
+                            <div className="relative">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400">
+                                <Building2 size={16} />
+                              </div>
+                              <select required value={newUser.customerId || ''} onChange={e => setNewUser({ ...newUser, customerId: e.target.value })} className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-blue-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer">
+                                <option value="">Επιλέξτε Κατάστημα...</option>
+                                {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.city})</option>)}
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">
+                                <ChevronDown size={16} />
+                              </div>
+                            </div>
+                          </motion.div>
                         )}
+                        <div className="pt-2">
+                          <button type="submit" className="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:from-slate-800 hover:to-slate-700 transition-all shadow-xl shadow-slate-200/50 flex items-center justify-center gap-2">
+                            <Check size={16} />
+                            Δημιουργία Χρήστη
+                          </button>
+                        </div>
                       </form>
                     </div>
                   </motion.div>

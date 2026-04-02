@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   ClipboardList, 
   Trash2, 
@@ -13,7 +13,9 @@ import {
   Package,
   Clock,
   Eye,
-  Download
+  Download,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { OrderRecord, User, Customer } from '../../types';
 
@@ -42,6 +44,21 @@ export const OrdersList: React.FC<OrdersListProps> = ({
   onSendOrder,
   onSendToSoft1
 }) => {
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+
+  const toggleOrder = (orderId: string) => {
+    setExpandedOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
+  };
+
+  const isExpanded = (orderId: string) => expandedOrders.has(orderId);
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('el-GR', {
@@ -118,10 +135,13 @@ export const OrdersList: React.FC<OrdersListProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+            className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
           >
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-4 mb-4">
+            <button
+              onClick={() => toggleOrder(order.id)}
+              className="w-full p-5 text-left"
+            >
+              <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     {getStatusBadge(order.status)}
@@ -131,12 +151,12 @@ export const OrdersList: React.FC<OrdersListProps> = ({
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                  <div className="flex flex-col gap-2 mt-3">
                     <div className="flex items-center gap-2 text-sm">
                       <UserIcon className="w-4 h-4 text-gray-400" />
                       <div>
                         <p className="text-xs text-gray-500">Πελάτης</p>
-                        <p className="font-medium text-gray-800 truncate">
+                        <p className="font-medium text-gray-800">
                           {order.customer_name || 'N/A'}
                         </p>
                       </div>
@@ -151,83 +171,107 @@ export const OrdersList: React.FC<OrdersListProps> = ({
                         </p>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2 text-sm">
-                      <FileText className="w-4 h-4 text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500">ΑΦΜ</p>
-                        <p className="font-medium text-gray-800">
-                          {order.customer_afm || 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm">
-                      <Euro className="w-4 h-4 text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500">Συνολική Αξία</p>
-                        <p className="font-bold text-amber-600">
-                          {Number(order.total_value || 0).toFixed(2)}€
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-3 text-sm">
-                    <Package className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">
-                      {Array.isArray(order.items) ? order.items.length : 0} προϊόντα
-                    </span>
-                    {order.notes && (
-                      <span className="text-gray-400">•</span>
-                    )}
-                    {order.notes && (
-                      <span className="text-gray-500 truncate max-w-xs">
-                        Σημειώσεις: {order.notes}
-                      </span>
-                    )}
                   </div>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100">
-                <button
-                  onClick={() => onView(order)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <Eye className="w-4 h-4" />
-                  Προβολή
-                </button>
-                <button
-                  onClick={() => onSendOrder(order)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  Αποθήκευση
-                </button>
-                <button
-                  onClick={() => onSendToSoft1(order)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  <Send className="w-4 h-4" />
-                  Αποστολή στο Soft1
-                </button>
-                <button
-                  onClick={() => onLoadDraft(order)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors"
-                >
-                  <FileEdit className="w-4 h-4" />
-                  Επεξεργασία
-                </button>
-                <button
-                  onClick={() => onDelete(order.id)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Διαγραφή
-                </button>
+                <div className="flex-shrink-0 text-gray-400">
+                  {isExpanded(order.id) ? (
+                    <ChevronUp size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
+                </div>
               </div>
-            </div>
+            </button>
+
+            <AnimatePresence>
+              {isExpanded(order.id) && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-5 pb-5 border-t border-gray-100 pt-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <FileText className="w-4 h-4 text-gray-400" />
+                        <div>
+                          <p className="text-xs text-gray-500">ΑΦΜ</p>
+                          <p className="font-medium text-gray-800">
+                            {order.customer_afm || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm">
+                        <Euro className="w-4 h-4 text-gray-400" />
+                        <div>
+                          <p className="text-xs text-gray-500">Συνολική Αξία</p>
+                          <p className="font-bold text-amber-600">
+                            {Number(order.total_value || 0).toFixed(2)}€
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-3 text-sm">
+                      <Package className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-600">
+                        {Array.isArray(order.items) ? order.items.length : 0} προϊόντα
+                      </span>
+                      {order.notes && (
+                        <span className="text-gray-400">•</span>
+                      )}
+                      {order.notes && (
+                        <span className="text-gray-500 truncate max-w-xs">
+                          Σημειώσεις: {order.notes}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100 mt-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onView(order); }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Προβολή
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onSendOrder(order); }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Αποθήκευση
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onSendToSoft1(order); }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
+                      >
+                        <Send className="w-4 h-4" />
+                        Αποστολή στο Soft1
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onLoadDraft(order); }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors"
+                      >
+                        <FileEdit className="w-4 h-4" />
+                        Επεξεργασία
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDelete(order.id); }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Διαγραφή
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         ))}
       </div>

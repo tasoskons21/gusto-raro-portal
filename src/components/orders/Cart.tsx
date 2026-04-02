@@ -61,9 +61,12 @@ export const Cart: React.FC<CartProps> = ({
                         <img src={imageUrl} alt="" className="w-full h-full object-contain" />
                       </button>
                     ) : (
-                      <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 flex-shrink-0 flex items-center justify-center">
+                      <button
+                        onClick={() => onViewProduct?.(item)}
+                        className="w-10 h-10 rounded-lg bg-white border border-slate-100 flex-shrink-0 flex items-center justify-center hover:border-gusto-green/50 hover:bg-slate-50 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      >
                         <Package size={16} className="text-slate-300" />
-                      </div>
+                      </button>
                     )}
                     <div className="flex-1 min-w-0 pr-2">
                       <div className="flex justify-between items-start">

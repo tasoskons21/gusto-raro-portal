@@ -133,9 +133,12 @@ const ProductRow: React.FC<ProductRowProps> = ({ product, currentQty, onUpdateQt
               <img src={imageUrl} alt="" className="w-full h-full object-contain" />
             </button>
           ) : (
-            <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0 flex items-center justify-center">
+            <button
+              onClick={() => onViewProduct(product)}
+              className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0 flex items-center justify-center hover:border-gusto-green/50 hover:bg-slate-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            >
               <Package size={20} className="text-slate-300" />
-            </div>
+            </button>
           )}
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">

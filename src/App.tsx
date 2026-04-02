@@ -20,6 +20,9 @@ import { OrderConfirmationModal } from './components/orders/OrderConfirmationMod
 import { ExportPreviewModal } from './components/orders/ExportPreviewModal';
 import { OrdersList } from './components/orders/OrdersList';
 import { OrderViewModal } from './components/orders/OrderViewModal';
+import { SoftOneConfirmModal } from './components/orders/SoftOneConfirmModal';
+import { ConfirmModal } from './components/common/ConfirmModal';
+import { StatusModal } from './components/common/StatusModal';
 import { LayoutGrid, ShoppingBag, ShoppingCart, ClipboardList } from 'lucide-react';
 
 export default function App() {
@@ -42,7 +45,6 @@ export default function App() {
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
   const [isAdminLoading, setIsAdminLoading] = useState(false);
   const [newUserForm, setNewUserForm] = useState({ email: '', password: '', role: 'customer', fullName: '', customerId: '' });
-  const [adminStatus, setAdminStatus] = useState<{ msg: string, type: 'success' | 'error' } | null>(null);
   const [searchCode, setSearchCode] = useState('');
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ description: '', price: '', imageUrl: '' });
@@ -65,6 +67,20 @@ export default function App() {
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showExportPreview, setShowExportPreview] = useState(false);
+  const [softOneModalOrder, setSoftOneModalOrder] = useState<any>(null);
+  const [softOneSending, setSoftOneSending] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void }>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+  const [statusModal, setStatusModal] = useState<{ show: boolean; type: 'success' | 'error'; title: string; message: string }>({
+    show: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
 
   // Order State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -173,6 +189,15 @@ export default function App() {
       loadSavedOrders();
     }
   }, [activeView, user.isLoggedIn]);
+
+  useEffect(() => {
+    if (showError) {
+      const timer = setTimeout(() => {
+        setShowError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showError]);
 
   // Memoized Data
   const filteredCustomers = useMemo(() => {
@@ -399,19 +424,26 @@ export default function App() {
   };
 
   const handleDeleteOrder = async (orderId: string) => {
-    if (!window.confirm('Διαγραφή παραγγελίας;')) return;
-    try {
-      console.log('Deleting order:', orderId);
-      const { error } = await supabase.from('orders').delete().eq('id', orderId);
-      if (error) {
-        console.error('Delete error:', error);
-        throw error;
+    setConfirmModal({
+      show: true,
+      title: 'Διαγραφή Παραγγελίας',
+      message: 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την παραγγελία; Η ενέργεια δεν αναιρείται.',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
+        try {
+          console.log('Deleting order:', orderId);
+          const { error } = await supabase.from('orders').delete().eq('id', orderId);
+          if (error) {
+            console.error('Delete error:', error);
+            throw error;
+          }
+          await loadSavedOrders();
+        } catch (err: any) {
+          console.error('Delete order failed:', err);
+          setShowError(`Αποτυχία διαγραφής: ${err?.message || 'Άγνωστο σφάλμα'}`);
+        }
       }
-      await loadSavedOrders();
-    } catch (err: any) {
-      console.error('Delete order failed:', err);
-      setShowError(`Αποτυχία διαγραφής: ${err?.message || 'Άγνωστο σφάλμα'}`);
-    }
+    });
   };
 
   const handleViewOrder = (order: any) => {
@@ -448,40 +480,45 @@ export default function App() {
     dataService.exportToExcel(customer, order.items || [], order.total_value, order.notes);
   };
 
-  const handleSendToSoft1 = async (order: any) => {
-    if (!window.confirm(`Αποστολή παραγγελίας "${order.customer_name}" στο SoftOne;\n\nΗ παραγγελία θα διαγραφεί μετά την επιτυχή αποστολή.`)) {
-      return;
-    }
+  const handleSendToSoft1 = (order: any) => {
+    setSoftOneModalOrder(order);
+  };
 
-    setIsExporting(true);
+  const handleConfirmSoftOneSend = async () => {
+    if (!softOneModalOrder) return;
+
+    setSoftOneSending(true);
     try {
       const { sendOrderToSoftOne } = await import('./services/softoneService');
-      const result = await sendOrderToSoftOne(order);
+      const result = await sendOrderToSoftOne(softOneModalOrder);
 
       if (!result.success) {
         setShowError(result.message);
+        setSoftOneModalOrder(null);
         return;
       }
 
       const { error: deleteError } = await supabase
         .from('orders')
         .delete()
-        .eq('id', order.id);
+        .eq('id', softOneModalOrder.id);
 
       if (deleteError) {
         console.error('Failed to delete order after SoftOne send:', deleteError);
         setShowError(`Η παραγγελία στάλθηκε στο SoftOne (${result.message}) αλλά απέτυχε η διαγραφή από το σύστημα.`);
         await loadSavedOrders();
+        setSoftOneModalOrder(null);
         return;
       }
 
       setShowSuccess(true);
       await loadSavedOrders();
+      setSoftOneModalOrder(null);
     } catch (err: any) {
       console.error('Send to SoftOne failed:', err);
       setShowError(`Αποτυχία αποστολής στο SoftOne: ${err?.message || 'Άγνωστο σφάλμα'}`);
     } finally {
-      setIsExporting(false);
+      setSoftOneSending(false);
     }
   };
 
@@ -506,10 +543,15 @@ export default function App() {
     e.preventDefault();
     setIsAdminLoading(true);
     try {
-      const { data, error: authError } = await supabase.auth.admin.createUser({
+      const { data, error: authError } = await supabase.auth.signUp({
         email: newUserForm.email,
         password: newUserForm.password,
-        email_confirm: true
+        options: {
+          data: {
+            role: newUserForm.role,
+            full_name: newUserForm.fullName
+          }
+        }
       });
 
       if (authError) throw authError;
@@ -526,14 +568,13 @@ export default function App() {
         if (profileError) throw profileError;
       }
 
-      setAdminStatus({ msg: 'Ο ΧΡΗΣΤΗΣ ΔΗΜΙΟΥΡΓΗΘΗΚΕ', type: 'success' });
+      setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Ο χρήστης δημιουργήθηκε επιτυχώς.' });
       setNewUserForm({ email: '', password: '', role: 'customer', fullName: '', customerId: '' });
       await fetchAllUsers(false);
     } catch (err: any) {
-      setAdminStatus({ msg: err.message, type: 'error' });
+      setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά τη δημιουργία χρήστη.' });
     } finally {
       setIsAdminLoading(false);
-      setTimeout(() => setAdminStatus(null), 3000);
     }
   };
 
@@ -541,28 +582,31 @@ export default function App() {
     try {
       const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
       if (error) throw error;
-      setAdminStatus({ msg: 'Ο ΡΟΛΟΣ ΕΝΗΜΕΡΩΘΗΚΕ', type: 'success' });
+      setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Ο ρόλος ενημερώθηκε επιτυχώς.' });
       await fetchAllUsers(false);
     } catch (err: any) {
-      setAdminStatus({ msg: err.message, type: 'error' });
-    } finally {
-      setTimeout(() => setAdminStatus(null), 3000);
+      setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά την ενημέρωση ρόλου.' });
     }
   };
 
   const handleDeleteUser = async (userId: string, role: string) => {
     if (role === 'admin') return;
-    if (!window.confirm('Διαγραφή χρήστη;')) return;
-    try {
-      const { error } = await supabase.from('profiles').delete().eq('id', userId);
-      if (error) throw error;
-      setAdminStatus({ msg: 'Ο ΧΡΗΣΤΗΣ ΔΙΑΓΡΑΦΗΚΕ', type: 'success' });
-      await fetchAllUsers(false);
-    } catch (err: any) {
-      setAdminStatus({ msg: err.message, type: 'error' });
-    } finally {
-      setTimeout(() => setAdminStatus(null), 3000);
-    }
+    setConfirmModal({
+      show: true,
+      title: 'Διαγραφή Χρήστη',
+      message: 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτόν τον χρήστη; Η ενέργεια δεν αναιρείται.',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
+        try {
+          const { error } = await supabase.from('profiles').delete().eq('id', userId);
+          if (error) throw error;
+          setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Ο χρήστης διαγράφηκε επιτυχώς.' });
+          await fetchAllUsers(false);
+        } catch (err: any) {
+          setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά τη διαγραφή χρήστη.' });
+        }
+      }
+    });
   };
 
   const handleCreateBrand = async (e: React.FormEvent) => {
@@ -577,7 +621,6 @@ export default function App() {
     if (!brandName) return;
 
     setIsAdminLoading(true);
-    setAdminStatus(null);
 
     try {
       const { data, error } = await supabase
@@ -590,30 +633,34 @@ export default function App() {
 
       if (error) throw error;
 
-      setAdminStatus({ msg: 'ΤΟ BRAND ΔΗΜΙΟΥΡΓΗΘΗΚΕ', type: 'success' });
+      setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Το brand δημιουργήθηκε επιτυχώς.' });
       setNewBrandForm({ name: '', logo: '' });
       await loadInitialData();
     } catch (err: any) {
       console.error('Error creating brand:', err);
-      setAdminStatus({ msg: (err.message || 'ΣΦΑΛΜΑ ΚΑΤΑ ΤΗΝ ΚΑΤΑΧΩΡΗΣΗ').toUpperCase(), type: 'error' });
+      setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά τη δημιουργία brand.' });
     } finally {
       setIsAdminLoading(false);
-      setTimeout(() => setAdminStatus(null), 5000);
     }
   };
 
   const handleDeleteBrand = async (id: string) => {
-    if (!window.confirm('Διαγραφή brand;')) return;
-    try {
-      const { error } = await supabase.from('brands').delete().eq('id', id);
-      if (error) throw error;
-      setAdminStatus({ msg: 'ΤΟ BRAND ΔΙΑΓΡΑΦΗΚΕ', type: 'success' });
-      await loadInitialData();
-    } catch (err: any) {
-      setAdminStatus({ msg: err.message, type: 'error' });
-    } finally {
-      setTimeout(() => setAdminStatus(null), 3000);
-    }
+    setConfirmModal({
+      show: true,
+      title: 'Διαγραφή Brand',
+      message: 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το brand; Η ενέργεια δεν αναιρείται.',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
+        try {
+          const { error } = await supabase.from('brands').delete().eq('id', id);
+          if (error) throw error;
+          setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Το brand διαγράφηκε επιτυχώς.' });
+          await loadInitialData();
+        } catch (err: any) {
+          setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά τη διαγραφή brand.' });
+        }
+      }
+    });
   };
 
   const handleCreateProduct = async (e: React.FormEvent) => {
@@ -628,14 +675,13 @@ export default function App() {
         ImageUrl: newProductForm.imageUrl || null
       }]);
       if (error) throw error;
-      setAdminStatus({ msg: 'ΤΟ ΠΡΟΪΟΝ ΔΗΜΙΟΥΡΓΗΘΗΚΕ', type: 'success' });
+      setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Το προϊόν δημιουργήθηκε επιτυχώς.' });
       setNewProductForm({ code: '', description: '', brand: '', price: '', imageUrl: '' });
       await loadInitialData();
     } catch (err: any) {
-      setAdminStatus({ msg: err.message, type: 'error' });
+      setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά τη δημιουργία προϊόντος.' });
     } finally {
       setIsAdminLoading(false);
-      setTimeout(() => setAdminStatus(null), 3000);
     }
   };
 
@@ -651,7 +697,7 @@ export default function App() {
       if (error) throw error;
       setAdminSearchResults(data || []);
     } catch (err: any) {
-      setAdminStatus({ msg: err.message, type: 'error' });
+      setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά την αναζήτηση προϊόντος.' });
     } finally {
       setIsAdminLoading(false);
     }
@@ -665,38 +711,41 @@ export default function App() {
         Price: parseFloat(editForm.price)
       };
 
-      // Μόνο αν υπάρχει imageUrl στο form το στέλνουμε, αλλιώς δεν το πειράζουμε
       if (editForm.imageUrl) {
         updateData.ImageUrl = editForm.imageUrl;
       }
 
       const { error } = await supabase.from('products').update(updateData).eq('Code', code);
       if (error) throw error;
-      setAdminStatus({ msg: 'ΤΟ ΠΡΟΪΟΝ ΕΝΗΜΕΡΩΘΗΚΕ', type: 'success' });
+      setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Το προϊόν ενημερώθηκε επιτυχώς.' });
       setEditingProduct(null);
       await loadInitialData();
       await handleSearchProduct();
     } catch (err: any) {
-      setAdminStatus({ msg: err.message, type: 'error' });
+      setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά την ενημέρωση προϊόντος.' });
     } finally {
       setIsAdminLoading(false);
-      setTimeout(() => setAdminStatus(null), 3000);
     }
   };
 
   const handleDeleteProduct = async (code: string) => {
-    if (!window.confirm('Διαγραφή προϊόντος;')) return;
-    try {
-      const { error } = await supabase.from('products').delete().eq('Code', code);
-      if (error) throw error;
-      setAdminStatus({ msg: 'ΤΟ ΠΡΟΪΟΝ ΔΙΑΓΡΑΦΗΚΕ', type: 'success' });
-      await loadInitialData();
-      await handleSearchProduct();
-    } catch (err: any) {
-      setAdminStatus({ msg: err.message, type: 'error' });
-    } finally {
-      setTimeout(() => setAdminStatus(null), 3000);
-    }
+    setConfirmModal({
+      show: true,
+      title: 'Διαγραφή Προϊόντος',
+      message: 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το προϊόν; Η ενέργεια δεν αναιρείται.',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
+        try {
+          const { error } = await supabase.from('products').delete().eq('Code', code);
+          if (error) throw error;
+          setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Το προϊόν διαγράφηκε επιτυχώς.' });
+          await loadInitialData();
+          await handleSearchProduct();
+        } catch (err: any) {
+          setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά τη διαγραφή προϊόντος.' });
+        }
+      }
+    });
   };
 
   // Render
@@ -807,48 +856,48 @@ export default function App() {
                 onNotesChange={setNotes}
               />
             </div>
-
-            {/* Mobile Bottom Navigation */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-              <button
-                onClick={() => { setActiveTab('brands'); setActiveView('order'); }}
-                className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'brands' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
-              >
-                <LayoutGrid size={24} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Εταιρειες</span>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('products'); setActiveView('order'); }}
-                className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'products' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
-              >
-                <ShoppingBag size={24} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Προϊοντα</span>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('cart'); setActiveView('order'); }}
-                className={`flex flex-col items-center gap-1 transition-all relative ${activeTab === 'cart' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
-              >
-                <ShoppingCart size={24} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Καλαθι</span>
-                {cart.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
-                    {cart.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => { setActiveView('orders'); loadSavedOrders(); }}
-                className={`flex flex-col items-center gap-1 transition-all ${(activeView as string) === 'orders' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
-              >
-                <ClipboardList size={24} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Παραγγελιες</span>
-              </button>
-            </div>
           </div>
         )}
+
+        {/* Mobile Bottom Navigation */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+          <button
+            onClick={() => { setActiveTab('brands'); setActiveView('order'); }}
+            className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'brands' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+          >
+            <LayoutGrid size={24} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Εταιρειες</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('products'); setActiveView('order'); }}
+            className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'products' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+          >
+            <ShoppingBag size={24} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Προϊοντα</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('cart'); setActiveView('order'); }}
+            className={`flex flex-col items-center gap-1 transition-all relative ${activeTab === 'cart' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+          >
+            <ShoppingCart size={24} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Καλαθι</span>
+            {cart.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                {cart.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => { setActiveView('orders'); loadSavedOrders(); }}
+            className={`flex flex-col items-center gap-1 transition-all ${(activeView as string) === 'orders' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+          >
+            <ClipboardList size={24} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Παραγγελιες</span>
+          </button>
+        </div>
       </main>
 
       {/* Modals */}
@@ -882,7 +931,6 @@ export default function App() {
         editForm={editForm}
         setEditForm={setEditForm}
         isLoading={isAdminLoading}
-        status={adminStatus}
         currentUser={user}
       />
 
@@ -902,6 +950,53 @@ export default function App() {
           setNotes('');
         }}
         orderId={viewingOrder?.id || null}
+      />
+
+      {showError && (
+        <div className="fixed top-4 right-4 z-50 max-w-md animate-slide-in">
+          <div className="bg-red-50 border border-red-200 rounded-xl shadow-lg p-4 flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800">Σφάλμα</p>
+              <p className="text-sm text-red-700 mt-1">{showError}</p>
+            </div>
+            <button
+              onClick={() => setShowError(null)}
+              className="text-red-400 hover:text-red-600 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <SoftOneConfirmModal
+        show={!!softOneModalOrder}
+        order={softOneModalOrder}
+        onConfirm={handleConfirmSoftOneSend}
+        onCancel={() => setSoftOneModalOrder(null)}
+        isSending={softOneSending}
+      />
+
+      <ConfirmModal
+        show={confirmModal.show}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+        variant="danger"
+      />
+
+      <StatusModal
+        show={statusModal.show}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        onClose={() => setStatusModal(prev => ({ ...prev, show: false }))}
       />
 
       <ExportPreviewModal
