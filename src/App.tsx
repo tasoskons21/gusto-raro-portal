@@ -449,44 +449,39 @@ export default function App() {
   };
 
   const handleSendToSoft1 = async (order: any) => {
+    if (!window.confirm(`Αποστολή παραγγελίας "${order.customer_name}" στο SoftOne;\n\nΗ παραγγελία θα διαγραφεί μετά την επιτυχή αποστολή.`)) {
+      return;
+    }
+
+    setIsExporting(true);
     try {
-      const soft1Payload = {
-        customer_code: order.customer_code,
-        customer_name: order.customer_name,
-        customer_afm: order.customer_afm,
-        items: (order.items || []).map((item: any) => ({
-          code: item.code,
-          description: item.description,
-          quantity: item.quantity,
-          price: item.price,
-          total: item.price * item.quantity
-        })),
-        total_value: order.total_value,
-        notes: order.notes,
-        order_date: order.created_at || new Date().toISOString()
-      };
+      const { sendOrderToSoftOne } = await import('./services/softoneService');
+      const result = await sendOrderToSoftOne(order);
 
-      console.log('Sending to Soft1:', soft1Payload);
-
-      const response = await fetch('SOFT1_API_URL_HERE', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer SOFT1_API_KEY_HERE'
-        },
-        body: JSON.stringify(soft1Payload)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Soft1 API error: ${response.status}`);
+      if (!result.success) {
+        setShowError(result.message);
+        return;
       }
 
-      const result = await response.json();
-      console.log('Soft1 response:', result);
+      const { error: deleteError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', order.id);
+
+      if (deleteError) {
+        console.error('Failed to delete order after SoftOne send:', deleteError);
+        setShowError(`Η παραγγελία στάλθηκε στο SoftOne (${result.message}) αλλά απέτυχε η διαγραφή από το σύστημα.`);
+        await loadSavedOrders();
+        return;
+      }
+
       setShowSuccess(true);
+      await loadSavedOrders();
     } catch (err: any) {
-      console.error('Send to Soft1 failed:', err);
-      setShowError(`Αποτυχία αποστολής στο Soft1: ${err?.message || 'Άγνωστο σφάλμα'}`);
+      console.error('Send to SoftOne failed:', err);
+      setShowError(`Αποτυχία αποστολής στο SoftOne: ${err?.message || 'Άγνωστο σφάλμα'}`);
+    } finally {
+      setIsExporting(false);
     }
   };
 
