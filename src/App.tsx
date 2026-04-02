@@ -169,7 +169,7 @@ export default function App() {
   }, [user.isLoggedIn, user.role, user.customer_id]);
 
   useEffect(() => {
-    if (activeView === 'orders' && user.isLoggedIn) {
+    if ((activeView as string) === 'orders' && user.isLoggedIn) {
       loadSavedOrders();
     }
   }, [activeView, user.isLoggedIn]);
@@ -290,14 +290,17 @@ export default function App() {
     setShowExportPreview(false);
     setIsExporting(true);
     try {
+      const customer = selectedCustomer;
+      if (!customer) return;
+
       const orderData = {
         user_id: user.id,
         user_email: user.email,
         user_role: user.role,
-        customer_id: selectedCustomer?.id || null,
-        customer_name: selectedCustomer?.name || '',
-        customer_code: selectedCustomer?.customer_code || selectedCustomer?.code || '',
-        customer_afm: selectedCustomer?.afm || '',
+        customer_id: customer.id || null,
+        customer_name: customer.name,
+        customer_code: customer.customer_code || customer.code,
+        customer_afm: customer.afm,
         items: cart,
         total_value: totalNet,
         notes: notes,
@@ -315,9 +318,9 @@ export default function App() {
       const newRecord: OrderRecord = {
         id: editingOrderId || Math.random().toString(36).substr(2, 9),
         date: new Date().toISOString(),
-        customerName: selectedCustomer.name,
-        customerCode: selectedCustomer.customer_code || selectedCustomer.code,
-        customerAfm: selectedCustomer.afm,
+        customerName: customer.name,
+        customerCode: customer.customer_code || customer.code,
+        customerAfm: customer.afm,
         items: [...cart],
         totalValue: totalNet,
         notes: notes
@@ -340,14 +343,16 @@ export default function App() {
     if (!selectedCustomer || cart.length === 0) return;
     setIsExporting(true);
     try {
+      const customer = selectedCustomer;
+
       const orderData = {
         user_id: user.id,
         user_email: user.email,
         user_role: user.role,
-        customer_id: selectedCustomer.id || null,
-        customer_name: selectedCustomer.name,
-        customer_code: selectedCustomer.customer_code || selectedCustomer.code,
-        customer_afm: selectedCustomer.afm,
+        customer_id: customer.id || null,
+        customer_name: customer.name,
+        customer_code: customer.customer_code || customer.code,
+        customer_afm: customer.afm,
         items: cart,
         total_value: totalNet,
         notes: notes,
@@ -462,7 +467,7 @@ export default function App() {
       };
 
       console.log('Sending to Soft1:', soft1Payload);
-      
+
       const response = await fetch('SOFT1_API_URL_HERE', {
         method: 'POST',
         headers: {
@@ -570,7 +575,7 @@ export default function App() {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     const brandName = newBrandForm.name.toUpperCase().trim();
     const brandLogo = newBrandForm.logo?.trim() || null;
 
@@ -578,7 +583,7 @@ export default function App() {
 
     setIsAdminLoading(true);
     setAdminStatus(null);
-    
+
     try {
       const { data, error } = await supabase
         .from('brands')
@@ -734,7 +739,7 @@ export default function App() {
       />
 
       <main className="w-full px-2 sm:px-4 py-2 sm:py-4 flex-1 min-h-0 overflow-hidden relative">
-        {activeView === 'orders' ? (
+        {(activeView as string) === 'orders' ? (
           <div className="max-w-5xl mx-auto w-full h-full overflow-y-auto pb-20 lg:pb-4">
             <OrdersList
               orders={savedOrders}
@@ -810,23 +815,23 @@ export default function App() {
 
             {/* Mobile Bottom Navigation */}
             <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-              <button 
+              <button
                 onClick={() => { setActiveTab('brands'); setActiveView('order'); }}
                 className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'brands' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
               >
                 <LayoutGrid size={24} />
                 <span className="text-[10px] font-black uppercase tracking-widest">Εταιρειες</span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => { setActiveTab('products'); setActiveView('order'); }}
                 className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'products' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
               >
                 <ShoppingBag size={24} />
                 <span className="text-[10px] font-black uppercase tracking-widest">Προϊοντα</span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => { setActiveTab('cart'); setActiveView('order'); }}
                 className={`flex flex-col items-center gap-1 transition-all relative ${activeTab === 'cart' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
               >
@@ -839,9 +844,9 @@ export default function App() {
                 )}
               </button>
 
-              <button 
+              <button
                 onClick={() => { setActiveView('orders'); loadSavedOrders(); }}
-                className={`flex flex-col items-center gap-1 transition-all ${activeView === 'orders' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+                className={`flex flex-col items-center gap-1 transition-all ${(activeView as string) === 'orders' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
               >
                 <ClipboardList size={24} />
                 <span className="text-[10px] font-black uppercase tracking-widest">Παραγγελιες</span>

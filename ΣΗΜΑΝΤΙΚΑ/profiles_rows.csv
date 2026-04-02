@@ -1,0 +1,5 @@
+id,email,role,updated_at,customer_id
+0222e134-1f2f-4f51-987d-84bbb9fcb7bb,admin@admin.gr,admin,2026-03-21 06:18:48.154815+00,
+551665ee-d35a-46e1-9aac-be1051672340,l.chanas@gustoraro.gr,seller,2026-03-27 13:25:49.000477+00,
+94ecad21-c5c0-405b-a577-e7e972b73669,a.georgakopoulos@gustoraro.gr,seller,2026-03-27 13:26:16.338728+00,
+b8237427-1f78-41cf-bc33-940f7ff5bf03,t.konstantinidis@gustoraro.gr,seller,2026-03-22 08:56:12.668486+00,

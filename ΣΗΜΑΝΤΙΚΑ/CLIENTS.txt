@@ -1,0 +1,49 @@
+import pandas as pd
+import json
+from google.colab import files
+
+def convert_to_specific_json():
+    print("Ανεβάστε το αρχείο Excel:")
+    uploaded = files.upload()
+    if not uploaded:
+        return
+    
+    file_name = list(uploaded.keys())[0]
+
+    # Διάβασμα Excel
+    df = pd.read_excel(file_name)
+
+    # Οι δείκτες των στηλών που θέλεις: 
+    # [A/A, Κωδικός, Επωνυμία, ΑΦΜ, Διεύθυνση, Πόλη]
+    cols_to_include = [0, 2, 4, 5, 6, 8]
+
+    output_name = 'customers_formatted.json'
+
+    with open(output_name, 'w', encoding='utf-8') as f:
+        total_rows = len(df)
+        for index, row in df.iterrows():
+            # Το κλειδί είναι το index + 2 (π.χ. η πρώτη γραμμή δεδομένων γίνεται "2")
+            line_key = str(index + 2)
+
+            # Συλλογή δεδομένων για τη λίστα
+            data_list = []
+            for c in cols_to_include:
+                if c < len(row):
+                    val = row.iloc[c]
+                    # Καθαρισμός κενών και μετατροπή σε string
+                    clean_val = str(val).strip() if pd.notna(val) else ""
+                    data_list.append(clean_val)
+
+            # Δημιουργία του dictionary για τη συγκεκριμένη γραμμή
+            line_dict = {line_key: data_list}
+
+            # Μετατροπή σε JSON string
+            json_line = json.dumps(line_dict, ensure_ascii=False)
+
+            # Εγγραφή με κόμμα στο τέλος (όπως ζήτησες)
+            f.write(json_line + ',\n')
+
+    print(f"\nΈτοιμο! Το αρχείο {output_name} δημιουργήθηκε.")
+    files.download(output_name)
+
+convert_to_specific_json()
