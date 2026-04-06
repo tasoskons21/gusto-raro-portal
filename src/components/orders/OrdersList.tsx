@@ -105,7 +105,7 @@ export const OrdersList: React.FC<OrdersListProps> = ({
           <ClipboardList className="w-10 h-10 text-gray-400" />
         </div>
         <div className="text-center">
-          <h3 className="text-gray-700 font-semibold text-lg">Δεν υπάρχουν παραγγελίες</h3>
+          <h3 className="text-white font-semibold text-lg">Δεν υπάρχουν παραγγελίες</h3>
           <p className="text-gray-500 text-sm mt-1">Οι παραγγελίες σας θα εμφανίζονται εδώ</p>
         </div>
       </div>

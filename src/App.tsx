@@ -13,6 +13,7 @@ import { Header } from './components/layout/Header';
 import { CustomerSelection } from './components/customers/CustomerSelection';
 import { BrandSidebar } from './components/orders/BrandSidebar';
 import { ProductList } from './components/orders/ProductList';
+import { ProductBrowser } from './components/orders/ProductBrowser';
 import { Cart } from './components/orders/Cart';
 import { AdminModal } from './components/admin/AdminModal';
 import { ProductDetailsModal } from './components/orders/ProductDetailsModal';
@@ -23,7 +24,7 @@ import { OrderViewModal } from './components/orders/OrderViewModal';
 import { SoftOneConfirmModal } from './components/orders/SoftOneConfirmModal';
 import { ConfirmModal } from './components/common/ConfirmModal';
 import { StatusModal } from './components/common/StatusModal';
-import { LayoutGrid, ShoppingBag, ShoppingCart, ClipboardList } from 'lucide-react';
+import { LayoutGrid, ShoppingBag, ShoppingCart, ClipboardList, Package } from 'lucide-react';
 
 export default function App() {
   // Auth State
@@ -73,7 +74,7 @@ export default function App() {
     show: false,
     title: '',
     message: '',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
   const [statusModal, setStatusModal] = useState<{ show: boolean; type: 'success' | 'error'; title: string; message: string }>({
     show: false,
@@ -86,7 +87,7 @@ export default function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [savedOrders, setSavedOrders] = useState<any[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
-  const [activeView, setActiveView] = useState<'order' | 'orders'>('order');
+  const [activeView, setActiveView] = useState<'products' | 'order' | 'orders'>('order');
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
   // Load Initial Data Function
@@ -333,6 +334,8 @@ export default function App() {
         customer_name: customer.name,
         customer_code: customer.customer_code || customer.code,
         customer_afm: customer.afm,
+        customer_address: customer.address || '',
+        customer_city: customer.city || '',
         items: cart,
         total_value: totalNet,
         notes: notes,
@@ -469,8 +472,8 @@ export default function App() {
       customer_code: order.customer_code,
       code: order.customer_code,
       afm: order.customer_afm,
-      address: '',
-      city: ''
+      address: order.customer_address || '',
+      city: order.customer_city || ''
     } as Customer);
   };
 
@@ -481,8 +484,8 @@ export default function App() {
       customer_code: order.customer_code,
       code: order.customer_code,
       afm: order.customer_afm,
-      address: '',
-      city: ''
+      address: order.customer_address || '',
+      city: order.customer_city || ''
     };
     dataService.exportToExcel(customer, order.items || [], order.total_value, order.notes);
   };
@@ -805,6 +808,21 @@ export default function App() {
               onRefresh={loadSavedOrders}
             />
           </div>
+        ) : (activeView as string) === 'products' ? (
+          <div className="max-w-7xl mx-auto w-full h-full overflow-y-auto pb-20 lg:pb-4">
+            <ProductBrowser
+              productSearch={productSearch}
+              setProductSearch={setProductSearch}
+              selectedBrand={selectedBrand}
+              setSelectedBrand={setSelectedBrand}
+              allBrands={allBrands}
+              filteredProducts={filteredProducts}
+              cart={cart}
+              onUpdateCartQuantity={updateCartQuantity}
+              onViewProduct={setViewingProduct}
+              isLoading={isLoading}
+            />
+          </div>
         ) : !selectedCustomer ? (
           <div className="max-w-7xl mx-auto w-full">
             <CustomerSelection
@@ -817,7 +835,7 @@ export default function App() {
             />
           </div>
         ) : (
-          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 h-full pb-16 lg:pb-0">
+          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 h-full pb-24 lg:pb-0">
             {/* Brands Sidebar - Visible on Desktop or when activeTab is 'brands' */}
             <div className={`${activeTab === 'brands' ? 'flex' : 'hidden'} lg:flex lg:col-span-3 h-full min-h-0`}>
               <BrandSidebar
@@ -866,35 +884,56 @@ export default function App() {
           </div>
         )}
 
+        {/* Mobile Order Sub-Tabs Navigation (shown only when in order view with customer selected) */}
+        {activeView === 'order' && selectedCustomer && (
+          <div className="lg:hidden fixed bottom-16 left-0 right-0 bg-slate-50 border-t border-slate-200 px-2 py-2 flex justify-around items-center z-40">
+            <button
+              onClick={() => setActiveTab('brands')}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${activeTab === 'brands' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500'}`}
+            >
+              <LayoutGrid size={20} />
+              <span className="text-[10px] font-bold uppercase">Εταιρειες</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${activeTab === 'products' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500'}`}
+            >
+              <ShoppingBag size={20} />
+              <span className="text-[10px] font-bold uppercase">Προϊοντα</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('cart')}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all relative ${activeTab === 'cart' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500'}`}
+            >
+              <ShoppingCart size={20} />
+              <span className="text-[10px] font-bold uppercase">Καλαθι</span>
+              {cart.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {cart.length}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Mobile Bottom Navigation */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
           <button
-            onClick={() => { setActiveTab('brands'); setActiveView('order'); }}
-            className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'brands' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+            onClick={() => { setActiveView('products'); }}
+            className={`flex flex-col items-center gap-1 transition-all ${activeView === 'products' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
           >
-            <LayoutGrid size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Εταιρειες</span>
+            <Package size={24} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Προϊόντα</span>
           </button>
 
           <button
-            onClick={() => { setActiveTab('products'); setActiveView('order'); }}
-            className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'products' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
-          >
-            <ShoppingBag size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Προϊοντα</span>
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('cart'); setActiveView('order'); }}
-            className={`flex flex-col items-center gap-1 transition-all relative ${activeTab === 'cart' && activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+            onClick={() => { setActiveView('order'); setActiveTab('brands'); }}
+            className={`flex flex-col items-center gap-1 transition-all ${activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
           >
             <ShoppingCart size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Καλαθι</span>
-            {cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
-                {cart.length}
-              </span>
-            )}
+            <span className="text-[10px] font-black uppercase tracking-widest">Παραγγελία</span>
           </button>
 
           <button
@@ -902,7 +941,7 @@ export default function App() {
             className={`flex flex-col items-center gap-1 transition-all ${(activeView as string) === 'orders' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
           >
             <ClipboardList size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Παραγγελιες</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Παραγγελίες</span>
           </button>
         </div>
       </main>
@@ -946,6 +985,7 @@ export default function App() {
         onClose={() => setViewingProduct(null)}
         currentQty={cart.find(item => item.code === viewingProduct?.code)?.quantity || 0}
         onUpdateQty={updateCartQuantity}
+        isViewOnly={activeView === 'products'}
       />
 
       <OrderConfirmationModal

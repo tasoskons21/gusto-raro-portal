@@ -6,15 +6,17 @@ import { Product } from '../../types';
 interface ProductDetailsModalProps {
   product: Product | null;
   onClose: () => void;
-  currentQty: number;
-  onUpdateQty: (product: Product, qty: number) => void;
+  currentQty?: number;
+  onUpdateQty?: (product: Product, qty: number) => void;
+  isViewOnly?: boolean;
 }
 
 export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   product,
   onClose,
-  currentQty,
+  currentQty = 0,
   onUpdateQty,
+  isViewOnly = false,
 }) => {
   if (!product) return null;
 
@@ -61,49 +63,51 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             {product.description}
           </h2>
 
-          <div className="flex items-center justify-between pt-6 border-t border-slate-100">
-            <div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">ΤΙΜΗ ΜΟΝΑΔΟΣ</p>
-              <p className="text-2xl font-black text-red-600">
-                {product.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}
-              </p>
-            </div>
+          {!isViewOnly && (
+            <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">ΤΙΜΗ ΜΟΝΑΔΟΣ</p>
+                <p className="text-2xl font-black text-red-600">
+                  {product.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}
+                </p>
+              </div>
 
-            <div className="flex flex-col items-end gap-2">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ΠΟΣΟΤΗΤΑ</p>
-              <div className={`flex items-center bg-slate-50 border-2 rounded-2xl overflow-hidden transition-all h-12 px-2 ${currentQty > 0 ? 'border-gusto-green shadow-sm bg-white' : 'border-slate-100'}`}>
-                <button
-                  onClick={() => onUpdateQty(product, Math.max(0, currentQty - 1))}
-                  className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-white rounded-xl transition-all font-bold"
-                >
-                  <Minus size={20} />
-                </button>
-                <input
-                  type="number"
-                  className="w-12 bg-transparent text-center text-sm font-black outline-none border-none p-0"
-                  value={currentQty || ''}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value);
-                    onUpdateQty(product, isNaN(val) ? 0 : val);
-                  }}
-                  placeholder="0"
-                />
-                <button
-                  onClick={() => onUpdateQty(product, currentQty + 1)}
-                  className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-white rounded-xl transition-all font-bold"
-                >
-                  <Plus size={20} />
-                </button>
+              <div className="flex flex-col items-end gap-2">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ΠΟΣΟΤΗΤΑ</p>
+                <div className={`flex items-center bg-slate-50 border-2 rounded-2xl overflow-hidden transition-all h-12 px-2 ${currentQty > 0 ? 'border-gusto-green shadow-sm bg-white' : 'border-slate-100'}`}>
+                  <button
+                    onClick={() => onUpdateQty && onUpdateQty(product, Math.max(0, currentQty - 1))}
+                    className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-white rounded-xl transition-all font-bold"
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <input
+                    type="number"
+                    className="w-12 bg-transparent text-center text-sm font-black outline-none border-none p-0"
+                    value={currentQty || ''}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      onUpdateQty && onUpdateQty(product, isNaN(val) ? 0 : val);
+                    }}
+                    placeholder="0"
+                  />
+                  <button
+                    onClick={() => onUpdateQty && onUpdateQty(product, currentQty + 1)}
+                    className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-white rounded-xl transition-all font-bold"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <button
             onClick={onClose}
             className="w-full mt-8 bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-900/10"
           >
-            <ShoppingCart size={18} />
-            ΣΥΝΕΧΕΙΑ ΠΑΡΑΓΓΕΛΙΑΣ
+            <X size={18} />
+            ΚΛΕΙΣΙΜΟ
           </button>
         </div>
       </motion.div>

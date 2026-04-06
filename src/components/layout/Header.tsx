@@ -1,5 +1,5 @@
 import React from 'react';
-import { User as UserIcon, Settings, LogOut, ClipboardList, ShoppingCart } from 'lucide-react';
+import { User as UserIcon, Settings, LogOut, ClipboardList, ShoppingCart, Package } from 'lucide-react';
 import { User } from '../../types';
 
 interface HeaderProps {
@@ -7,8 +7,8 @@ interface HeaderProps {
   isLoading: boolean;
   onShowAdminModal: () => void;
   onLogout: () => void;
-  activeView?: 'order' | 'orders';
-  onViewChange?: (view: 'order' | 'orders') => void;
+  activeView?: 'products' | 'order' | 'orders';
+  onViewChange?: (view: 'products' | 'order' | 'orders') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -41,6 +41,17 @@ export const Header: React.FC<HeaderProps> = ({
           {onViewChange && (
             <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1 mr-2">
               <button
+                onClick={() => onViewChange('products')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  activeView === 'products'
+                    ? 'bg-white text-gusto-green shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <Package size={16} />
+                Προβολή Προϊόντων
+              </button>
+              <button
                 onClick={() => onViewChange('order')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                   activeView === 'order'
@@ -49,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <ShoppingCart size={16} />
-                Παραγγελία
+                Νέα Παραγγελία
               </button>
               <button
                 onClick={() => onViewChange('orders')}
