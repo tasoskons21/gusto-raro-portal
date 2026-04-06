@@ -219,8 +219,7 @@ export default function App() {
         const code = (c.customer_code || c.code || '').toLowerCase();
 
         return name.includes(term) || afm.includes(term) || code.includes(term) || city.includes(term);
-      })
-      .slice(0, 30);
+      });
   }, [customers, searchTerm, user.role, user.customer_id]);
 
   const filteredProducts = useMemo(() => {

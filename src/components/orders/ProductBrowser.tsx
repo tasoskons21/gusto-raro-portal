@@ -61,16 +61,6 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
 
         {/* Brand Filter */}
         <div className="flex gap-2 mb-4 overflow-x-auto pb-2 shrink-0">
-          <button
-            onClick={() => setSelectedBrand('')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-              selectedBrand === ''
-                ? 'bg-gusto-green text-white shadow-md'
-                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            Όλα
-          </button>
           {allBrands.map(brand => (
             <button
               key={brand.name}
@@ -132,12 +122,6 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Package size={32} className="text-slate-300" />
-                        </div>
-                      )}
-                      {/* Cart Badge */}
-                      {cartQty > 0 && (
-                        <div className="absolute top-2 right-2 bg-gusto-green text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
-                          {cartQty}
                         </div>
                       )}
                     </div>
