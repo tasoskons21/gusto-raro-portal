@@ -102,13 +102,6 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             </div>
           )}
 
-          <button
-            onClick={onClose}
-            className="w-full mt-8 bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-900/10"
-          >
-            <X size={18} />
-            ΚΛΕΙΣΙΜΟ
-          </button>
         </div>
       </motion.div>
     </div>

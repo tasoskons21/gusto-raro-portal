@@ -109,7 +109,10 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
                     className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group"
                   >
                     {/* Product Image */}
-                    <div className="h-48 bg-slate-50 relative overflow-hidden flex items-center justify-center">
+                    <div
+                      className="h-48 bg-slate-50 relative overflow-hidden flex items-center justify-center cursor-pointer"
+                      onClick={() => onViewProduct(product)}
+                    >
                       {imageUrl ? (
                         <img
                           src={imageUrl}
@@ -137,18 +140,6 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
                           €{price.toFixed(2)}
                         </span>
                         <span className="text-xs text-slate-500 font-mono">{code}</span>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => onViewProduct(product)}
-                          className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                          title="Προβολή λεπτομερειών"
-                        >
-                          <Eye size={14} />
-                          Λεπτομέρειες
-                        </button>
                       </div>
                     </div>
                   </div>
