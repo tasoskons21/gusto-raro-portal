@@ -885,28 +885,28 @@ export default function App() {
 
         {/* Mobile Order Sub-Tabs Navigation (shown only when in order view with customer selected) */}
         {activeView === 'order' && selectedCustomer && (
-          <div className="md:hidden fixed bottom-16 left-0 right-0 bg-slate-50 border-t border-slate-200 px-2 py-2 flex justify-around items-center z-40">
+          <div className="md:hidden fixed bottom-16 left-0 right-0 bg-slate-50 border-t border-slate-200 px-1.5 py-1.5 flex justify-around items-center z-40">
             <button
               onClick={() => setActiveTab('brands')}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${activeTab === 'brands' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all min-h-[40px] min-w-[40px] ${activeTab === 'brands' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
             >
-              <LayoutGrid size={18} />
+              <LayoutGrid size={16} />
               <span className="text-[9px] font-bold uppercase">Εταιρειες</span>
             </button>
 
             <button
               onClick={() => setActiveTab('products')}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${activeTab === 'products' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all min-h-[40px] min-w-[40px] ${activeTab === 'products' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
             >
-              <ShoppingBag size={18} />
+              <ShoppingBag size={16} />
               <span className="text-[9px] font-bold uppercase">Προϊοντα</span>
             </button>
 
             <button
               onClick={() => setActiveTab('cart')}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all relative min-h-[44px] min-w-[44px] ${activeTab === 'cart' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all relative min-h-[40px] min-w-[40px] ${activeTab === 'cart' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
             >
-              <ShoppingCart size={18} />
+              <ShoppingCart size={16} />
               <span className="text-[9px] font-bold uppercase">Καλαθι</span>
               {cart.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
@@ -918,29 +918,29 @@ export default function App() {
         )}
 
         {/* Mobile Bottom Navigation */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 py-1.5 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
           <button
             onClick={() => { setActiveView('products'); }}
-            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${activeView === 'products' ? 'text-gusto-green bg-gusto-green/5' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all min-h-[40px] min-w-[40px] ${activeView === 'products' ? 'text-gusto-green bg-gusto-green/5' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
           >
-            <Package size={22} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Προϊόντα</span>
+            <Package size={18} />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Προϊόντα</span>
           </button>
 
           <button
             onClick={() => { setActiveView('order'); setActiveTab('brands'); }}
-            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${activeView === 'order' ? 'text-gusto-green bg-gusto-green/5' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all min-h-[40px] min-w-[40px] ${activeView === 'order' ? 'text-gusto-green bg-gusto-green/5' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
           >
-            <ShoppingCart size={22} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Παραγγελία</span>
+            <ShoppingCart size={18} />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Παραγγελία</span>
           </button>
 
           <button
             onClick={() => { setActiveView('orders'); loadSavedOrders(); }}
-            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${(activeView as string) === 'orders' ? 'text-gusto-green bg-gusto-green/5' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all min-h-[40px] min-w-[40px] ${(activeView as string) === 'orders' ? 'text-gusto-green bg-gusto-green/5' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
           >
-            <ClipboardList size={22} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Παραγγελίες</span>
+            <ClipboardList size={18} />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Παραγγελίες</span>
           </button>
         </div>
       </main>

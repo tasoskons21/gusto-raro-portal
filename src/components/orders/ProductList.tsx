@@ -51,13 +51,13 @@ export const ProductList: React.FC<ProductListProps> = ({
           </div>
         </div>
 
-        <div className="w-full overflow-y-auto customer-scroll flex-1">
+        <div className="w-full overflow-y-auto customer-scroll flex-1 -mx-1 px-1">
           <table className="w-full text-left border-collapse table-fixed">
-            <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky top-0 z-10">
+            <thead className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3 border-b border-slate-100 w-1/2">ΠΕΡΙΓΡΑΦΗ</th>
-                <th className="px-4 py-3 border-b border-slate-100 w-1/4 text-right">ΤΙΜΗ</th>
-                <th className="px-4 py-3 border-b border-slate-100 w-1/4 text-center">ΠΟΣΟΤΗΤΑ</th>
+                <th className="px-2 py-2 border-b border-slate-100 w-1/2 text-xs">ΠΕΡΙΓΡΑΦΗ</th>
+                <th className="px-2 py-2 border-b border-slate-100 w-1/4 text-right text-xs">ΤΙΜΗ</th>
+                <th className="px-2 py-2 border-b border-slate-100 w-1/4 text-center text-xs">ΠΟΣΟΤΗΤΑ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -65,20 +65,20 @@ export const ProductList: React.FC<ProductListProps> = ({
                 // Product Skeletons
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-slate-100 shrink-0"></div>
-                        <div className="flex-1 space-y-2">
-                          <div className="h-3 bg-slate-100 rounded-full w-3/4"></div>
+                    <td className="px-2 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-lg bg-slate-100 shrink-0"></div>
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-2.5 bg-slate-100 rounded-full w-3/4"></div>
                           <div className="h-2 bg-slate-50 rounded-full w-1/2"></div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-right">
-                      <div className="h-3 bg-slate-100 rounded-full w-12 ml-auto"></div>
+                    <td className="px-2 py-2 text-right">
+                      <div className="h-2.5 bg-slate-100 rounded-full w-10 ml-auto"></div>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="h-10 bg-slate-50 rounded-xl w-24 mx-auto"></div>
+                    <td className="px-2 py-2">
+                      <div className="h-8 bg-slate-50 rounded-xl w-20 mx-auto"></div>
                     </td>
                   </tr>
                 ))
@@ -123,51 +123,51 @@ const ProductRow: React.FC<ProductRowProps> = ({ product, currentQty, onUpdateQt
 
   return (
     <tr className={`group transition-colors ${currentQty > 0 ? 'bg-gusto-green/5' : 'hover:bg-slate-50/80'}`}>
-      <td className="px-4 py-4">
-        <div className="flex items-center gap-4">
+      <td className="px-2 py-2">
+        <div className="flex items-center gap-2">
           {imageUrl ? (
             <button
               onClick={() => onViewProduct(product)}
-              className="w-12 h-12 rounded-lg bg-white border border-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center p-1 hover:border-gusto-green/50 transition-all hover:scale-105 active:scale-95 shadow-sm"
+              className="w-10 h-10 rounded-lg bg-white border border-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center p-1 hover:border-gusto-green/50 transition-all hover:scale-105 active:scale-95 shadow-sm"
             >
               <img src={imageUrl} alt="" className="w-full h-full object-contain" />
             </button>
           ) : (
             <button
               onClick={() => onViewProduct(product)}
-              className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0 flex items-center justify-center hover:border-gusto-green/50 hover:bg-slate-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0 flex items-center justify-center hover:border-gusto-green/50 hover:bg-slate-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
             >
-              <Package size={20} className="text-slate-300" />
+              <Package size={16} className="text-slate-300" />
             </button>
           )}
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-700 text-sm leading-tight uppercase group-hover:text-gusto-green transition-colors truncate">
+              <span className="font-bold text-slate-700 text-xs leading-tight uppercase group-hover:text-gusto-green transition-colors truncate">
                 {product.description}
               </span>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono mt-1">{product.code}</span>
+            <span className="text-[9px] text-slate-400 font-mono mt-0.5">{product.code}</span>
           </div>
         </div>
       </td>
-      <td className="px-4 py-4 text-right">
-        <span className="font-black text-slate-800 text-sm">
+      <td className="px-2 py-2 text-right">
+        <span className="font-black text-slate-800 text-xs">
           {product.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}
         </span>
       </td>
-      <td className="px-4 py-4">
+      <td className="px-2 py-2">
         <div className="flex justify-center">
-          <div className={`flex items-center bg-white border-2 rounded-xl overflow-hidden transition-all h-10 px-1 ${currentQty > 0 ? 'border-gusto-green shadow-sm' : 'border-slate-100 group-hover:border-slate-200'}`}>
+          <div className={`flex items-center bg-white border-2 rounded-xl overflow-hidden transition-all min-w-[40px] ${currentQty > 0 ? 'border-gusto-green shadow-sm' : 'border-slate-100 group-hover:border-slate-200'}`}>
             <button
               type="button"
               onClick={() => onUpdateQty(product, Math.max(0, currentQty - 1))}
-              className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-white rounded-md transition-all font-bold"
+              className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-white rounded-md transition-all font-bold min-h-[28px]"
             >
               -
             </button>
             <input
               type="number"
-              className="w-8 bg-transparent text-center text-xs font-black outline-none border-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-7 bg-transparent text-center text-xs font-black outline-none border-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               value={currentQty || ''}
               onChange={(e) => {
                 const val = parseInt(e.target.value);
@@ -178,7 +178,7 @@ const ProductRow: React.FC<ProductRowProps> = ({ product, currentQty, onUpdateQt
             <button
               type="button"
               onClick={() => onUpdateQty(product, currentQty + 1)}
-              className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-white rounded-md transition-all font-bold"
+              className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-white rounded-md transition-all font-bold min-h-[28px]"
             >
               +
             </button>
