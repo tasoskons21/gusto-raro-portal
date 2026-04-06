@@ -109,12 +109,12 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
                     className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group"
                   >
                     {/* Product Image */}
-                    <div className="aspect-square bg-slate-50 relative overflow-hidden">
+                    <div className="h-48 bg-slate-50 relative overflow-hidden flex items-center justify-center">
                       {imageUrl ? (
                         <img
                           src={imageUrl}
                           alt={description}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain p-2"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
