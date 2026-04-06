@@ -34,16 +34,16 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
     <div className="w-full h-full flex flex-col min-h-0">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col min-h-0 flex-1 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 shrink-0">
-          <h3 className="font-bold text-slate-800 uppercase tracking-tight flex items-center gap-2">
+        <div className="flex items-center justify-between mb-4 shrink-0 gap-2">
+          <h3 className="font-bold text-slate-800 uppercase tracking-tight flex items-center gap-2 text-sm">
             <span className="w-2 h-2 bg-gusto-green rounded-full"></span>
-            {selectedBrand || 'Όλα τα Brand'}
+            <span className="truncate">{selectedBrand || 'Όλα τα Brand'}</span>
           </h3>
-          <div className="relative w-48 sm:w-64">
+          <div className="relative flex-1 max-w-[200px] sm:max-w-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Αναζήτηση προϊόντων..."
+              placeholder="Αναζήτηση..."
               className="w-full pl-10 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-gusto-green/30 text-sm"
               value={productSearch}
               onChange={(e) => setProductSearch(e.target.value)}
@@ -60,12 +60,12 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
         </div>
 
         {/* Brand Filter */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 shrink-0">
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 shrink-0 -mx-1 px-1">
           {allBrands.map(brand => (
             <button
               key={brand.name}
               onClick={() => setSelectedBrand(brand.name)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
                 selectedBrand === brand.name
                   ? 'bg-gusto-green text-white shadow-md'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -94,7 +94,7 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-4">
               {filteredProducts.map(product => {
                 const code = product.code || (product as any).Code;
                 const description = product.description || (product as any).Description || '';

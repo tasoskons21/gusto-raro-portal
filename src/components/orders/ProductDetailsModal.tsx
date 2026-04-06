@@ -27,7 +27,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-white/20"
+        className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl md:max-w-3xl overflow-hidden flex flex-col border border-white/20"
       >
         <div className="relative h-64 bg-slate-50 flex items-center justify-center p-8">
           {imageUrl ? (

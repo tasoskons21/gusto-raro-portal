@@ -834,9 +834,9 @@ export default function App() {
             />
           </div>
         ) : (
-          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 h-full pb-24 lg:pb-0">
-            {/* Brands Sidebar - Visible on Desktop or when activeTab is 'brands' */}
-            <div className={`${activeTab === 'brands' ? 'flex' : 'hidden'} lg:flex lg:col-span-3 h-full min-h-0`}>
+          <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-12 gap-4 h-full pb-4 md:pb-4 lg:pb-0">
+            {/* Brands Sidebar - Visible on Desktop/Tablet when activeTab is 'brands' */}
+            <div className={`${activeTab === 'brands' ? 'flex' : 'hidden'} md:flex md:col-span-1 lg:flex lg:col-span-3 h-full min-h-0`}>
               <BrandSidebar
                 selectedCustomer={selectedCustomer}
                 onChangeCustomer={handleChangeCustomer}
@@ -853,8 +853,8 @@ export default function App() {
               />
             </div>
 
-            {/* Product List - Visible on Desktop or when activeTab is 'products' */}
-            <div className={`${activeTab === 'products' ? 'flex' : 'hidden'} lg:flex lg:col-span-6 h-full min-h-0`}>
+            {/* Product List - Visible on Desktop/Tablet when activeTab is 'products' */}
+            <div className={`${activeTab === 'products' ? 'flex' : 'hidden'} md:flex md:col-span-1 lg:flex lg:col-span-6 h-full min-h-0`}>
               <ProductList
                 productSearch={productSearch}
                 setProductSearch={setProductSearch}
@@ -867,8 +867,8 @@ export default function App() {
               />
             </div>
 
-            {/* Cart - Visible on Desktop or when activeTab is 'cart' */}
-            <div className={`${activeTab === 'cart' ? 'flex' : 'hidden'} lg:flex lg:col-span-3 h-full min-h-0`}>
+            {/* Cart - Visible on Desktop/Tablet when activeTab is 'cart' */}
+            <div className={`${activeTab === 'cart' ? 'flex' : 'hidden'} md:flex md:col-span-2 lg:flex lg:col-span-3 h-full min-h-0`}>
               <Cart
                 cart={cart}
                 totalNet={totalNet}
@@ -885,29 +885,29 @@ export default function App() {
 
         {/* Mobile Order Sub-Tabs Navigation (shown only when in order view with customer selected) */}
         {activeView === 'order' && selectedCustomer && (
-          <div className="lg:hidden fixed bottom-16 left-0 right-0 bg-slate-50 border-t border-slate-200 px-2 py-2 flex justify-around items-center z-40">
+          <div className="md:hidden fixed bottom-16 left-0 right-0 bg-slate-50 border-t border-slate-200 px-2 py-2 flex justify-around items-center z-40">
             <button
               onClick={() => setActiveTab('brands')}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${activeTab === 'brands' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500'}`}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${activeTab === 'brands' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
             >
-              <LayoutGrid size={20} />
-              <span className="text-[10px] font-bold uppercase">Εταιρειες</span>
+              <LayoutGrid size={18} />
+              <span className="text-[9px] font-bold uppercase">Εταιρειες</span>
             </button>
 
             <button
               onClick={() => setActiveTab('products')}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${activeTab === 'products' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500'}`}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${activeTab === 'products' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
             >
-              <ShoppingBag size={20} />
-              <span className="text-[10px] font-bold uppercase">Προϊοντα</span>
+              <ShoppingBag size={18} />
+              <span className="text-[9px] font-bold uppercase">Προϊοντα</span>
             </button>
 
             <button
               onClick={() => setActiveTab('cart')}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all relative ${activeTab === 'cart' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500'}`}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all relative min-h-[44px] min-w-[44px] ${activeTab === 'cart' ? 'bg-white text-gusto-green shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
             >
-              <ShoppingCart size={20} />
-              <span className="text-[10px] font-bold uppercase">Καλαθι</span>
+              <ShoppingCart size={18} />
+              <span className="text-[9px] font-bold uppercase">Καλαθι</span>
               {cart.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {cart.length}
@@ -918,29 +918,29 @@ export default function App() {
         )}
 
         {/* Mobile Bottom Navigation */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
           <button
             onClick={() => { setActiveView('products'); }}
-            className={`flex flex-col items-center gap-1 transition-all ${activeView === 'products' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${activeView === 'products' ? 'text-gusto-green bg-gusto-green/5' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
           >
-            <Package size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Προϊόντα</span>
+            <Package size={22} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Προϊόντα</span>
           </button>
 
           <button
             onClick={() => { setActiveView('order'); setActiveTab('brands'); }}
-            className={`flex flex-col items-center gap-1 transition-all ${activeView === 'order' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${activeView === 'order' ? 'text-gusto-green bg-gusto-green/5' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
           >
-            <ShoppingCart size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Παραγγελία</span>
+            <ShoppingCart size={22} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Παραγγελία</span>
           </button>
 
           <button
             onClick={() => { setActiveView('orders'); loadSavedOrders(); }}
-            className={`flex flex-col items-center gap-1 transition-all ${(activeView as string) === 'orders' ? 'text-gusto-green scale-110' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-h-[44px] min-w-[44px] ${(activeView as string) === 'orders' ? 'text-gusto-green bg-gusto-green/5' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
           >
-            <ClipboardList size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Παραγγελίες</span>
+            <ClipboardList size={22} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Παραγγελίες</span>
           </button>
         </div>
       </main>
