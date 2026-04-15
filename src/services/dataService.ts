@@ -4,22 +4,23 @@ import XLSX from 'xlsx-js-style';
 
 class DataService {
   // Ιδιωτική μέθοδος για τα αιτήματα στο SoftOne για ασφάλεια και επαναχρησιμοποίηση
-private async s1Request(payload: any) {
-  // Χρησιμοποιούμε το URL από το .env (δηλαδή το /api/softone)
-  const response = await fetch(import.meta.env.VITE_SOFTONE_URL, {
-    method: 'POST',
-    // Στέλνουμε το payload ως string
-    body: JSON.stringify(payload)
-  });
+  // src/services/dataService.ts
+  private async s1Request(payload: any) {
+    const response = await fetch('/api/softone', { // Σιγουρέψου ότι δεν υπάρχει http://localhost εδώ
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-  if (!response.ok) throw new Error("Proxy connection failed");
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Proxy failed: ${response.status} ${errorText}`);
+    }
 
-  const buffer = await response.arrayBuffer();
-  const decoder = new TextDecoder('windows-1253');
-  const text = decoder.decode(buffer);
-  
-  return JSON.parse(text);
-}
+    const buffer = await response.arrayBuffer();
+    const decoder = new TextDecoder('windows-1253');
+    return JSON.parse(decoder.decode(buffer));
+  }
 
   // 1. ΑΥΤΟΜΑΤΗ ΑΝΑΚΤΗΣΗ ΠΕΛΑΤΩΝ ΑΠΟ SOFTONE
   async fetchCustomers(): Promise<Customer[]> {
@@ -32,7 +33,7 @@ private async s1Request(payload: any) {
         APPID: import.meta.env.VITE_SOFTONE_APPID,
         LANGUAGE: "GRE"
       });
-      
+
       if (!loginData?.success) {
         console.error("❌ SoftOne Login Failed");
         return [];
@@ -43,11 +44,11 @@ private async s1Request(payload: any) {
         service: "authenticate",
         clientID: loginData.clientID,
         appId: "156", // Σταθερό AppId για το module
-        COMPANY: import.meta.env.VITE_SOFTONE_COMPANY, 
-        BRANCH: "1000", 
-        MODULE: "0", 
-        REFID: "1", 
-        USERID: "1", 
+        COMPANY: import.meta.env.VITE_SOFTONE_COMPANY,
+        BRANCH: "1000",
+        MODULE: "0",
+        REFID: "1",
+        USERID: "1",
         WEBACCOUNT: "1"
       });
 
@@ -83,7 +84,7 @@ private async s1Request(payload: any) {
           city: String(item.CITY || '')
         }));
       }
-      
+
       return [];
 
     } catch (error) {
@@ -107,7 +108,7 @@ private async s1Request(payload: any) {
     const finalData: any[][] = [...customerRows];
     if (notes && notes.trim()) finalData.push(['Παρατηρήσεις:', notes]);
     finalData.push([''], ['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ'], ['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ']);
-    
+
     items.forEach(item => finalData.push([item.code, item.description, item.quantity]));
 
     const ws = XLSX.utils.aoa_to_sheet(finalData);
