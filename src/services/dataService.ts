@@ -2,18 +2,99 @@ import { supabase } from '../lib/supabase';
 import { Customer, Product, Brand, CartItem } from '../types';
 import XLSX from 'xlsx-js-style';
 
-/**
- * DataService: Υβριδική διαχείριση δεδομένων.
- * Πελάτες από τοπικό JSON, Brands και Προϊόντα από Supabase.
- */
 class DataService {
-  private baseDataUrl = '/data';
+  // Ιδιωτική μέθοδος για τα αιτήματα στο SoftOne για ασφάλεια και επαναχρησιμοποίηση
+private async s1Request(payload: any) {
+  // Χρησιμοποιούμε το URL από το .env (δηλαδή το /api/softone)
+  const response = await fetch(import.meta.env.VITE_SOFTONE_URL, {
+    method: 'POST',
+    // Στέλνουμε το payload ως string
+    body: JSON.stringify(payload)
+  });
 
-  // Helper for Excel Export
+  if (!response.ok) throw new Error("Proxy connection failed");
+
+  const buffer = await response.arrayBuffer();
+  const decoder = new TextDecoder('windows-1253');
+  const text = decoder.decode(buffer);
+  
+  return JSON.parse(text);
+}
+
+  // 1. ΑΥΤΟΜΑΤΗ ΑΝΑΚΤΗΣΗ ΠΕΛΑΤΩΝ ΑΠΟ SOFTONE
+  async fetchCustomers(): Promise<Customer[]> {
+    try {
+      // Βήμα 1: Login χρησιμοποιώντας το .env
+      const loginData = await this.s1Request({
+        SERVICE: "login",
+        USERNAME: import.meta.env.VITE_SOFTONE_USERNAME,
+        PASSWORD: import.meta.env.VITE_SOFTONE_PASSWORD,
+        APPID: import.meta.env.VITE_SOFTONE_APPID,
+        LANGUAGE: "GRE"
+      });
+      
+      if (!loginData?.success) {
+        console.error("❌ SoftOne Login Failed");
+        return [];
+      }
+
+      // Βήμα 2: Authenticate
+      const authData = await this.s1Request({
+        service: "authenticate",
+        clientID: loginData.clientID,
+        appId: "156", // Σταθερό AppId για το module
+        COMPANY: import.meta.env.VITE_SOFTONE_COMPANY, 
+        BRANCH: "1000", 
+        MODULE: "0", 
+        REFID: "1", 
+        USERID: "1", 
+        WEBACCOUNT: "1"
+      });
+
+      if (!authData?.success) {
+        console.error("❌ SoftOne Auth Failed");
+        return [];
+      }
+
+      // Βήμα 3: Λήψη Δεδομένων (SelectorFields)
+      const customersRaw = await this.s1Request({
+        service: "selectorFields",
+        clientID: authData.clientID,
+        appId: "156",
+        TABLENAME: "CUSTOMER",
+        KEYNAME: "COMPANY",
+        KEYVALUE: import.meta.env.VITE_SOFTONE_COMPANY,
+        RESULTFIELDS: "CODE,NAME,ADDRESS,PHONE01,AFM,CITY",
+        OBJECTPARAMS: { "BGMOBILECHECK": "0" }
+      });
+
+      const rows = customersRaw.rows || customersRaw;
+
+      if (Array.isArray(rows)) {
+        console.log(`✅ SoftOne: Φορτώθηκαν ${rows.length} πελάτες.`);
+        return rows.map((item: any) => ({
+          id: String(item.CODE || ''),
+          code: String(item.CODE || ''),
+          customer_code: String(item.CODE || ''),
+          name: String(item.NAME || ''),
+          address: String(item.ADDRESS || ''),
+          phone: String(item.PHONE01 || ''),
+          afm: String(item.AFM || ''),
+          city: String(item.CITY || '')
+        }));
+      }
+      
+      return [];
+
+    } catch (error) {
+      console.error('❌ SoftOne Critical Error:', error);
+      return [];
+    }
+  }
+
+  // 2. ΕΞΑΓΩΓΗ ΣΕ EXCEL
   exportToExcel(customer: Customer, items: CartItem[], total: number, notes?: string) {
     const wb = XLSX.utils.book_new();
-    
-    // Header Info (Customer Details)
     const customerRows = [
       ['ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ'],
       ['Κωδικός:', customer.customer_code || customer.code || ''],
@@ -23,211 +104,71 @@ class DataService {
       ['Πόλη:', customer.city]
     ];
 
-    let headerRowsCount = customerRows.length;
     const finalData: any[][] = [...customerRows];
-
-    // If notes exist, add them below city (Row 7)
-    if (notes && notes.trim()) {
-      finalData.push(['Παρατηρήσεις:', notes]);
-      headerRowsCount++;
-    }
-
-    // Add spacer and Product List Title
-    finalData.push(['']);
-    finalData.push(['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ']);
+    if (notes && notes.trim()) finalData.push(['Παρατηρήσεις:', notes]);
+    finalData.push([''], ['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ'], ['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ']);
     
-    // Products Header (Row 9 or 10)
-    const productsHeader = ['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ'];
-    finalData.push(productsHeader);
-
-    // Products Data
-    items.forEach(item => {
-      finalData.push([
-        item.code,
-        item.description,
-        item.quantity
-      ]);
-    });
+    items.forEach(item => finalData.push([item.code, item.description, item.quantity]));
 
     const ws = XLSX.utils.aoa_to_sheet(finalData);
-
-    // --- APPLY STYLES ---
-    
-    // 1. Bold "ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ"
-    ws['A1'].s = { font: { bold: true, sz: 12 } };
-
-    // 2. Bold labels for customer info
-    for (let r = 1; r < 6; r++) {
-      const cellRef = XLSX.utils.encode_cell({ r, c: 0 });
-      if (ws[cellRef]) ws[cellRef].s = { font: { bold: true } };
-    }
-
-    // 3. Style for Notes (Red Color)
-    if (notes && notes.trim()) {
-      const notesRowIndex = 6; // Row 7
-      const labelRef = XLSX.utils.encode_cell({ r: notesRowIndex, c: 0 });
-      const valRef = XLSX.utils.encode_cell({ r: notesRowIndex, c: 1 });
-      if (ws[labelRef]) ws[labelRef].s = { font: { bold: true, color: { rgb: "FF0000" } } };
-      if (ws[valRef]) ws[valRef].s = { font: { bold: true, color: { rgb: "FF0000" } } };
-    }
-
-    // 4. Bold "ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ"
-    const listTitleRow = notes && notes.trim() ? 8 : 7;
-    const listTitleRef = XLSX.utils.encode_cell({ r: listTitleRow, c: 0 });
-    if (ws[listTitleRef]) ws[listTitleRef].s = { font: { bold: true, sz: 12 } };
-
-    // 5. Products Header Styles
-    const prodHeaderRow = listTitleRow + 1;
-    for (let c = 0; c < 3; c++) {
-      const cellRef = XLSX.utils.encode_cell({ r: prodHeaderRow, c });
-      if (ws[cellRef]) {
-        ws[cellRef].s = { 
-          fill: { fgColor: { rgb: "F8FAFC" } }, 
-          font: { bold: true },
-          border: { bottom: { style: 'thin' }, top: { style: 'thin' } },
-          alignment: { horizontal: 'center' }
-        };
-      }
-    }
-
-    // 6. Data Row Alignment
-    const dataStartRow = prodHeaderRow + 1;
-    for (let r = dataStartRow; r < dataStartRow + items.length; r++) {
-      // Qty center
-      const qtyRef = XLSX.utils.encode_cell({ r, c: 2 });
-      if (ws[qtyRef]) ws[qtyRef].s = { alignment: { horizontal: 'center' } };
-    }
-
-    // Column Widths
-    ws['!cols'] = [
-      { wch: 15 }, // ΚΩΔΙΚΟΣ
-      { wch: 60 }, // ΠΕΡΙΓΡΑΦΗ
-      { wch: 15 }  // ΠΟΣΟΤΗΤΑ
-    ];
-
     XLSX.utils.book_append_sheet(wb, ws, "Παραγγελία");
-    
-    const fileName = `${customer.name.replace(/[/\\?%*:|"<>]/g, '-')}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+    XLSX.writeFile(wb, `${customer.name.replace(/[/\\?%*:|"<>]/g, '-')}.xlsx`);
   }
 
-  async fetchCustomers(): Promise<Customer[]> {
-    try {
-      let allData: any[] = [];
-      let fetchedAll = false;
-      let from = 0;
-      const step = 1000; // Το μέγιστο επιτρεπτό όριο ανά request
-
-      while (!fetchedAll) {
-        const { data, error } = await supabase
-          .from('customers')
-          .select('*')
-          .order('name', { ascending: true })
-          .range(from, from + step - 1);
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          allData = [...allData, ...data];
-          if (data.length < step) {
-            fetchedAll = true; // Τελείωσαν οι εγγραφές
-          } else {
-            from += step; // Πάμε στο επόμενο πακέτο (1001-2000 κλπ)
-          }
-        } else {
-          fetchedAll = true;
-        }
-      }
-
-      // Επιστρέφουμε όλα τα δεδομένα (1634+) κάνοντας mapping
-      return allData.map(c => ({
-        ...c,
-        code: c.customer_code || c.code
-      }));
-
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      return [];
-    }
-  }
-
+  // 3. BRANDS & PRODUCTS ΑΠΟ SUPABASE
   async fetchBrands(): Promise<Brand[]> {
     try {
-      // Τραβάμε ΜΟΝΟ από το Supabase
-      const { data, error } = await supabase
-        .from('brands')
-        .select('*')
-        .order('name', { ascending: true });
-
+      const { data, error } = await supabase.from('brands').select('*').order('name');
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching brands:', error);
       return [];
     }
   }
 
-  // 3. Φόρτωση Προϊόντων από το Supabase (Πίνακας 'products')
   async fetchProducts(): Promise<Product[]> {
     try {
       const { data, error } = await supabase
         .from('products')
         .select('"Code", "Description", "Brand", "Price", "ImageUrl"')
-        // Προσθήκη ταξινόμησης βάσει Code
-        .order('Code', { ascending: true });
-
+        .order('Code');
       if (error) throw error;
-
-      // Αντιστοίχιση των κεφαλαίων ονομάτων της βάσης στα πεζά του Frontend
       return (data || []).map(p => ({
-        // Χρησιμοποιούμε p.Code (όπως έρχεται από το select)
         code: p.Code,
         description: p.Description,
         brand: p.Brand,
-        // Διασφάλιση ότι η τιμή είναι αριθμός
         price: Number(p.Price || 0),
         imageUrl: p.ImageUrl
       }));
     } catch (error) {
-      console.error('Error fetching products from Supabase:', error);
+      console.error('Error fetching products:', error);
       return [];
     }
   }
 
-  // 4. Υποβολή παραγγελίας στη βάση δεδομένων
   async submitOrder(order: any): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .insert([order]);
-
+      const { error } = await supabase.from('orders').insert([order]);
       return !error;
     } catch (error) {
-      console.error('Order submission error:', error);
       return false;
     }
   }
-  // Προσθήκη νέου Brand
+
   async addBrand(brand: Partial<Brand>): Promise<void> {
-    const { error } = await supabase
-      .from('brands')
-      .insert([brand]);
-    if (error) throw error;
+    await supabase.from('brands').insert([brand]);
   }
 
-  // Προσθήκη νέου Προϊόντος
   async addProduct(product: Partial<Product>): Promise<void> {
-    // Προσέχουμε τα κεφαλαία ονόματα των στηλών της βάσης
-    const { error } = await supabase
-      .from('products')
-      .insert([{
-        Code: product.code,
-        Description: product.description,
-        Brand: product.brand,
-        Price: product.price,
-        ImageUrl: product.imageUrl
-      }]);
-    if (error) throw error;
+    await supabase.from('products').insert([{
+      Code: product.code,
+      Description: product.description,
+      Brand: product.brand,
+      Price: product.price,
+      ImageUrl: product.imageUrl
+    }]);
   }
 }
+
 export const dataService = new DataService();
