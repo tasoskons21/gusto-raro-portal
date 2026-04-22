@@ -59,6 +59,24 @@ export interface Profile {
   shop_id?: string;
 }
 
+export interface SoftOneOrder {
+  TRD_AAA: string;
+  TRD_DATE: string;
+  TRD_CODE: string;
+  TRD_NAME: string;
+  TRD_AFM: string;
+  TOTAL_VALUE: number;
+  TRD_TYPE_DESC: string;
+  items?: SoftOneOrderItem[];
+}
+
+export interface SoftOneOrderItem {
+  CODE: string;
+  DESCRIPTION: string;
+  QUANTITY: number;
+  PRICE: number;
+}
+
 export interface User {
   id: string;
   email: string;

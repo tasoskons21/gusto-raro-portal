@@ -36,13 +36,6 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-slate-800 uppercase tracking-tight text-xs">ΠΕΛΑΤΗΣ</h3>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowHistory(true)}
-              className="p-1 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors min-w-[28px] min-h-[28px]"
-              title="Ιστορικό SoftOne"
-            >
-              <Database size={12} />
-            </button>
             {userRole !== 'customer' && (
               <button
                 onClick={onChangeCustomer}
@@ -53,7 +46,7 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
             )}
           </div>
         </div>
-        <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">
+        <div className="p-2 bg-slate-50 rounded-xl border border-slate-100 mb-3">
           <p className="font-black text-slate-900 text-xs uppercase leading-tight">{selectedCustomer.name}</p>
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
             <p className="text-[9px] text-slate-500 font-medium">ΑΦΜ: <span className="font-bold">{selectedCustomer.afm}</span></p>
@@ -63,6 +56,14 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
             {selectedCustomer.address}, <span className="font-black text-amber-600 uppercase tracking-wide text-[9px]">{selectedCustomer.city}</span>
           </p>
         </div>
+
+        <button
+          onClick={() => setShowHistory(true)}
+          className="w-full py-2.5 px-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gusto-green transition-all flex items-center justify-center gap-2 shadow-sm"
+        >
+          <Database size={12} />
+          ΟΛΟ ΤΟ ΙΣΤΟΡΙΚΟ
+        </button>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-0">

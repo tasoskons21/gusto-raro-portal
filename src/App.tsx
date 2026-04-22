@@ -321,11 +321,13 @@ export default function App() {
   const handleConfirmExport = async () => {
     setShowExportPreview(false);
     setIsExporting(true);
+
     try {
       const customer = selectedCustomer;
       if (!customer) return;
 
-      const orderData = {
+      // Προετοιμασία δεδομένων
+      const orderData: any = {
         user_id: user.id,
         user_email: user.email,
         user_role: user.role,
@@ -341,33 +343,47 @@ export default function App() {
         status: 'submitted' as const
       };
 
+      // Αν επεξεργαζόμαστε υπάρχουσα παραγγελία, συμπεριλαμβάνουμε το ID 
+      // ώστε το upsert να ξέρει ποια εγγραφή να ενημερώσει
       if (editingOrderId) {
-        const { error } = await supabase.from('orders').update(orderData).eq('id', editingOrderId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('orders').insert(orderData);
-        if (error) throw error;
+        orderData.id = editingOrderId;
       }
 
-      const newRecord: OrderRecord = {
-        id: editingOrderId || Math.random().toString(36).substr(2, 9),
-        date: new Date().toISOString(),
-        customerName: customer.name,
-        customerCode: customer.customer_code || customer.code,
-        customerAfm: customer.afm,
-        items: [...cart],
-        totalValue: totalNet,
-        notes: notes
-      };
-      setShowSuccess(true);
+      // Χρήση upsert αντί για update/insert για αποφυγή CORS θεμάτων με το PATCH
+      const { error: dbError } = await supabase
+        .from('orders')
+        .upsert(orderData, { onConflict: 'id' });
+
+      if (dbError) throw dbError;
+
+      // Εμφάνιση ΜΟΝΟ του StatusModal για επιτυχία
+      setStatusModal({
+        show: true,
+        type: 'success',
+        title: 'Επιτυχής Καταχώρηση',
+        message: editingOrderId
+          ? 'Η παραγγελία ενημερώθηκε επιτυχώς.'
+          : 'Η παραγγελία σας αποθηκεύτηκε επιτυχώς.'
+      });
+
+      // Καθαρισμός κατάστασης
       setCart([]);
       setNotes('');
       setSelectedCustomer(null);
       setEditingOrderId(null);
+
     } catch (err: any) {
       console.error('Order checkout failed:', err);
-      console.error('Error details:', JSON.stringify(err, null, 2));
-      setShowError(`Αποτυχία αποθήκευσης παραγγελίας: ${err?.message || err?.code || 'Άγνωστο σφάλμα'}`);
+
+      // Εμφάνιση ΜΟΝΟ του StatusModal για αποτυχία
+      setStatusModal({
+        show: true,
+        type: 'error',
+        title: 'Σφάλμα Σύνδεσης',
+        message: 'Παρουσιάστηκε σφάλμα κατά την επικοινωνία με τη βάση (CORS ή Database error).'
+      });
+
+      // Αφαιρέθηκε το setShowError για να μην βγαίνει δεύτερο μήνυμα
     } finally {
       setIsExporting(false);
     }
@@ -440,16 +456,29 @@ export default function App() {
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, show: false }));
         try {
-          console.log('Deleting order:', orderId);
           const { error } = await supabase.from('orders').delete().eq('id', orderId);
-          if (error) {
-            console.error('Delete error:', error);
-            throw error;
-          }
+
+          if (error) throw error;
+
+          // Εμφάνιση StatusModal για επιτυχία
+          setStatusModal({
+            show: true,
+            type: 'success',
+            title: 'Επιτυχής Διαγραφή',
+            message: 'Η παραγγελία διαγράφηκε οριστικά.'
+          });
+
           await loadSavedOrders();
         } catch (err: any) {
           console.error('Delete order failed:', err);
-          setShowError(`Αποτυχία διαγραφής: ${err?.message || 'Άγνωστο σφάλμα'}`);
+
+          // Εμφάνιση StatusModal για αποτυχία (αντί για το setShowError)
+          setStatusModal({
+            show: true,
+            type: 'error',
+            title: 'Σφάλμα Διαγραφής',
+            message: err?.message || 'Δεν ήταν δυνατή η ολοκλήρωση της διαγραφής.'
+          });
         }
       }
     });
