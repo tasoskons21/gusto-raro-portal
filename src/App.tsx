@@ -5,7 +5,7 @@ import XLSX from 'xlsx-js-style';
 import { motion, AnimatePresence } from 'motion/react';
 import { Customer, Product, CartItem, OrderRecord, User, Brand, Profile } from './types';
 import { dataService } from './services/dataService';
-import { supabase } from './lib/supabase';
+import { supabase, fetchWithTimeout } from './lib/supabase';
 
 // Components
 import { LoginForm } from './components/auth/LoginForm';
@@ -53,14 +53,15 @@ export default function App() {
   const [newBrandForm, setNewBrandForm] = useState({ name: '', logo: '' });
   const [newProductForm, setNewProductForm] = useState({ code: '', description: '', brand: '', price: '', imageUrl: '' });
 
-  // UI State
-  const [activeTab, setActiveTab] = useState<'brands' | 'products' | 'cart'>('products');
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [productSearch, setProductSearch] = useState('');
-  const [brandSearch, setBrandSearch] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState('');
-  const [showSuccess, setShowSuccess] = useState(false);
+   // UI State
+   const [activeTab, setActiveTab] = useState<'brands' | 'products' | 'cart'>('products');
+   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+   const [searchTerm, setSearchTerm] = useState('');
+   const [productSearch, setProductSearch] = useState('');
+   const [brandSearch, setBrandSearch] = useState('');
+   const [selectedBrand, setSelectedBrand] = useState('');
+   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState<string | null>(null);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [notes, setNotes] = useState('');
@@ -312,7 +313,7 @@ export default function App() {
     });
   };
 
-  // Order Handlers
+   // Order Handlers
   const handleCheckout = async () => {
     if (!selectedCustomer) return;
     setShowExportPreview(true);
@@ -350,11 +351,13 @@ export default function App() {
       }
 
       // Χρήση upsert αντί για update/insert για αποφυγή CORS θεμάτων με το PATCH
-      const { error: dbError } = await supabase
-        .from('orders')
-        .upsert(orderData, { onConflict: 'id' });
+      const result = await fetchWithTimeout(
+        supabase.from('orders').upsert(orderData, { onConflict: 'id' }),
+        20000,
+        3
+      );
 
-      if (dbError) throw dbError;
+      if (result.error) throw result.error;
 
       // Εμφάνιση ΜΟΝΟ του StatusModal για επιτυχία
       setStatusModal({
@@ -371,6 +374,7 @@ export default function App() {
       setNotes('');
       setSelectedCustomer(null);
       setEditingOrderId(null);
+      await loadSavedOrders();
 
     } catch (err: any) {
       console.error('Order checkout failed:', err);
@@ -380,12 +384,29 @@ export default function App() {
         show: true,
         type: 'error',
         title: 'Σφάλμα Σύνδεσης',
-        message: 'Παρουσιάστηκε σφάλμα κατά την επικοινωνία με τη βάση (CORS ή Database error).'
+        message: 'Παρουσιάστηκε σφάλμα κατά την επικοινωνία με τη βάση (CORS ή Database error). Δοκιμάστε ξανά.'
       });
 
       // Αφαιρέθηκε το setShowError για να μην βγαίνει δεύτερο μήνυμα
     } finally {
       setIsExporting(false);
+    }
+   };
+
+  const loadSavedOrders = async () => {
+    setIsLoadingOrders(true);
+    try {
+      const result = await fetchWithTimeout<any[]>(
+        supabase.from('orders').select('*').order('created_at', { ascending: false }),
+        15000,
+        3
+      );
+      if (result.error) throw result.error;
+      setSavedOrders(result.data || []);
+    } catch (err) {
+      console.error('Load orders failed:', err);
+    } finally {
+      setIsLoadingOrders(false);
     }
   };
 
@@ -409,42 +430,34 @@ export default function App() {
         status: 'draft' as const
       };
 
+       let success = false;
       if (editingOrderId) {
-        const { error } = await supabase.from('orders').update(orderData).eq('id', editingOrderId);
-        if (error) throw error;
+        success = await dataService.updateOrder(editingOrderId, orderData);
       } else {
-        const { error } = await supabase.from('orders').insert(orderData);
-        if (error) throw error;
+        const result = await fetchWithTimeout<any>(
+          supabase.from('orders').insert(orderData),
+          15000,
+          3
+        );
+        success = !result.error;
+        if (result.error) throw result.error;
       }
 
       setShowSuccess(true);
       setCart([]);
       setNotes('');
       setEditingOrderId(null);
+      await loadSavedOrders();
     } catch (err) {
       console.error('Save draft failed:', err);
-      setShowError('Αποτυχία αποθήκευσης προσχεδίου');
+      setStatusModal({
+        show: true,
+        type: 'error',
+        title: 'Αποτυχία Αποθήκευσης',
+        message: 'Δεν ήταν δυνατή η αποθήκευση του προσχεδίου. Ξαναπροσπαθήστε.'
+      });
     } finally {
       setIsExporting(false);
-    }
-  };
-
-  const loadSavedOrders = async () => {
-    setIsLoadingOrders(true);
-    try {
-      let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
-
-      if (user.role === 'customer' || user.role === 'seller') {
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setSavedOrders(data || []);
-    } catch (err) {
-      console.error('Load orders failed:', err);
-    } finally {
-      setIsLoadingOrders(false);
     }
   };
 
@@ -456,19 +469,22 @@ export default function App() {
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, show: false }));
         try {
-          const { error } = await supabase.from('orders').delete().eq('id', orderId);
+          // Use timeout wrapper with retry logic
+          const success = await dataService.deleteOrder(orderId);
 
-          if (error) throw error;
+          if (success) {
+            // Εμφάνιση StatusModal για επιτυχία
+            setStatusModal({
+              show: true,
+              type: 'success',
+              title: 'Επιτυχής Διαγραφή',
+              message: 'Η παραγγελία διαγράφηκε οριστικά.'
+            });
 
-          // Εμφάνιση StatusModal για επιτυχία
-          setStatusModal({
-            show: true,
-            type: 'success',
-            title: 'Επιτυχής Διαγραφή',
-            message: 'Η παραγγελία διαγράφηκε οριστικά.'
-          });
-
-          await loadSavedOrders();
+            await loadSavedOrders();
+          } else {
+            throw new Error('Delete operation failed');
+          }
         } catch (err: any) {
           console.error('Delete order failed:', err);
 
@@ -477,7 +493,7 @@ export default function App() {
             show: true,
             type: 'error',
             title: 'Σφάλμα Διαγραφής',
-            message: err?.message || 'Δεν ήταν δυνατή η ολοκλήρωση της διαγραφής.'
+            message: 'Δεν ήταν δυνατή η ολοκλήρωση της διαγραφής. Ξαναπροσπαθήστε.'
           });
         }
       }
@@ -818,6 +834,8 @@ export default function App() {
         onLogout={handleLogout}
         activeView={activeView}
         onViewChange={setActiveView}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
       />
 
       <main className="w-full px-2 sm:px-4 py-2 sm:py-4 flex-1 min-h-0 overflow-hidden relative">
@@ -865,7 +883,7 @@ export default function App() {
         ) : (
           <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-12 gap-4 h-full pb-4 md:pb-4 lg:pb-0">
             {/* Brands Sidebar - Visible on Desktop/Tablet when activeTab is 'brands' */}
-            <div className={`${activeTab === 'brands' ? 'flex' : 'hidden'} md:flex md:col-span-1 lg:flex lg:col-span-3 h-full min-h-0`}>
+            <div className={`${activeTab === 'brands' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${sidebarCollapsed ? 'lg:hidden' : 'lg:flex lg:col-span-3'} h-full min-h-0`}>
               <BrandSidebar
                 selectedCustomer={selectedCustomer}
                 onChangeCustomer={handleChangeCustomer}
@@ -879,11 +897,13 @@ export default function App() {
                 }}
                 userRole={user.role}
                 isLoading={isLoading}
+                isCollapsed={sidebarCollapsed}
+                onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
               />
             </div>
 
             {/* Product List - Visible on Desktop/Tablet when activeTab is 'products' */}
-            <div className={`${activeTab === 'products' ? 'flex' : 'hidden'} md:flex md:col-span-1 lg:flex lg:col-span-6 h-full min-h-0`}>
+            <div className={`${activeTab === 'products' ? 'flex' : 'hidden'} md:flex md:col-span-1 lg:flex ${sidebarCollapsed ? 'lg:col-span-9' : 'lg:col-span-6'} h-full min-h-0`}>
               <ProductList
                 productSearch={productSearch}
                 setProductSearch={setProductSearch}

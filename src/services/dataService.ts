@@ -1,6 +1,16 @@
-import { supabase } from '../lib/supabase';
+import { supabase, fetchWithTimeout } from '../lib/supabase';
 import { Customer, Product, Brand, CartItem } from '../types';
 import XLSX from 'xlsx-js-style';
+
+// Local cache for frequently accessed data
+const cache = {
+  brands: { data: null as Brand[] | null, timestamp: 0, ttl: 300000 }, // 5 min
+  products: { data: null as Product[] | null, timestamp: 0, ttl: 300000 }, // 5 min
+};
+
+const isCacheValid = (timestamp: number, ttl: number) => {
+  return Date.now() - timestamp < ttl;
+};
 
 class DataService {
   // Ιδιωτική μέθοδος για τα αιτήματα στο SoftOne για ασφάλεια και επαναχρησιμοποίηση
@@ -118,57 +128,172 @@ class DataService {
 
   // 3. BRANDS & PRODUCTS ΑΠΟ SUPABASE
   async fetchBrands(): Promise<Brand[]> {
+    // Check cache first
+    if (cache.brands.data && isCacheValid(cache.brands.timestamp, cache.brands.ttl)) {
+      console.log('📦 Using cached brands');
+      return cache.brands.data;
+    }
+
     try {
-      const { data, error } = await supabase.from('brands').select('*').order('name');
-      if (error) throw error;
-      return data || [];
+      const result = await fetchWithTimeout<Brand[]>(
+        supabase.from('brands').select('*').order('name'),
+        15000,
+        3
+      );
+      if (result.error) throw result.error;
+      
+      // Update cache
+      cache.brands.data = result.data || [];
+      cache.brands.timestamp = Date.now();
+      
+      return cache.brands.data;
     } catch (error) {
       console.error('Error fetching brands:', error);
-      return [];
+      // Return cached data even if expired as fallback
+      return cache.brands.data || [];
     }
   }
 
   async fetchProducts(): Promise<Product[]> {
+    // Check cache first
+    if (cache.products.data && isCacheValid(cache.products.timestamp, cache.products.ttl)) {
+      console.log('📦 Using cached products');
+      return cache.products.data;
+    }
+
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('"Code", "Description", "Brand", "Price", "ImageUrl"')
-        .order('Code');
-      if (error) throw error;
-      return (data || []).map(p => ({
+      const result = await fetchWithTimeout<any[]>(
+        supabase
+          .from('products')
+          .select('"Code", "Description", "Brand", "Price", "ImageUrl"')
+          .order('Code'),
+        15000,
+        3
+      );
+      if (result.error) throw result.error;
+      
+      const products = (result.data || []).map(p => ({
         code: p.Code,
         description: p.Description,
         brand: p.Brand,
         price: Number(p.Price || 0),
         imageUrl: p.ImageUrl
       }));
+      
+      // Update cache
+      cache.products.data = products;
+      cache.products.timestamp = Date.now();
+      
+      return products;
     } catch (error) {
       console.error('Error fetching products:', error);
-      return [];
+      // Return cached data even if expired as fallback
+      return cache.products.data || [];
+    }
+  }
+
+  // Invalidate cache when data changes
+  invalidateCache(type: 'brands' | 'products' | 'all') {
+    if (type === 'brands' || type === 'all') {
+      cache.brands.data = null;
+      cache.brands.timestamp = 0;
+    }
+    if (type === 'products' || type === 'all') {
+      cache.products.data = null;
+      cache.products.timestamp = 0;
     }
   }
 
   async submitOrder(order: any): Promise<boolean> {
     try {
-      const { error } = await supabase.from('orders').insert([order]);
-      return !error;
+      const result = await fetchWithTimeout(
+        supabase.from('orders').insert([order]),
+        15000,
+        3
+      );
+      if (result.error) {
+        console.error('Submit order error:', result.error);
+        return false;
+      }
+      return !result.error;
     } catch (error) {
+      console.error('Submit order failed:', error);
+      return false;
+    }
+  }
+
+  async deleteOrder(orderId: string): Promise<boolean> {
+    try {
+      const result = await fetchWithTimeout(
+        supabase.from('orders').delete().eq('id', orderId),
+        15000,
+        3
+      );
+      if (result.error) {
+        console.error('Delete order error:', result.error);
+        return false;
+      }
+      return !result.error;
+    } catch (error) {
+      console.error('Delete order failed:', error);
+      return false;
+    }
+  }
+
+  async updateOrder(orderId: string, orderData: any): Promise<boolean> {
+    try {
+      const result = await fetchWithTimeout(
+        supabase.from('orders').update(orderData).eq('id', orderId),
+        15000,
+        3
+      );
+      if (result.error) {
+        console.error('Update order error:', result.error);
+        return false;
+      }
+      return !result.error;
+    } catch (error) {
+      console.error('Update order failed:', error);
       return false;
     }
   }
 
   async addBrand(brand: Partial<Brand>): Promise<void> {
-    await supabase.from('brands').insert([brand]);
+    try {
+      const result = await fetchWithTimeout(
+        supabase.from('brands').insert([brand]),
+        15000,
+        3
+      );
+      if (result.error) throw result.error;
+      // Invalidate cache after update
+      this.invalidateCache('brands');
+    } catch (error) {
+      console.error('Error adding brand:', error);
+      throw error;
+    }
   }
 
   async addProduct(product: Partial<Product>): Promise<void> {
-    await supabase.from('products').insert([{
-      Code: product.code,
-      Description: product.description,
-      Brand: product.brand,
-      Price: product.price,
-      ImageUrl: product.imageUrl
-    }]);
+    try {
+      const result = await fetchWithTimeout(
+        supabase.from('products').insert([{
+          Code: product.code,
+          Description: product.description,
+          Brand: product.brand,
+          Price: product.price,
+          ImageUrl: product.imageUrl
+        }]),
+        15000,
+        3
+      );
+      if (result.error) throw result.error;
+      // Invalidate cache after update
+      this.invalidateCache('products');
+    } catch (error) {
+      console.error('Error adding product:', error);
+      throw error;
+    }
   }
 }
 

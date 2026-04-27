@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, X, Building2, Database } from 'lucide-react';
+import { Search, X, Building2, Database, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Brand, Customer } from '../../types';
 import { SoftOneHistory } from './SoftOneHistory';
@@ -14,6 +14,8 @@ interface BrandSidebarProps {
   onSelectBrand: (brand: string) => void;
   userRole: string;
   isLoading?: boolean;
+  isCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export const BrandSidebar: React.FC<BrandSidebarProps> = ({
@@ -26,6 +28,8 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
   onSelectBrand,
   userRole,
   isLoading = false,
+  isCollapsed = false,
+  onToggleSidebar
 }) => {
   const [showHistory, setShowHistory] = useState(false);
 
@@ -36,14 +40,14 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-slate-800 uppercase tracking-tight text-xs">ΠΕΛΑΤΗΣ</h3>
           <div className="flex items-center gap-2">
-            {userRole !== 'customer' && (
-              <button
-                onClick={onChangeCustomer}
-                className="text-[9px] text-red-500 font-black hover:underline uppercase tracking-widest"
-              >
-                ΑΛΛΑΓΗ
-              </button>
-            )}
+             {userRole !== 'customer' && (
+               <button
+                 onClick={onChangeCustomer}
+                 className="text-[9px] text-red-500 font-black hover:underline uppercase tracking-widest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 rounded"
+               >
+                 ΑΛΛΑΓΗ
+               </button>
+             )}
           </div>
         </div>
         <div className="p-2 bg-slate-50 rounded-xl border border-slate-100 mb-3">
@@ -59,20 +63,31 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
 
         <button
           onClick={() => setShowHistory(true)}
-          className="w-full py-2.5 px-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gusto-green transition-all flex items-center justify-center gap-2 shadow-sm"
+          className="w-full py-2.5 px-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gusto-green transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 flex items-center justify-center gap-2 shadow-sm"
         >
           <Database size={12} />
           ΟΛΟ ΤΟ ΙΣΤΟΡΙΚΟ
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-0">
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
-          <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2 uppercase tracking-tight text-sm">
-            <Building2 size={16} className="text-gusto-green" />
-            ΕΤΑΙΡΙΕΣ
-          </h3>
-          <div className="relative">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-0">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 uppercase tracking-tight text-sm">
+                <Building2 size={16} className="text-gusto-green" />
+                ΕΤΑΙΡΙΕΣ
+              </h3>
+               {!isCollapsed && onToggleSidebar && (
+                 <button
+                   onClick={onToggleSidebar}
+                   className="p-1.5 text-slate-400 hover:text-gusto-green hover:bg-slate-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
+                   title="Απόκρυψη Πλαϊνού Μενού"
+                 >
+                   <PanelLeftClose size={16} />
+                 </button>
+               )}
+            </div>
+            <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
             <input
               type="text"
@@ -111,7 +126,7 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
                     <button
                       key={brand.name}
                       onClick={() => onSelectBrand(brand.name)}
-                      className={`w-full text-left px-2 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 ${selectedBrand === brand.name
+                      className={`w-full text-left px-2 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 ${selectedBrand === brand.name
                         ? 'bg-gusto-green text-white shadow-md font-semibold'
                         : 'text-slate-600 hover:bg-slate-50 hover:text-gusto-green'
                         }`}

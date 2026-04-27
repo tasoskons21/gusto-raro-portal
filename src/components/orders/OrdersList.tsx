@@ -174,13 +174,13 @@ export const OrdersList: React.FC<OrdersListProps> = ({
                   </div>
                 </div>
 
-                <div className="flex-shrink-0 text-gray-400">
-                  {isExpanded(order.id) ? (
-                    <ChevronUp size={16} sm:size={20} />
-                  ) : (
-                    <ChevronDown size={16} sm:size={20} />
-                  )}
-                </div>
+                 <div className="flex-shrink-0 text-gray-400">
+                   {isExpanded(order.id) ? (
+                     <ChevronUp size={16} />
+                   ) : (
+                     <ChevronDown size={16} />
+                   )}
+                 </div>
               </div>
             </button>
 
