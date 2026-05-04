@@ -410,56 +410,61 @@ export default function App() {
     }
   };
 
-  const handleSaveDraft = async () => {
-    if (!selectedCustomer || cart.length === 0) return;
-    setIsExporting(true);
-    try {
-      const customer = selectedCustomer;
+   const handleSaveDraft = async () => {
+     if (!selectedCustomer || cart.length === 0) return;
+     setIsExporting(true);
+     try {
+       const customer = selectedCustomer;
 
-      const orderData = {
-        user_id: user.id,
-        user_email: user.email,
-        user_role: user.role,
-        customer_id: customer.id || null,
-        customer_name: customer.name,
-        customer_code: customer.customer_code || customer.code,
-        customer_afm: customer.afm,
-        items: cart,
-        total_value: totalNet,
-        notes: notes,
-        status: 'draft' as const
-      };
+       const orderData = {
+         user_id: user.id,
+         user_email: user.email,
+         user_role: user.role,
+         customer_id: customer.id || null,
+         customer_name: customer.name,
+         customer_code: customer.customer_code || customer.code,
+         customer_afm: customer.afm,
+         items: cart,
+         total_value: totalNet,
+         notes: notes,
+         status: 'draft' as const
+       };
 
-       let success = false;
-      if (editingOrderId) {
-        success = await dataService.updateOrder(editingOrderId, orderData);
-      } else {
-        const result = await fetchWithTimeout<any>(
-          supabase.from('orders').insert(orderData),
-          15000,
-          3
-        );
-        success = !result.error;
-        if (result.error) throw result.error;
-      }
+        let success = false;
+       if (editingOrderId) {
+         success = await dataService.updateOrder(editingOrderId, orderData);
+         if (!success) {
+           throw new Error('Failed to update order');
+         }
+       } else {
+         const result = await fetchWithTimeout<any>(
+           supabase.from('orders').insert(orderData),
+           15000,
+           3
+         );
+         if (result.error) throw result.error;
+         success = !result.error;
+       }
 
-      setShowSuccess(true);
-      setCart([]);
-      setNotes('');
-      setEditingOrderId(null);
-      await loadSavedOrders();
-    } catch (err) {
-      console.error('Save draft failed:', err);
-      setStatusModal({
-        show: true,
-        type: 'error',
-        title: 'Αποτυχία Αποθήκευσης',
-        message: 'Δεν ήταν δυνατή η αποθήκευση του προσχεδίου. Ξαναπροσπαθήστε.'
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
+       if (success) {
+         setShowSuccess(true);
+         setCart([]);
+         setNotes('');
+         setEditingOrderId(null);
+         await loadSavedOrders();
+       }
+     } catch (err) {
+       console.error('Save draft failed:', err);
+       setStatusModal({
+         show: true,
+         type: 'error',
+         title: 'Αποτυχία Αποθήκευσης',
+         message: 'Δεν ήταν δυνατή η αποθήκευση του προσχεδίου. Ξαναπροσπαθήστε.'
+       });
+     } finally {
+       setIsExporting(false);
+     }
+   };
 
   const handleDeleteOrder = async (orderId: string) => {
     setConfirmModal({
