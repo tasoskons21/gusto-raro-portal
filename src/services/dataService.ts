@@ -103,58 +103,82 @@ class DataService {
     }
   }
 
-  // 2. ΕΞΑΓΩΓΗ ΣΕ EXCEL
-  exportToExcel(customer: Customer, items: CartItem[], total: number, notes?: string) {
-    const wb = XLSX.utils.book_new();
-    const customerRows = [
-      ['ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ'],
-      ['Κωδικός:', customer.customer_code || customer.code || ''],
-      ['Όνομα:', customer.name],
-      ['ΑΦΜ:', customer.afm],
-      ['Διεύθυνση:', customer.address],
-      ['Πόλη:', customer.city]
-    ];
+   // 2. ΕΞΑΓΩΓΗ ΣΕ EXCEL
+   exportToExcel(customer: Customer, items: CartItem[], total: number, notes?: string) {
+     const wb = XLSX.utils.book_new();
+     const customerRows = [
+       ['ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ'],
+       ['Κωδικός:', customer.customer_code || customer.code || ''],
+       ['Όνομα:', customer.name],
+       ['ΑΦΜ:', customer.afm],
+       ['Διεύθυνση:', customer.address],
+       ['Πόλη:', customer.city]
+     ];
 
-    const finalData: any[][] = [...customerRows];
-    
-    // Add empty row for spacing before notes/products
-    finalData.push(['']);
-    
-    // Add notes section if notes exist (only once)
-    let notesStartRow = -1;
-    if (notes && notes.trim()) {
-      finalData.push(['Παρατηρήσεις:', notes]);
-      notesStartRow = finalData.length - 1; // Zero-based index of the notes row
-      // Add empty row after notes for spacing
-      finalData.push(['']);
-    }
-    
-    finalData.push(['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ']);
-    finalData.push(['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ']);
+     const finalData: any[][] = [...customerRows];
+     
+     // Add empty row for spacing before notes/products
+     finalData.push(['']);
+     
+     // Add notes section if notes exist (only once)
+     let notesStartRow = -1;
+     if (notes && notes.trim()) {
+       finalData.push(['Παρατηρήσεις:', notes]);
+       notesStartRow = finalData.length - 1; // Zero-based index of the notes row
+       // Add empty row after notes for spacing
+       finalData.push(['']);
+     }
+     
+     finalData.push(['ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ']);
+     finalData.push(['ΚΩΔΙΚΟΣ', 'ΠΕΡΙΓΡΑΦΗ', 'ΠΟΣΟΤΗΤΑ']);
 
-    items.forEach(item => finalData.push([item.code, item.description, item.quantity]));
+     items.forEach(item => finalData.push([item.code, item.description, item.quantity]));
 
-    const ws = XLSX.utils.aoa_to_sheet(finalData);
-    
-    // Style the notes row in red if notes exist
-    if (notes && notes.trim() && notesStartRow >= 0) {
-      // Convert zero-based index to 1-based for Excel cell reference
-      const excelRowIndex = notesStartRow + 1;
-      
-      // Style the label "Παρατηρήσεις:" (column A)
-      const labelCell = `A${excelRowIndex}`;
-      if (!ws[labelCell]) ws[labelCell] = { v: 'Παρατηρήσεις:' };
-      ws[labelCell].s = { font: { color: { rgb: 'FF0000' } }, bold: true };
-      
-      // Style the notes value (column B)
-      const valueCell = `B${excelRowIndex}`;
-      if (!ws[valueCell]) ws[valueCell] = { v: notes };
-      ws[valueCell].s = { font: { color: { rgb: 'FF0000' } } };
-    }
-    
-    XLSX.utils.book_append_sheet(wb, ws, "Παραγγελία");
-    XLSX.writeFile(wb, `${customer.name.replace(/[/\\?%*:|"<>]/g, '-')}.xlsx`);
-  }
+     const ws = XLSX.utils.aoa_to_sheet(finalData);
+     
+     // Style the notes row in red if notes exist
+     if (notes && notes.trim() && notesStartRow >= 0) {
+       // Convert zero-based index to 1-based for Excel cell reference
+       const excelRowIndex = notesStartRow + 1;
+       
+       // Style the label "Παρατηρήσεις:" (column A)
+       const labelCell = `A${excelRowIndex}`;
+       if (!ws[labelCell]) ws[labelCell] = { v: 'Παρατηρήσεις:' };
+       ws[labelCell].s = { font: { color: { rgb: 'FF0000' } }, bold: true };
+       
+       // Style the notes value (column B)
+       const valueCell = `B${excelRowIndex}`;
+       if (!ws[valueCell]) ws[valueCell] = { v: notes };
+       ws[valueCell].s = { font: { color: { rgb: 'FF0000' } } };
+     }
+     
+     // Auto-size columns based on content
+     const range = XLSX.utils.decode_range(ws['!ref'] || '');
+     const colWidths = [];
+     
+     for (let C = range.s.c; C <= range.e.c; ++C) {
+       let maxWidth = 0;
+       for (let R = range.s.r; R <= range.e.r; ++R) {
+         const cellAddress = { c: C, r: R };
+         const cellRef = XLSX.utils.encode_cell(cellAddress);
+         const cell = ws[cellRef];
+         if (cell && cell.v) {
+           const cellValue = String(cell.v);
+           // Calculate width based on character count with some padding
+           const width = cellValue.length + 2; // Add padding
+           if (width > maxWidth) maxWidth = width;
+         }
+       }
+       // Set minimum width and cap maximum width for readability
+       const adjustedWidth = Math.max(10, Math.min(50, maxWidth));
+       colWidths.push({ wch: adjustedWidth });
+     }
+     
+     ws['!cols'] = colWidths;
+     
+     XLSX.utils.book_append_sheet(wb, ws, "Παραγγελία");
+     XLSX.writeFile(wb, `${customer.name.replace(/[/\\?%*:|"<>]/g, '-')}.xlsx`);
+   }
 
   // 3. BRANDS & PRODUCTS ΑΠΟ SUPABASE
   async fetchBrands(): Promise<Brand[]> {
