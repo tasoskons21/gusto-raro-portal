@@ -127,19 +127,54 @@ export default function App() {
     }
   };
 
-  // Auth Effects
+  // Auth Effects - handle session check and auth state changes
   useEffect(() => {
+    let mounted = true;
+
     const checkSession = async () => {
       setAuthLoading(true);
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Wrap getSession in a timeout to prevent infinite loading
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: any } }>((_, reject) =>
+            setTimeout(() => reject(new Error('getSession timeout')), 8000)
+          )
+        ]);
+
+        if (!mounted) return;
+        const session = sessionResult.data?.session;
+
         if (session) {
+          // Token close to expiry? Try refreshing proactively
+          const now = Math.floor(Date.now() / 1000);
+          if (session.expires_at && session.expires_at - now < 300) {
+            try {
+              const { data: refreshedData } = await supabase.auth.refreshSession();
+              if (refreshedData?.session && mounted) {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('role, customer_id')
+                  .eq('id', refreshedData.session.user.id)
+                  .single();
+                setUser({
+                  id: refreshedData.session.user.id,
+                  email: refreshedData.session.user.email || '',
+                  role: profile?.role || 'customer',
+                  customer_id: profile?.customer_id,
+                  isLoggedIn: true
+                });
+                return;
+              }
+            } catch { /* fall through to use existing session */ }
+          }
+
+          if (!mounted) return;
           const { data: profile } = await supabase
             .from('profiles')
             .select('role, customer_id')
             .eq('id', session.user.id)
             .single();
-
           setUser({
             id: session.user.id,
             email: session.user.email || '',
@@ -147,37 +182,70 @@ export default function App() {
             customer_id: profile?.customer_id,
             isLoggedIn: true
           });
+        } else {
+          setUser({ id: '', email: '', role: 'customer', isLoggedIn: false });
         }
       } catch (e) {
         console.error('Auth check failed:', e);
+        // Retry once after delay
+        try {
+          await new Promise(r => setTimeout(r, 2000));
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!mounted) return;
+          if (session) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role, customer_id')
+              .eq('id', session.user.id)
+              .single();
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              role: profile?.role || 'customer',
+              customer_id: profile?.customer_id,
+              isLoggedIn: true
+            });
+          } else {
+            setUser({ id: '', email: '', role: 'customer', isLoggedIn: false });
+          }
+        } catch {
+          if (!mounted) return;
+          setUser({ id: '', email: '', role: 'customer', isLoggedIn: false });
+        }
       } finally {
-        setAuthLoading(false);
+        if (mounted) setAuthLoading(false);
       }
     };
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, customer_id')
-          .eq('id', session.user.id)
-          .single();
-
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          role: profile?.role || 'customer',
-          customer_id: profile?.customer_id,
-          isLoggedIn: true
-        });
-      } else {
-        setUser({ id: '', email: '', role: 'customer', isLoggedIn: false });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          if (session && mounted) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role, customer_id')
+              .eq('id', session.user.id)
+              .single();
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              role: profile?.role || 'customer',
+              customer_id: profile?.customer_id,
+              isLoggedIn: true
+            });
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser({ id: '', email: '', role: 'customer', isLoggedIn: false });
+        }
       }
-    });
+    );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {

@@ -11,22 +11,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-    storageKey: 'supabase-auth-token',
-    storage: localStorage
-  },
-  global: {
-    headers: {
-      'x-application-name': 'gusto-raro-b2b-portal'
-    }
-  },
-  db: {
-    timeout: 10000
-  }
-});
+   auth: {
+     autoRefreshToken: true,
+     persistSession: false,
+     detectSessionInUrl: false,
+     storageKey: 'supabase-auth-token'
+   },
+   global: {
+     headers: {
+       'x-application-name': 'gusto-raro-b2b-portal'
+     }
+   },
+   db: {
+     timeout: 10000
+   }
+ });
 
 // Connection state monitoring
 let isOnline = navigator?.onLine ?? true;
@@ -40,10 +39,21 @@ if (typeof window !== 'undefined') {
     retryCount = 0;
     console.log('🟢 Supabase connection restored');
   });
-  
+
   window.addEventListener('offline', () => {
     isOnline = false;
     console.log('🔴 Supabase connection lost - working offline');
+  });
+
+  // Handle page visibility changes to maintain Supabase session
+  // Mobile browsers throttle JS timers when page is hidden, breaking autoRefreshToken.
+  // When returning to foreground, restart the auto-refresh cycle so Supabase
+  // re-validates the token if it expired while in background.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      console.log('📱 App returned to foreground - restarting Supabase auto-refresh');
+      supabase.auth.startAutoRefresh();
+    }
   });
 }
 
