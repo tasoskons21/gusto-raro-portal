@@ -46,12 +46,22 @@ if (typeof window !== 'undefined') {
   });
 
   // Handle page visibility changes to maintain Supabase session
-  // Mobile browsers throttle JS timers when page is hidden, breaking autoRefreshToken.
+  // Mobile/tablet browsers throttle JS timers when page is hidden, breaking autoRefreshToken.
   // When returning to foreground, restart the auto-refresh cycle so Supabase
   // re-validates the token if it expired while in background.
+  // Note: tablets use the same throttling behavior as mobile browsers.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       console.log('📱 App returned to foreground - restarting Supabase auto-refresh');
+      supabase.auth.startAutoRefresh();
+    }
+  });
+
+  // Handle pageshow/pagehide for tablets and mobile browsers that use these events
+  // These fire when navigating between pages or when the browser process suspends/resumes
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      console.log('📱 App restored from page cache - restarting Supabase auto-refresh');
       supabase.auth.startAutoRefresh();
     }
   });
