@@ -297,7 +297,7 @@ class DataService {
   async updateOrder(orderId: string, orderData: any): Promise<boolean> {
     try {
       const result = await fetchWithTimeout(
-        supabase.from('orders').update(orderData).eq('id', orderId),
+        supabase.from('orders').upsert({ id: orderId, ...orderData }, { onConflict: 'id' }),
         15000,
         3
       );

@@ -707,7 +707,7 @@ export default function App() {
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
-      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+      const { error } = await supabase.from('profiles').upsert({ id: userId, role: newRole }, { onConflict: 'id' });
       if (error) throw error;
       setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Ο ρόλος ενημερώθηκε επιτυχώς.' });
       await fetchAllUsers(false);
@@ -834,6 +834,7 @@ export default function App() {
     setIsAdminLoading(true);
     try {
       const updateData: any = {
+        Code: code,
         Description: editForm.description.toUpperCase(),
         Price: parseFloat(editForm.price)
       };
@@ -842,7 +843,7 @@ export default function App() {
         updateData.ImageUrl = editForm.imageUrl;
       }
 
-      const { error } = await supabase.from('products').update(updateData).eq('Code', code);
+      const { error } = await supabase.from('products').upsert(updateData, { onConflict: 'Code' });
       if (error) throw error;
       setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Το προϊόν ενημερώθηκε επιτυχώς.' });
       setEditingProduct(null);
