@@ -1,13 +1,17 @@
 import { SoftOneOrder } from '../types';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase'; // Χρήση του δικού σου Supabase Client
 
-const S1_URL = "/api/softone";
+const S1_URL = "/api/softone"; // Χρήση του proxy για αποφυγή CORS
 
-// Interfaces για TypeScript
+// ==========================================
+// 1. INTERFACES (TYPES) ΓΙΑ ΤΗΝ TYPESCRIPT
+// ==========================================
 interface SoftOneLineItem {
   CODE: string;
+  DESCRIPTION: string;
   QUANTITY: number;
   PRICE: number;
+  DISCOUNT_PERCENT: number;
 }
 
 interface SupabaseProductRow {
@@ -16,6 +20,9 @@ interface SupabaseProductRow {
   ImageUrl: string | null;
 }
 
+// ==========================================
+// 2. ΚΟΙΝΗ ΣΥΝΑΡΤΗΣΗ ΓΙΑ REQUESTS ΣΤΟ ERP
+// ==========================================
 const s1Request = async (payload: any) => {
   const response = await fetch(S1_URL, {
     method: 'POST',
@@ -40,6 +47,9 @@ const s1Request = async (payload: any) => {
   }
 };
 
+// ==========================================
+// 3. ΑΥΘΕΝΤΙΚΟΠΟΙΗΣΗ (LOGIN & AUTH)
+// ==========================================
 export const getSoftOneAuth = async () => {
   try {
     const login = await s1Request({
@@ -72,9 +82,9 @@ export const getSoftOneAuth = async () => {
   }
 };
 
-/**
- * 1. Φέρνει ΜΟΝΟ τα βασικά στοιχεία των τιμολογίων (Αξία, Ημερομηνία, Αριθμό) - Σφαίρα!
- */
+// ==========================================
+// 4. ΑΝΑΚΤΗΣΗ ΙΣΤΟΡΙΚΟΥ ΠΑΡΑΓΓΕΛΙΩΝ (ΒΑΣΙΚΑ ΣΤΟΙΧΕΙΑ)
+// ==========================================
 export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 30) => {
   if (!customerCode) {
     return { success: false, message: "Δεν επιλέχθηκε πελάτης", orders: [] };
@@ -145,16 +155,15 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
   }
 };
 
-/**
- * 2. ON-DEMAND ΦΟΡΤΩΣΗ (HIGH PERFORMANCE & ΑΠΟΛΥΤΗ ΑΚΡΙΒΕΙΑ)
- * Επιλύει το πρόβλημα των κενών προϊόντων και φέρνει σωστές περιγραφές/φωτογραφίες
- */
+// ==========================================
+// 5. ON-DEMAND ΦΟΡΤΩΣΗ ΛΕΠΤΟΜΕΡΕΙΩΝ (HIGH-PERFORMANCE)
+// ==========================================
 export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
   try {
     const auth = await getSoftOneAuth();
     if (!auth) throw new Error("Authentication failed");
 
-    // α) Λήψη των γραμμών χρησιμοποιώντας το MTRL (ID είδους) για σιγουριά
+    // α) Λήψη των γραμμών από το MTRLINES (περιλαμβάνει τιμή και έκπτωση γραμμής)
     const linesRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
@@ -162,17 +171,18 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
       TABLENAME: "MTRLINES",
       KEYNAME: "FINDOC",
       KEYVALUE: trdAAA,
-      RESULTFIELDS: "MTRL,QTY1,PRICE"
+      RESULTFIELDS: "MTRL,QTY1,PRICE,DISC1PRC"
     });
 
     const rows = linesRes?.rows || [];
     if (rows.length === 0) return { success: true, items: [] };
 
-    // β) Παράλληλη μετατροπή των MTRL IDs στους πραγματικούς εμπορικούς Κωδικούς (SoftOne MTRL)
+    // β) Παράλληλη ανάκτηση των εμπορικών κωδικών (CODE) από το SoftOne (MTRL) με Promise.all
     const softonePromises = rows.map(async (r: any) => {
       const mtrlId = Array.isArray(r) ? String(r[0] || '') : String(r.MTRL || '');
       const qty = Array.isArray(r) ? Number(r[1] || 0) : Number(r.QTY1 || 0);
       const price = Array.isArray(r) ? Number(r[2] || 0) : Number(r.PRICE || 0);
+      const discount = Array.isArray(r) ? Number(r[3] || 0) : Number(r.DISC1PRC || 0);
 
       let realCode = mtrlId;
       let tempDescription = `Προϊόν ${mtrlId}`;
@@ -199,14 +209,14 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
         CODE: realCode.trim(),
         DESCRIPTION: tempDescription,
         QUANTITY: qty,
-        PRICE: price
+        PRICE: price,
+        DISCOUNT_PERCENT: discount
       };
     });
 
-    // Εκτέλεση όλων των ερωτημάτων κωδικών SoftOne ταυτόχρονα
-    const localItems = await Promise.all(softonePromises);
+    const localItems: SoftOneLineItem[] = await Promise.all(softonePromises);
 
-    // γ) ΜΑΖΙΚΟ QUERY ΣΤΟ SUPABASE (1 ΜΟΝΟ ΚΛΗΣΗ ΓΙΑ ΟΛΑ): Φέρνουμε Φωτογραφίες και Τελικές Περιγραφές
+    // γ) ΜΑΖΙΚΟ QUERY ΣΤΟ SUPABASE (ΜΟΝΟ 1 ΚΛΗΣΗ): Φέρνει φωτογραφίες και καθαρές περιγραφές
     const allCodes = localItems.map(item => item.CODE).filter(Boolean);
 
     const { data: supabaseProducts, error: sbError } = await supabase
@@ -218,7 +228,7 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
       console.error('⚠️ Supabase bulk fetch error:', sbError);
     }
 
-    // δ) In-memory merge των σωστών δεδομένων
+    // δ) In-memory πάντρεμα των δεδομένων (Ακαριαία ταχύτητα)
     const finalItems = localItems.map((s1Item) => {
       const matchedProduct = supabaseProducts?.find(
         (sp: SupabaseProductRow) => String(sp.Code).trim().toLowerCase() === String(s1Item.CODE).toLowerCase()
@@ -226,9 +236,10 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
 
       return {
         CODE: s1Item.CODE,
-        DESCRIPTION: matchedProduct?.Description || s1Item.DESCRIPTION, // Προτεραιότητα στην καθαρή περιγραφή του Supabase
+        DESCRIPTION: matchedProduct?.Description || s1Item.DESCRIPTION, // Προτεραιότητα στο Supabase
         QUANTITY: s1Item.QUANTITY,
-        PRICE: s1Item.PRICE,
+        PRICE: s1Item.PRICE, // Από SoftOne
+        DISCOUNT_PERCENT: s1Item.DISCOUNT_PERCENT, // Από SoftOne
         IMAGE_URL: matchedProduct?.ImageUrl || null
       };
     });
@@ -241,9 +252,9 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
   }
 };
 
-/**
- * Στέλνει μια παραγγελία στο SoftOne
- */
+// ==========================================
+// 6. ΑΠΟΣΤΟΛΗ ΠΑΡΑΓΓΕΛΙΑΣ ΣΤΟ SOFT-ONE
+// ==========================================
 export const sendOrderToSoftOne = async (order: any) => {
   if (!order || !order.customer_code) {
     return { success: false, message: "Δεν παρέχεται παραγγελία ή κωδικός πελάτη" };

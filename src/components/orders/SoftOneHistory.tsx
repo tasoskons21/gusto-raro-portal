@@ -54,7 +54,6 @@ export const SoftOneHistory: React.FC<SoftOneHistoryProps> = ({ customerCode }) 
       return;
     }
 
-    // Αν δεν είναι expanded, ελέγχουμε αν έχουμε ήδη τα items
     const order = orders.find(o => o.TRD_AAA === trdAAA);
     if (order && !order.items) {
       setLoadingDetails(prev => new Set(prev).add(trdAAA));
@@ -174,55 +173,88 @@ export const SoftOneHistory: React.FC<SoftOneHistoryProps> = ({ customerCode }) 
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="border-t border-slate-50 bg-slate-50/50"
+                  className="border-t border-slate-100 bg-slate-50/30"
                 >
                   <div className="p-4 space-y-3">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest pb-1 border-b border-slate-100">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest pb-2 border-b border-slate-100">
                       <Package size={12} />
                       Περιεχόμενο Παραγγελίας
                     </div>
 
                     {order.items && order.items.length > 0 ? (
-                      <div className="space-y-3">
-                        {order.items.map((item: any, idx) => (
-                          <div key={idx} className="flex items-center justify-between gap-4 text-[12px] py-0.5">
+                      <div className="overflow-x-auto rounded-lg border border-slate-100 bg-white shadow-inner">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-50/70 border-b border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                              <th className="py-3 px-4 w-16 text-center">IMG</th>
+                              <th className="py-3 px-4 w-28">ΚΩΔΙΚΟΣ</th>
+                              <th className="py-3 px-4">ΠΕΡΙΓΡΑΦΗ</th>
+                              <th className="py-3 px-4 w-24 text-center">ΠΟΣΟΤΗΤΑ</th>
+                              <th className="py-3 px-4 w-24 text-right">ΤΙΜΗ</th>
+                              <th className="py-3 px-4 w-24 text-center">ΕΚΠΤΩΣΗ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50 text-[12px]">
+                            {order.items.map((item: any, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
 
-                            {/* ΝΕΟ: Εμφάνιση Φωτογραφίας Προϊόντος από το Supabase */}
-                            <div className="w-12 h-12 rounded-lg border border-slate-200 overflow-hidden bg-white flex items-center justify-center flex-shrink-0">
-                              {item.IMAGE_URL ? (
-                                <img
-                                  src={item.IMAGE_URL}
-                                  alt={item.DESCRIPTION}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    // Fallback σε περίπτωση που το URL επιστρέψει 404 ή σφάλμα
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                    const parent = (e.target as HTMLImageElement).parentElement;
-                                    if (parent) {
-                                      parent.innerHTML = `<div className="w-full h-full bg-slate-100 flex items-center justify-center"><svg className="w-4 h-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/></svg></div>`;
-                                    }
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-slate-50 flex items-center justify-center">
-                                  <Package className="w-4 h-4 text-slate-400" />
-                                </div>
-                              )}
-                            </div>
+                                {/* 1. IMG */}
+                                <td className="py-2.5 px-4">
+                                  <div className="w-10 h-10 rounded-md border border-slate-150 overflow-hidden bg-white flex items-center justify-center mx-auto shadow-sm flex-shrink-0">
+                                    {item.IMAGE_URL ? (
+                                      <img
+                                        src={item.IMAGE_URL}
+                                        alt={item.DESCRIPTION}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                          const parent = (e.target as HTMLImageElement).parentElement;
+                                          if (parent) {
+                                            parent.innerHTML = `<div class="w-full h-full bg-slate-50 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/></svg></div>`;
+                                          }
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full bg-slate-50 flex items-center justify-center">
+                                        <Package className="w-3.5 h-3.5 text-slate-400" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
 
-                            {/* Στοιχεία προϊόντος */}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-slate-800 truncate">{item.DESCRIPTION}</p>
-                              <p className="text-slate-500 font-medium tracking-tighter">{item.CODE}</p>
-                            </div>
+                                {/* 2. ΚΩΔΙΚΟΣ */}
+                                <td className="py-2.5 px-4 font-semibold text-slate-500 tracking-tighter">
+                                  {item.CODE}
+                                </td>
 
-                            {/* Ποσότητα και Τιμή */}
-                            <div className="text-right whitespace-nowrap">
-                              <p className="font-black text-slate-900">{item.QUANTITY} <span className="text-[10px] text-slate-400">τμχ</span></p>
-                              <p className="text-[10px] text-slate-500">{item.PRICE.toFixed(2)}€</p>
-                            </div>
-                          </div>
-                        ))}
+                                {/* 3. ΠΕΡΙΓΡΑΦΗ */}
+                                <td className="py-2.5 px-4 font-bold text-slate-800 max-w-xs md:max-w-md truncate">
+                                  {item.DESCRIPTION}
+                                </td>
+
+                                {/* 4. ΠΟΣΟΤΗΤΑ */}
+                                <td className="py-2.5 px-4 text-center font-black text-slate-900">
+                                  {item.QUANTITY} <span className="text-[10px] font-medium text-slate-400">τμχ</span>
+                                </td>
+
+                                {/* 5. ΤΙΜΗ */}
+                                <td className="py-2.5 px-4 text-right font-bold text-slate-700 font-mono">
+                                  {item.PRICE.toFixed(2)}€
+                                </td>
+
+                                {/* 6. ΕΚΠΤΩΣΗ */}
+                                <td className="py-2.5 px-4 text-center font-bold text-slate-700">
+                                  {item.DISCOUNT_PERCENT > 0 ? (
+                                    `${item.DISCOUNT_PERCENT}%`
+                                  ) : (
+                                    <span className="text-slate-300 font-medium">-</span>
+                                  )}
+                                </td>
+
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     ) : (
                       !loadingDetails.has(order.TRD_AAA) && (
