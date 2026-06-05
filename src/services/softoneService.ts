@@ -1,4 +1,5 @@
 import { SoftOneOrder } from '../types';
+import { supabase } from '../lib/supabase'; // Χρήση του δικού σου Supabase Client
 
 const S1_URL = "/api/softone"; // Χρήση του proxy για αποφυγή CORS
 
@@ -13,7 +14,8 @@ const s1Request = async (payload: any) => {
   });
 
   if (!response.ok) {
-    throw new Error(`SoftOne API Error: ${response.status}`);
+    const errorText = await response.text();
+    throw new Error(`SoftOne API Error: ${response.status} - ${errorText}`);
   }
 
   const buffer = await response.arrayBuffer();
@@ -33,7 +35,6 @@ const s1Request = async (payload: any) => {
  */
 export const getSoftOneAuth = async () => {
   try {
-    // 1. Login
     const login = await s1Request({
       service: "login",
       username: "web",
@@ -44,7 +45,6 @@ export const getSoftOneAuth = async () => {
 
     if (!login.success) throw new Error("SoftOne Login Failed");
 
-    // 2. Authenticate
     const auth = await s1Request({
       service: "authenticate",
       clientID: login.clientID,
@@ -58,7 +58,7 @@ export const getSoftOneAuth = async () => {
 
     if (!auth.success) throw new Error("SoftOne Auth Failed");
 
-    return auth;
+    return { ...auth, clientID: auth.sessionToken || auth.clientID || login.clientID };
   } catch (error) {
     console.error("❌ SoftOne Auth Error:", error);
     return null;
@@ -66,7 +66,33 @@ export const getSoftOneAuth = async () => {
 };
 
 /**
- * Ανακτά το ιστορικό παραγγελιών
+ * Βοηθητική συνάρτηση για την ανάκτηση στοιχείων από το Supabase βάσει Κωδικού είδους.
+ * Χρησιμοποιεί τα ακριβή ονόματα των στηλών (Case-Sensitive): Code, Description, ImageUrl
+ */
+const getProductDetailsFromSupabase = async (productCode: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('Description, ImageUrl')
+      .eq('Code', productCode)
+      .maybeSingle(); // Επιστρέφει null αν δεν βρεθεί, χωρίς να πετάξει error 400/406
+
+    if (error || !data) {
+      return null;
+    }
+
+    return {
+      description: data.Description,
+      imageUrl: data.ImageUrl
+    };
+  } catch (err) {
+    console.error(`⚠️ Σφάλμα Supabase για τον κωδικό ${productCode}:`, err);
+    return null;
+  }
+};
+
+/**
+ * Ανακτά το ιστορικό παραγγελιών με δεδομένα (περιγραφή & photo) από το Supabase
  */
 export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 30) => {
   if (!customerCode) {
@@ -77,114 +103,128 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
     const auth = await getSoftOneAuth();
     if (!auth) throw new Error("Authentication failed");
 
-    console.log(`🔍 Αναζήτηση Τιμολογίων (7062) τελευταίων ${daysBack} ημερών για: ${customerCode}`);
+    console.log(`🔍 Αναζήτηση Παραγγελιών/Τιμολογίων τελευταίων ${daysBack} ημερών για τον κωδικό: ${customerCode}`);
 
-    /**
-     * SQL Query:
-     * 1. Φιλτράρουμε τη σειρά 7062.
-     * 2. Φιλτράρουμε τις τελευταίες 30 ημέρες (GETDATE() - 30).
-     * 3. Ταξινομούμε DESC (Φθίνουσα σειρά) για να είναι το πιο πρόσφατο πρώτο.
-     */
-    const sqlQuery = `
-      SELECT 
-        f.FINDOC as TRD_AAA, 
-        f.TRNDATE as TRD_DATE, 
-        f.FINCODE as TRD_CODE, 
-        t.NAME as TRD_NAME, 
-        t.AFM as TRD_AFM, 
-        f.SUMAMNT as TOTAL_VALUE,
-        'ΤΙΜΟΛΟΓΙΟ' as TRD_TYPE_DESC
-      FROM FINDOC f 
-      INNER JOIN TRDR t ON f.TRDR = t.TRDR 
-      WHERE t.CODE = '${customerCode}' 
-      AND f.SERIES = 7062 
-      AND f.TRNDATE > GETDATE() - ${daysBack}
-      ORDER BY f.TRNDATE DESC`;
-
-    let result = await s1Request({
-      service: "execSQL",
+    // 1. Βρες το TRDR του πελάτη βάσει του CODE
+    const custRes = await s1Request({
+      service: "selectorFields",
       clientID: auth.clientID,
       appId: "156",
-      sql: sqlQuery
+      TABLENAME: "CUSTOMER",
+      KEYNAME: "CODE",
+      KEYVALUE: customerCode,
+      RESULTFIELDS: "TRDR"
     });
 
-    let rows: any[] = [];
-
-    if (result && result.success !== false) {
-      rows = result.rows || result.data || (Array.isArray(result) ? result : []);
+    const targetTrdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
+    if (!targetTrdr) {
+      console.warn("⚠️ Δεν βρέθηκε ο πελάτης (TRDR) στο SoftOne");
+      return { success: false, message: "Δεν βρέθηκε πελάτης", orders: [] };
     }
-    else {
-      console.warn("⚠️ Το execSQL απέτυχε, δοκιμή με selectorFields...");
 
-      const selectorRes = await s1Request({
+    // 2. Πάρε τα παραστατικά από το SALDOC για το συγκεκριμένο TRDR
+    const selectorRes = await s1Request({
+      service: "selectorFields",
+      clientID: auth.clientID,
+      appId: "156",
+      TABLENAME: "SALDOC",
+      KEYNAME: "TRDR",
+      KEYVALUE: targetTrdr,
+      RESULTFIELDS: "FINDOC,FINCODE,TRNDATE,SUMAMNT"
+    });
+
+    const rows = selectorRes?.rows || [];
+    const ordersMap = new Map();
+
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() - daysBack);
+
+    for (const r of rows) {
+      const row = r as any;
+      const findoc = Array.isArray(row) ? row[0] : row.FINDOC;
+      const fincode = Array.isArray(row) ? row[1] : row.FINCODE;
+      const dateStr = Array.isArray(row) ? row[2] : row.TRNDATE;
+      const total = Array.isArray(row) ? row[3] : row.SUMAMNT;
+
+      const rDate = new Date(dateStr);
+      if (rDate < limitDate) continue;
+
+      // 3. Λήψη γραμμών παραγγελίας από το SoftOne (MTRLINES)
+      const linesRes = await s1Request({
         service: "selectorFields",
         clientID: auth.clientID,
         appId: "156",
-        TABLENAME: "SALDOC",
-        KEYNAME: "SERIES",
-        KEYVALUE: "7062",
-        RESULTFIELDS: "FINCODE,SUMAMNT,TRNDATE,TRDR",
-        OBJECTPARAMS: { "BGMOBILECHECK": "0" }
+        TABLENAME: "MTRLINES",
+        KEYNAME: "FINDOC",
+        KEYVALUE: findoc,
+        RESULTFIELDS: "MTRL,QTY1,PRICE"
       });
 
-      const allRows = Array.isArray(selectorRes) ? selectorRes : (selectorRes?.rows || []);
+      const lines = linesRes?.rows || [];
+      const items = [];
 
-      const custRes = await s1Request({
-        service: "selectorFields",
-        clientID: auth.clientID,
-        appId: "156",
-        TABLENAME: "CUSTOMER",
-        KEYNAME: "CODE",
-        KEYVALUE: customerCode,
-        RESULTFIELDS: "TRDR"
+      for (const l of lines) {
+        const line = l as any;
+        const mtrlId = Array.isArray(line) ? String(line[0]) : String(line.MTRL || '');
+        const qty = Array.isArray(line) ? Number(line[1] || 0) : Number(line.QTY1 || 0);
+        const price = Array.isArray(line) ? Number(line[2] || 0) : Number(line.PRICE || 0);
+
+        let realCode = mtrlId;
+        let finalDescription = `Προϊόν ${mtrlId}`;
+        let finalImage = null;
+
+        if (mtrlId) {
+          // Λήψη του εμπορικού κωδικού (π.χ. KE-2008) από το SoftOne (MTRL)
+          const itemInfoRes = await s1Request({
+            service: "selectorFields",
+            clientID: auth.clientID,
+            appId: "156",
+            TABLENAME: "MTRL",
+            KEYNAME: "MTRL",
+            KEYVALUE: mtrlId,
+            RESULTFIELDS: "CODE,NAME"
+          });
+
+          if (itemInfoRes?.rows?.[0]) {
+            const iRow = itemInfoRes.rows[0];
+            realCode = Array.isArray(iRow) ? String(iRow[0] || mtrlId) : String(iRow.CODE || mtrlId);
+            finalDescription = Array.isArray(iRow) ? String(iRow[1] || '') : String(iRow.NAME || '');
+
+            // 4. Αναζήτηση στο Supabase χρησιμοποιώντας τον καθαρό εμπορικό κωδικό
+            const supabaseProduct = await getProductDetailsFromSupabase(realCode);
+            if (supabaseProduct) {
+              if (supabaseProduct.description) finalDescription = supabaseProduct.description;
+              finalImage = supabaseProduct.imageUrl;
+            }
+          }
+        }
+
+        items.push({
+          CODE: realCode,
+          DESCRIPTION: finalDescription,
+          QUANTITY: qty,
+          PRICE: price,
+          IMAGE_URL: finalImage // Επιστρέφεται για χρήση στο UI (π.χ. <img src={item.IMAGE_URL} />)
+        });
+      }
+
+      ordersMap.set(fincode, {
+        TRD_AAA: String(findoc),
+        TRD_DATE: String(dateStr).split(' ')[0],
+        TRD_CODE: String(fincode),
+        TRD_NAME: "",
+        TRD_AFM: "",
+        TOTAL_VALUE: Number(total || 0),
+        TRD_TYPE_DESC: 'ΤΙΜΟΛΟΓΙΟ',
+        items: items
       });
-
-      let targetTrdr = null;
-      const cRows = Array.isArray(custRes) ? custRes : (custRes?.rows || []);
-      if (cRows.length > 0) {
-        const firstRow = cRows[0];
-        targetTrdr = Array.isArray(firstRow) ? String(firstRow[0]) : String(firstRow.TRDR || '');
-      }
-
-      if (targetTrdr) {
-        const limitDate = new Date();
-        limitDate.setDate(limitDate.getDate() - daysBack);
-
-        rows = allRows
-          .filter((r: any) => {
-            const rTrdr = Array.isArray(r) ? String(r[3]) : String(r.TRDR || '');
-            const rDateStr = Array.isArray(r) ? String(r[2]) : String(r.TRNDATE || '');
-            const rDate = new Date(rDateStr);
-            return rTrdr.trim() === targetTrdr?.trim() && rDate >= limitDate;
-          })
-          // Χειροκίνητη ταξινόμηση στο fallback για σιγουριά
-          .sort((a: any, b: any) => {
-            const dateA = new Date(Array.isArray(a) ? a[2] : a.TRNDATE).getTime();
-            const dateB = new Date(Array.isArray(b) ? b[2] : b.TRNDATE).getTime();
-            return dateB - dateA;
-          })
-          .map((r: any) => ({
-            TRD_AAA: Array.isArray(r) ? String(r[0]) : String(r.FINCODE || ''),
-            TRD_DATE: Array.isArray(r) ? String(r[2]).split(' ')[0] : String(r.TRNDATE || '').split(' ')[0],
-            TRD_CODE: Array.isArray(r) ? String(r[0]) : String(r.FINCODE || ''),
-            TOTAL_VALUE: Array.isArray(r) ? Number(r[1]) : Number(r.SUMAMNT || 0),
-            TRD_TYPE_DESC: 'ΤΙΜΟΛΟΓΙΟ'
-          }));
-      }
     }
 
-    return {
-      success: true,
-      orders: rows.map((r: any) => ({
-        TRD_AAA: String(r.TRD_AAA || r[0] || ''),
-        TRD_DATE: String(r.TRD_DATE || r[1] || '').split(' ')[0],
-        TRD_CODE: String(r.TRD_CODE || r[2] || ''),
-        TRD_NAME: String(r.TRD_NAME || r[3] || ''),
-        TRD_AFM: String(r.TRD_AFM || r[4] || ''),
-        TOTAL_VALUE: Number(r.TOTAL_VALUE || r[5] || r.SUMAMNT || 0),
-        TRD_TYPE_DESC: String(r.TRD_TYPE_DESC || 'ΤΙΜΟΛΟΓΙΟ')
-      }))
-    };
+    const finalOrders = Array.from(ordersMap.values()).sort((a, b) => {
+      return new Date(b.TRD_DATE).getTime() - new Date(a.TRD_DATE).getTime();
+    });
+
+    return { success: true, orders: finalOrders };
 
   } catch (error: any) {
     console.error("❌ fetchOrderHistory Error:", error);
@@ -193,46 +233,69 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
 };
 
 /**
- * Ανακτά τις γραμμές (είδη) μιας παραγγελίας
+ * Ανακτά τις γραμμές μιας παραγγελίας με δεδομένα από το Supabase
  */
 export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
   try {
     const auth = await getSoftOneAuth();
     if (!auth) throw new Error("Authentication failed");
 
-    const sql = `SELECT i.CODE, i.NAME, l.QTY1, l.PRICE FROM MTRLINES l INNER JOIN MTRL i ON l.MTRL = i.MTRL WHERE l.FINDOC = ${trdAAA} AND l.MODULE = 13 AND l.QTY1 <> 0`;
-
-    const result = await s1Request({
-      service: "execSQL",
+    const linesRes = await s1Request({
+      service: "selectorFields",
       clientID: auth.clientID,
       appId: "156",
-      sql: sql
+      TABLENAME: "MTRLINES",
+      KEYNAME: "FINDOC",
+      KEYVALUE: trdAAA,
+      RESULTFIELDS: "MTRL,QTY1,PRICE"
     });
 
-    let rows = result.rows || result || [];
+    const rows = linesRes?.rows || [];
+    const items = [];
 
-    if (!result || result.success === false) {
-      const selectorRes = await s1Request({
-        service: "selectorFields",
-        clientID: auth.clientID,
-        appId: "156",
-        TABLENAME: "ITELINES",
-        KEYNAME: "FINDOC",
-        KEYVALUE: trdAAA,
-        RESULTFIELDS: "MTRL_ITEM_CODE,MTRL_ITEM_NAME,QTY1,PRICE"
+    for (const r of rows) {
+      const mtrlId = Array.isArray(r) ? String(r[0]) : String(r.MTRL || '');
+      const qty = Array.isArray(r) ? Number(r[1] || 0) : Number(r.QTY1 || 0);
+      const price = Array.isArray(r) ? Number(r[2] || 0) : Number(r.PRICE || 0);
+
+      let realCode = mtrlId;
+      let finalDescription = `Προϊόν ${mtrlId}`;
+      let finalImage = null;
+
+      if (mtrlId) {
+        const itemInfoRes = await s1Request({
+          service: "selectorFields",
+          clientID: auth.clientID,
+          appId: "156",
+          TABLENAME: "MTRL",
+          KEYNAME: "MTRL",
+          KEYVALUE: mtrlId,
+          RESULTFIELDS: "CODE,NAME"
+        });
+
+        if (itemInfoRes?.rows?.[0]) {
+          const iRow = itemInfoRes.rows[0];
+          realCode = Array.isArray(iRow) ? String(iRow[0] || mtrlId) : String(iRow.CODE || mtrlId);
+          finalDescription = Array.isArray(iRow) ? String(iRow[1] || '') : String(iRow.NAME || '');
+
+          const supabaseProduct = await getProductDetailsFromSupabase(realCode);
+          if (supabaseProduct) {
+            if (supabaseProduct.description) finalDescription = supabaseProduct.description;
+            finalImage = supabaseProduct.imageUrl;
+          }
+        }
+      }
+
+      items.push({
+        CODE: realCode,
+        DESCRIPTION: finalDescription,
+        QUANTITY: qty,
+        PRICE: price,
+        IMAGE_URL: finalImage
       });
-      rows = selectorRes.rows || selectorRes || [];
     }
 
-    return {
-      success: true,
-      items: rows.map((r: any) => ({
-        CODE: Array.isArray(r) ? String(r[0]) : String(r.CODE || r.MTRL_ITEM_CODE || ''),
-        DESCRIPTION: Array.isArray(r) ? String(r[1]) : String(r.NAME || r.MTRL_ITEM_NAME || ''),
-        QUANTITY: Array.isArray(r) ? Number(r[2]) : Number(r.QTY1 || 0),
-        PRICE: Array.isArray(r) ? Number(r[3]) : Number(r.PRICE || 0)
-      }))
-    };
+    return { success: true, items };
   } catch (error: any) {
     console.error("❌ fetchOrderDetailsFromSoftOne Error:", error);
     return { success: false, message: error.message, items: [] };
@@ -240,7 +303,7 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
 };
 
 /**
- * Στέλνει μια παραγγελία στο SoftOne
+ * Στέλνει μια παραγγελία στο SoftOne (Διατηρείται πλήρως η λογική σας)
  */
 export const sendOrderToSoftOne = async (order: any) => {
   if (!order || !order.customer_code) {
@@ -255,7 +318,6 @@ export const sendOrderToSoftOne = async (order: any) => {
     const formattedDate = orderDate.toISOString().split('T')[0].replace(/-/g, '');
     const docNumber = order.id || `WEB${Date.now()}`;
 
-    // Insert document header
     const headerResult = await s1Request({
       service: "insertDoc",
       clientID: auth.clientID,

@@ -67,10 +67,13 @@ class DataService {
         return [];
       }
 
+      // Χρησιμοποιούμε το session token για τις επόμενες κλήσεις
+      const sessionClientId = authData.sessionToken || authData.clientID;
+
       // Βήμα 3: Λήψη Δεδομένων (SelectorFields)
       const customersRaw = await this.s1Request({
         service: "selectorFields",
-        clientID: authData.clientID,
+        clientID: sessionClientId,
         appId: "156",
         TABLENAME: "CUSTOMER",
         KEYNAME: "COMPANY",

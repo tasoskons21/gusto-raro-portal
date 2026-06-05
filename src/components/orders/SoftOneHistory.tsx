@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Database, Calendar, Euro, RefreshCw, AlertCircle, 
-  ChevronDown, ChevronUp, Package, Loader2 
+import {
+  Database, Calendar, Euro, RefreshCw, AlertCircle,
+  ChevronDown, ChevronUp, Package, Loader2
 } from 'lucide-react';
 import { fetchOrderHistoryFromSoftOne, fetchOrderDetailsFromSoftOne } from '../../services/softoneService';
 import { SoftOneOrder } from '../../types';
@@ -46,7 +46,7 @@ export const SoftOneHistory: React.FC<SoftOneHistoryProps> = ({ customerCode }) 
 
   const toggleOrder = async (trdAAA: string) => {
     const isExpanded = expandedOrders.has(trdAAA);
-    
+
     if (isExpanded) {
       const newExpanded = new Set(expandedOrders);
       newExpanded.delete(trdAAA);
@@ -61,7 +61,7 @@ export const SoftOneHistory: React.FC<SoftOneHistoryProps> = ({ customerCode }) 
       try {
         const result = await fetchOrderDetailsFromSoftOne(trdAAA);
         if (result.success) {
-          setOrders(prev => prev.map(o => 
+          setOrders(prev => prev.map(o =>
             o.TRD_AAA === trdAAA ? { ...o, items: result.items } : o
           ));
         }
@@ -107,7 +107,7 @@ export const SoftOneHistory: React.FC<SoftOneHistoryProps> = ({ customerCode }) 
               <p className="text-xs text-slate-500">Πρόσφατα παραστατικά</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <select
               value={daysBack}
@@ -139,7 +139,7 @@ export const SoftOneHistory: React.FC<SoftOneHistoryProps> = ({ customerCode }) 
       <div className="grid gap-3">
         {orders.map((order) => (
           <div key={order.TRD_AAA} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <button 
+            <button
               onClick={() => toggleOrder(order.TRD_AAA)}
               className="w-full p-4 text-left hover:bg-slate-50 transition-all group"
             >
@@ -152,27 +152,27 @@ export const SoftOneHistory: React.FC<SoftOneHistoryProps> = ({ customerCode }) 
                     <span className="text-sm font-bold text-slate-800">{order.TRD_CODE}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
-                    <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gusto-green"/> {formatDate(order.TRD_DATE)}</span>
-                    <span className="flex items-center gap-1.5"><Euro className="w-3.5 h-3.5 text-gusto-green"/> {order.TOTAL_VALUE.toFixed(2)}€</span>
+                    <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gusto-green" /> {formatDate(order.TRD_DATE)}</span>
+                    <span className="flex items-center gap-1.5"><Euro className="w-3.5 h-3.5 text-gusto-green" /> {order.TOTAL_VALUE.toFixed(2)}€</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {loadingDetails.has(order.TRD_AAA) ? (
                     <Loader2 size={18} className="animate-spin text-gusto-green" />
                   ) : (
-                    expandedOrders.has(order.TRD_AAA) ? 
-                      <ChevronUp size={18} className="text-slate-400 group-hover:text-gusto-green transition-colors" /> : 
+                    expandedOrders.has(order.TRD_AAA) ?
+                      <ChevronUp size={18} className="text-slate-400 group-hover:text-gusto-green transition-colors" /> :
                       <ChevronDown size={18} className="text-slate-400 group-hover:text-gusto-green transition-colors" />
                   )}
                 </div>
               </div>
             </button>
-            
+
             <AnimatePresence>
               {expandedOrders.has(order.TRD_AAA) && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }} 
-                  animate={{ height: 'auto', opacity: 1 }} 
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   className="border-t border-slate-50 bg-slate-50/50"
                 >
@@ -181,15 +181,42 @@ export const SoftOneHistory: React.FC<SoftOneHistoryProps> = ({ customerCode }) 
                       <Package size={12} />
                       Περιεχόμενο Παραγγελίας
                     </div>
-                    
+
                     {order.items && order.items.length > 0 ? (
-                      <div className="space-y-2">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex justify-between items-start gap-4 text-[12px] py-1">
+                      <div className="space-y-3">
+                        {order.items.map((item: any, idx) => (
+                          <div key={idx} className="flex items-center justify-between gap-4 text-[12px] py-0.5">
+
+                            {/* ΝΕΟ: Εμφάνιση Φωτογραφίας Προϊόντος από το Supabase */}
+                            <div className="w-12 h-12 rounded-lg border border-slate-200 overflow-hidden bg-white flex items-center justify-center flex-shrink-0">
+                              {item.IMAGE_URL ? (
+                                <img
+                                  src={item.IMAGE_URL}
+                                  alt={item.DESCRIPTION}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    // Fallback σε περίπτωση που το URL επιστρέψει 404 ή σφάλμα
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    const parent = (e.target as HTMLImageElement).parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `<div className="w-full h-full bg-slate-100 flex items-center justify-center"><svg className="w-4 h-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/></svg></div>`;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-slate-50 flex items-center justify-center">
+                                  <Package className="w-4 h-4 text-slate-400" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Στοιχεία προϊόντος */}
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-slate-800 truncate">{item.DESCRIPTION}</p>
                               <p className="text-slate-500 font-medium tracking-tighter">{item.CODE}</p>
                             </div>
+
+                            {/* Ποσότητα και Τιμή */}
                             <div className="text-right whitespace-nowrap">
                               <p className="font-black text-slate-900">{item.QUANTITY} <span className="text-[10px] text-slate-400">τμχ</span></p>
                               <p className="text-[10px] text-slate-500">{item.PRICE.toFixed(2)}€</p>
