@@ -252,9 +252,173 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
   }
 };
 
-/**
- * Στέλνει μια παραγγελία στο SoftOne
- */
+// ==========================================
+// 7. ΑΝΑΚΤΗΣΗ ΤΙΜΩΝ ΠΡΟΪΟΝΤΩΝ ΑΠΟ ΙΣΤΟΡΙΚΟ (ΚΩΔΙΚΟΛΟΓΙΟ)
+// ==========================================
+export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 365) => {
+  if (!customerCode) {
+    return { success: false, message: "Δεν επιλέχθηκε πελάτης", priceHistory: [] };
+  }
+
+  try {
+    const auth = await getSoftOneAuth();
+    if (!auth) throw new Error("Authentication failed");
+
+    const custRes = await s1Request({
+      service: "selectorFields",
+      clientID: auth.clientID,
+      appId: "156",
+      TABLENAME: "CUSTOMER",
+      KEYNAME: "CODE",
+      KEYVALUE: customerCode,
+      RESULTFIELDS: "TRDR"
+    });
+
+    const targetTrdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
+    if (!targetTrdr) {
+      return { success: false, message: "Δεν βρέθηκε πελάτης", priceHistory: [] };
+    }
+
+    const selectorRes = await s1Request({
+      service: "selectorFields",
+      clientID: auth.clientID,
+      appId: "156",
+      TABLENAME: "SALDOC",
+      KEYNAME: "TRDR",
+      KEYVALUE: targetTrdr,
+      RESULTFIELDS: "FINDOC,TRNDATE"
+    });
+
+    const orderRows = selectorRes?.rows || [];
+    if (orderRows.length === 0) {
+      return { success: true, priceHistory: [] };
+    }
+
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() - daysBack);
+
+    const allProductEntries: { mtrlId: string; CODE: string; DESCRIPTION: string; PRICE: number; DISCOUNT_PERCENT: number; TRD_DATE: string }[] = [];
+
+    for (const orderRow of orderRows) {
+      const orderId = Array.isArray(orderRow) ? orderRow[0] : orderRow.FINDOC;
+      const orderDate = Array.isArray(orderRow) ? orderRow[1] : orderRow.TRNDATE;
+
+      if (!orderId || !orderDate) continue;
+
+      const rDate = new Date(String(orderDate).split(' ')[0]);
+      if (rDate < limitDate) continue;
+
+      const linesRes = await s1Request({
+        service: "selectorFields",
+        clientID: auth.clientID,
+        appId: "156",
+        TABLENAME: "MTRLINES",
+        KEYNAME: "FINDOC",
+        KEYVALUE: orderId,
+        RESULTFIELDS: "MTRL,QTY1,PRICE,DISC1PRC"
+      });
+
+      const lineRows = linesRes?.rows || [];
+
+      for (const lineRow of lineRows) {
+        const mtrlId = Array.isArray(lineRow) ? String(lineRow[0] || '') : String(lineRow.MTRL || '');
+        const price = Array.isArray(lineRow) ? Number(lineRow[2] || 0) : Number(lineRow.PRICE || 0);
+        const discount = Array.isArray(lineRow) ? Number(lineRow[3] || 0) : Number(lineRow.DISC1PRC || 0);
+
+        if (!mtrlId) continue;
+
+        allProductEntries.push({
+          mtrlId: mtrlId,
+          CODE: mtrlId,
+          DESCRIPTION: `Προϊόν ${mtrlId}`,
+          PRICE: price,
+          DISCOUNT_PERCENT: discount,
+          TRD_DATE: String(orderDate).split(' ')[0]
+        });
+      }
+    }
+
+    const softonePromises = allProductEntries.map(async (entry) => {
+      const itemInfoRes = await s1Request({
+        service: "selectorFields",
+        clientID: auth.clientID,
+        appId: "156",
+        TABLENAME: "MTRL",
+        KEYNAME: "MTRL",
+        KEYVALUE: entry.mtrlId,
+        RESULTFIELDS: "CODE,NAME"
+      });
+
+      let realCode = entry.mtrlId;
+      let description = `Προϊόν ${entry.mtrlId}`;
+
+      if (itemInfoRes?.rows?.[0]) {
+        const iRow = itemInfoRes.rows[0];
+        realCode = Array.isArray(iRow) ? String(iRow[0] || entry.mtrlId) : String(iRow.CODE || entry.mtrlId);
+        description = Array.isArray(iRow) ? String(iRow[1] || description) : String(iRow.NAME || description);
+      }
+
+      return {
+        ...entry,
+        CODE: realCode.trim(),
+        DESCRIPTION: description
+      };
+    });
+
+    const entriesWithCodes = await Promise.all(softonePromises);
+
+    const uniqueCodes = [...new Set(entriesWithCodes.map(e => e.CODE))];
+
+    const { data: supabaseProducts, error: sbError } = await supabase
+      .from('products')
+      .select('Code, Description, ImageUrl')
+      .in('Code', uniqueCodes) as { data: SupabaseProductRow[] | null, error: any };
+
+    if (sbError) {
+      console.error('⚠️ Supabase bulk fetch error:', sbError);
+    }
+
+    const productMap = new Map<string, { CODE: string; DESCRIPTION: string; PRICE: number; DISCOUNT_PERCENT: number; TRD_DATE: string; IMAGE_URL?: string }>();
+
+    for (const entry of entriesWithCodes) {
+      const matchedProduct = supabaseProducts?.find(
+        (sp: SupabaseProductRow) => String(sp.Code).trim().toLowerCase() === String(entry.CODE).toLowerCase()
+      );
+
+      const finalEntry = {
+        ...entry,
+        DESCRIPTION: matchedProduct?.Description || entry.DESCRIPTION,
+        IMAGE_URL: matchedProduct?.ImageUrl || undefined
+      };
+
+      delete (finalEntry as any).mtrlId;
+
+      const existing = productMap.get(finalEntry.CODE);
+      if (!existing) {
+        productMap.set(finalEntry.CODE, finalEntry as any);
+      } else {
+        const existingDate = new Date(existing.TRD_DATE);
+        const entryDate = new Date(finalEntry.TRD_DATE);
+        if (entryDate > existingDate) {
+          productMap.set(finalEntry.CODE, finalEntry as any);
+        }
+      }
+    }
+
+    const priceHistory = Array.from(productMap.values());
+    priceHistory.sort((a, b) => a.CODE.localeCompare(b.CODE));
+
+    return { success: true, priceHistory };
+
+  } catch (error: any) {
+    console.error("❌ fetchProductPriceHistoryFromSoftOne Error:", error);
+    return { success: false, message: error.message, priceHistory: [] };
+  }
+};
+
+// ==========================================
+// 6. ΑΠΟΣΤΟΛΗ ΠΑΡΑΓΓΕΛΙΑΣ ΣΤΟ SOFT-ONE
+// ==========================================
 export const sendOrderToSoftOne = async (order: any) => {
   if (!order || !order.customer_code) {
     return { success: false, message: "Δεν παρέχεται παραγγελία ή κωδικός πελάτη" };
