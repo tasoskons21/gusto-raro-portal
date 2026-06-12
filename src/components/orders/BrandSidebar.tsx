@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, X, Building2, Database, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Search, X, Building2, Database, Calculator, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Brand, Customer } from '../../types';
 import { SoftOneHistory } from './SoftOneHistory';
+import { SoftOnePriceLog } from './SoftOnePriceLog';
 
 interface BrandSidebarProps {
   selectedCustomer: Customer;
@@ -32,6 +33,7 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
   onToggleSidebar
 }) => {
   const [showHistory, setShowHistory] = useState(false);
+  const [showPriceLog, setShowPriceLog] = useState(false);
 
   return (
     <>
@@ -61,13 +63,22 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
           </p>
         </div>
 
+        <div className="flex gap-2">
         <button
           onClick={() => setShowHistory(true)}
-          className="w-full py-2.5 px-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gusto-green transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 flex items-center justify-center gap-2 shadow-sm"
+          className="flex-1 py-2.5 px-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gusto-green transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 flex items-center justify-center gap-2 shadow-sm"
         >
           <Database size={12} />
           ΟΛΟ ΤΟ ΙΣΤΟΡΙΚΟ
         </button>
+        <button
+          onClick={() => setShowPriceLog(true)}
+          className="flex-1 py-2.5 px-4 bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gusto-green transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 flex items-center justify-center gap-2 shadow-sm"
+        >
+          <Calculator size={12} />
+          ΚΩΔΙΚΟΛΟΓΙΟ
+        </button>
+        </div>
       </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-0">
@@ -191,6 +202,42 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
         </motion.div>
       )}
     </AnimatePresence>
+
+      <AnimatePresence>
+        {showPriceLog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowPriceLog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden"
+            >
+              <div className="bg-slate-800 p-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-white font-bold text-lg">Κωδικολογιο</h3>
+                  <p className="text-slate-300 text-sm">{selectedCustomer.name} ({selectedCustomer.customer_code || selectedCustomer.code})</p>
+                </div>
+                <button
+                  onClick={() => setShowPriceLog(false)}
+                  className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-4">
+                <SoftOnePriceLog customerCode={selectedCustomer.customer_code || selectedCustomer.code} />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

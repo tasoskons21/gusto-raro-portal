@@ -75,6 +75,17 @@ export interface SoftOneOrderItem {
   DESCRIPTION: string;
   QUANTITY: number;
   PRICE: number;
+  DISCOUNT_PERCENT?: number;
+  IMAGE_URL?: string;
+}
+
+export interface ProductPriceHistory {
+  CODE: string;
+  DESCRIPTION: string;
+  PRICE: number;
+  DISCOUNT_PERCENT: number;
+  TRD_DATE: string;
+  IMAGE_URL?: string;
 }
 
 export interface User {

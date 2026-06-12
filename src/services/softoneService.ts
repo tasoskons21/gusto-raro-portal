@@ -252,9 +252,9 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
   }
 };
 
-// ==========================================
-// 6. ΑΠΟΣΤΟΛΗ ΠΑΡΑΓΓΕΛΙΑΣ ΣΤΟ SOFT-ONE
-// ==========================================
+/**
+ * Στέλνει μια παραγγελία στο SoftOne
+ */
 export const sendOrderToSoftOne = async (order: any) => {
   if (!order || !order.customer_code) {
     return { success: false, message: "Δεν παρέχεται παραγγελία ή κωδικός πελάτη" };
