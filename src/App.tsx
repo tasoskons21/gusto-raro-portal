@@ -53,15 +53,15 @@ export default function App() {
   const [newBrandForm, setNewBrandForm] = useState({ name: '', logo: '' });
   const [newProductForm, setNewProductForm] = useState({ code: '', description: '', brand: '', price: '', imageUrl: '' });
 
-   // UI State
-   const [activeTab, setActiveTab] = useState<'brands' | 'products' | 'cart'>('products');
-   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-   const [searchTerm, setSearchTerm] = useState('');
-   const [productSearch, setProductSearch] = useState('');
-   const [brandSearch, setBrandSearch] = useState('');
-   const [selectedBrand, setSelectedBrand] = useState('');
-   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-   const [showSuccess, setShowSuccess] = useState(false);
+  // UI State
+  const [activeTab, setActiveTab] = useState<'brands' | 'products' | 'cart'>('products');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [brandSearch, setBrandSearch] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState<string | null>(null);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [notes, setNotes] = useState('');
@@ -381,7 +381,7 @@ export default function App() {
     });
   };
 
-   // Order Handlers
+  // Order Handlers
   const handleCheckout = async () => {
     if (!selectedCustomer) return;
     setShowExportPreview(true);
@@ -459,7 +459,7 @@ export default function App() {
     } finally {
       setIsExporting(false);
     }
-   };
+  };
 
   const loadSavedOrders = async () => {
     setIsLoadingOrders(true);
@@ -478,61 +478,61 @@ export default function App() {
     }
   };
 
-   const handleSaveDraft = async () => {
-     if (!selectedCustomer || cart.length === 0) return;
-     setIsExporting(true);
-     try {
-       const customer = selectedCustomer;
+  const handleSaveDraft = async () => {
+    if (!selectedCustomer || cart.length === 0) return;
+    setIsExporting(true);
+    try {
+      const customer = selectedCustomer;
 
-       const orderData = {
-         user_id: user.id,
-         user_email: user.email,
-         user_role: user.role,
-         customer_id: customer.id || null,
-         customer_name: customer.name,
-         customer_code: customer.customer_code || customer.code,
-         customer_afm: customer.afm,
-         items: cart,
-         total_value: totalNet,
-         notes: notes,
-         status: 'draft' as const
-       };
+      const orderData = {
+        user_id: user.id,
+        user_email: user.email,
+        user_role: user.role,
+        customer_id: customer.id || null,
+        customer_name: customer.name,
+        customer_code: customer.customer_code || customer.code,
+        customer_afm: customer.afm,
+        items: cart,
+        total_value: totalNet,
+        notes: notes,
+        status: 'draft' as const
+      };
 
-        let success = false;
-       if (editingOrderId) {
-         success = await dataService.updateOrder(editingOrderId, orderData);
-         if (!success) {
-           throw new Error('Failed to update order');
-         }
-       } else {
-         const result = await fetchWithTimeout<any>(
-           supabase.from('orders').insert(orderData),
-           15000,
-           3
-         );
-         if (result.error) throw result.error;
-         success = !result.error;
-       }
+      let success = false;
+      if (editingOrderId) {
+        success = await dataService.updateOrder(editingOrderId, orderData);
+        if (!success) {
+          throw new Error('Failed to update order');
+        }
+      } else {
+        const result = await fetchWithTimeout<any>(
+          supabase.from('orders').insert(orderData),
+          15000,
+          3
+        );
+        if (result.error) throw result.error;
+        success = !result.error;
+      }
 
-       if (success) {
-         setShowSuccess(true);
-         setCart([]);
-         setNotes('');
-         setEditingOrderId(null);
-         await loadSavedOrders();
-       }
-     } catch (err) {
-       console.error('Save draft failed:', err);
-       setStatusModal({
-         show: true,
-         type: 'error',
-         title: 'Αποτυχία Αποθήκευσης',
-         message: 'Δεν ήταν δυνατή η αποθήκευση του προσχεδίου. Ξαναπροσπαθήστε.'
-       });
-     } finally {
-       setIsExporting(false);
-     }
-   };
+      if (success) {
+        setShowSuccess(true);
+        setCart([]);
+        setNotes('');
+        setEditingOrderId(null);
+        await loadSavedOrders();
+      }
+    } catch (err) {
+      console.error('Save draft failed:', err);
+      setStatusModal({
+        show: true,
+        type: 'error',
+        title: 'Αποτυχία Αποθήκευσης',
+        message: 'Δεν ήταν δυνατή η αποθήκευση του προσχεδίου. Ξαναπροσπαθήστε.'
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleDeleteOrder = async (orderId: string) => {
     setConfirmModal({
@@ -616,34 +616,40 @@ export default function App() {
 
     setSoftOneSending(true);
     try {
-      const { sendOrderToSoftOne } = await import('./services/softoneService');
-      const result = await sendOrderToSoftOne(softOneModalOrder);
+      const module = await import('./services/softoneService');
 
-      if (!result.success) {
-        setShowError(result.message);
-        setSoftOneModalOrder(null);
+      // 1. Αποστολή στο SoftOne
+      const result = await module.sendOrderToSoftOne(softOneModalOrder);
+
+      // 2. ΕΛΕΓΧΟΣ ΑΣΦΑΛΕΙΑΣ
+      // Αν δεν υπάρχει επιβεβαίωση, σταματάμε. Η παραγγελία παραμένει στο Supabase.
+      if (!result || result.success !== true) {
+        console.error("SoftOne rejected the order:", result);
+        setShowError(`Η αποστολή απέτυχε: ${result?.message || 'Άγνωστο σφάλμα στο SoftOne'}`);
+        setSoftOneSending(false);
         return;
       }
 
+      // 3. Διαγραφή από το Supabase ΜΟΝΟ αν λάβαμε επιβεβαίωση
       const { error: deleteError } = await supabase
         .from('orders')
         .delete()
         .eq('id', softOneModalOrder.id);
 
       if (deleteError) {
-        console.error('Failed to delete order after SoftOne send:', deleteError);
-        setShowError(`Η παραγγελία στάλθηκε στο SoftOne (${result.message}) αλλά απέτυχε η διαγραφή από το σύστημα.`);
-        await loadSavedOrders();
-        setSoftOneModalOrder(null);
-        return;
+        console.error('Σφάλμα διαγραφής:', deleteError);
+        // Αντικατάστησε τη γραμμή 641 με αυτό:
+        //setShowError(`Η παραγγελία στάλθηκε με επιτυχία (ID: ${result && (result.documentNumber || result.docnum) ? (result.documentNumber || result.docnum) : 'N/A'}), αλλά υπήρξε πρόβλημα στη διαγραφή από τη βάση.`);
+      } else {
+        setShowSuccess(true); // Μόνο τώρα δείχνουμε επιτυχία
       }
 
-      setShowSuccess(true);
       await loadSavedOrders();
       setSoftOneModalOrder(null);
+
     } catch (err: any) {
-      console.error('Send to SoftOne failed:', err);
-      setShowError(`Αποτυχία αποστολής στο SoftOne: ${err?.message || 'Άγνωστο σφάλμα'}`);
+      console.error('Send to SoftOne failed (Exception):', err);
+      setShowError(`Αποτυχία συστήματος: ${err?.message || 'Άγνωστο σφάλμα'}`);
     } finally {
       setSoftOneSending(false);
     }
@@ -958,22 +964,24 @@ export default function App() {
           <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-12 gap-4 h-full pb-4 md:pb-4 lg:pb-0">
             {/* Brands Sidebar - Visible on Desktop/Tablet when activeTab is 'brands' */}
             <div className={`${activeTab === 'brands' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${sidebarCollapsed ? 'lg:hidden' : 'lg:flex lg:col-span-3'} h-full min-h-0`}>
-              <BrandSidebar
-                selectedCustomer={selectedCustomer}
-                onChangeCustomer={handleChangeCustomer}
-                brandSearch={brandSearch}
-                setBrandSearch={setBrandSearch}
-                allBrands={allBrands}
-                selectedBrand={selectedBrand}
-                onSelectBrand={(brand) => {
-                  setSelectedBrand(brand);
-                  if (window.innerWidth < 1024) setActiveTab('products');
-                }}
-                userRole={user.role}
-                isLoading={isLoading}
-                isCollapsed={sidebarCollapsed}
-                onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
-              />
+<BrandSidebar
+                 selectedCustomer={selectedCustomer}
+                 onChangeCustomer={handleChangeCustomer}
+                 brandSearch={brandSearch}
+                 setBrandSearch={setBrandSearch}
+                 allBrands={allBrands}
+                 selectedBrand={selectedBrand}
+                 onSelectBrand={(brand) => {
+                   setSelectedBrand(brand);
+                   if (window.innerWidth < 1024) setActiveTab('products');
+                 }}
+                 userRole={user.role}
+                 isLoading={isLoading}
+                 isCollapsed={sidebarCollapsed}
+                 onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
+                 cart={cart}
+                 onUpdateCartQuantity={updateCartQuantity}
+               />
             </div>
 
             {/* Product List - Visible on Desktop/Tablet when activeTab is 'products' */}

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Database, RefreshCw, AlertCircle, Calendar, Loader2, Package } from 'lucide-react';
+import { Database, RefreshCw, AlertCircle, Calendar, Loader2, Package, Plus, Minus } from 'lucide-react';
 import { fetchProductPriceHistoryFromSoftOne } from '../../services/softoneService';
-import { ProductPriceHistory } from '../../types';
+import { ProductPriceHistory, Product, CartItem } from '../../types';
 
 interface SoftOnePriceLogProps {
   customerCode?: string;
+  cart: CartItem[];
+  onUpdateCartQuantity: (product: Product, qty: number) => void;
 }
 
-export const SoftOnePriceLog: React.FC<SoftOnePriceLogProps> = ({ customerCode }) => {
+export const SoftOnePriceLog: React.FC<SoftOnePriceLogProps> = ({ customerCode, cart, onUpdateCartQuantity }) => {
   const [priceHistory, setPriceHistory] = useState<ProductPriceHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,31 @@ export const SoftOnePriceLog: React.FC<SoftOnePriceLogProps> = ({ customerCode }
       return `${s1Date.substring(6, 8)}/${s1Date.substring(4, 6)}/${s1Date.substring(0, 4)}`;
     }
     return s1Date;
+  };
+
+  const cartItemsByCode = new Map(cart.map(item => [item.code, item.quantity]));
+
+  const handleQuantityChange = (code: string, qty: number) => {
+    const item = priceHistory.find(p => p.CODE === code);
+    if (item && qty > 0) {
+      const product: Product = {
+        code: item.CODE,
+        description: item.DESCRIPTION,
+        price: item.PRICE,
+        brand: '',
+        imageUrl: item.IMAGE_URL
+      };
+      onUpdateCartQuantity(product, qty);
+    } else if (qty <= 0) {
+      const product: Product = {
+        code: code,
+        description: priceHistory.find(p => p.CODE === code)?.DESCRIPTION || '',
+        price: priceHistory.find(p => p.CODE === code)?.PRICE || 0,
+        brand: '',
+        imageUrl: priceHistory.find(p => p.CODE === code)?.IMAGE_URL
+      };
+      onUpdateCartQuantity(product, 0);
+    }
   };
 
   return (
@@ -110,6 +137,7 @@ export const SoftOnePriceLog: React.FC<SoftOnePriceLogProps> = ({ customerCode }
                   <th className="py-3 px-4 w-24 text-right">ΤΙΜΗ</th>
                   <th className="py-3 px-4 w-24 text-center">ΕΚΠΤΩΣΗ</th>
                   <th className="py-3 px-4 w-28">ΗΜΕΡΟΜΗΝΙΑ</th>
+                  <th className="py-3 px-4 w-32 text-center">ΚΑΛΑΘΙ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-[12px]">
@@ -157,6 +185,41 @@ export const SoftOnePriceLog: React.FC<SoftOnePriceLogProps> = ({ customerCode }
                       <div className="flex items-center justify-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-gusto-green" />
                         {formatDate(item.TRD_DATE)}
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-4">
+                      <div className="flex justify-center">
+                        {(() => {
+                          const cartQty = cartItemsByCode.get(item.CODE) || 0;
+                          return (
+                            <div className={`flex items-center bg-white border-2 rounded-xl overflow-hidden transition-all min-w-[40px] ${cartQty > 0 ? 'border-gusto-green shadow-sm' : 'border-slate-100 hover:border-slate-200'}`}>
+                              <button
+                                type="button"
+                                onClick={() => handleQuantityChange(item.CODE, Math.max(0, cartQty - 1))}
+                                className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-slate-50 rounded-md transition-all font-bold min-h-[28px]"
+                              >
+                                <Minus size={12} />
+                              </button>
+                              <input
+                                type="number"
+                                className="w-7 bg-transparent text-center text-xs font-black outline-none border-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                value={cartQty || ''}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  handleQuantityChange(item.CODE, isNaN(val) ? 0 : val);
+                                }}
+                                placeholder="0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleQuantityChange(item.CODE, cartQty + 1)}
+                                className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-slate-50 rounded-md transition-all font-bold min-h-[28px]"
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>
