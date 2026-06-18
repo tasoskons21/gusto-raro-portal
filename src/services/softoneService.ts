@@ -497,7 +497,8 @@ export const sendOrderToSoftOne = async (order: any) => {
           SOCRU: 1,
           CURRENCY: 0,
           COMPANY: 500,
-          NOTES: order.notes || ""
+          NOTES: order.notes || "",
+          REMARKS: order.notes || ""
         }],
 ITELINES: mtrlIds.map((l, index) => ({
            MTRL: l.mtrlId,
