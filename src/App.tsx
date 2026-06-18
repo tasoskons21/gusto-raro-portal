@@ -461,6 +461,71 @@ export default function App() {
     }
   };
 
+  const handleSendToSoft1FromCheckout = async () => {
+    setShowExportPreview(false);
+    setSoftOneSending(true);
+
+    try {
+      const customer = selectedCustomer;
+      if (!customer) return;
+
+      const orderData: any = {
+        user_id: user.id,
+        user_email: user.email,
+        user_role: user.role,
+        customer_id: customer.id || null,
+        customer_name: customer.name,
+        customer_code: customer.customer_code || customer.code,
+        customer_afm: customer.afm,
+        customer_address: customer.address || '',
+        customer_city: customer.city || '',
+        items: cart,
+        total_value: totalNet,
+        notes: notes,
+        status: 'submitted' as const,
+        date: new Date().toISOString()
+      };
+
+      const module = await import('./services/softoneService');
+      const result = await module.sendOrderToSoftOne(orderData);
+
+      if (!result || result.success !== true) {
+        console.error("SoftOne rejected the order:", result);
+        setStatusModal({
+          show: true,
+          type: 'error',
+          title: 'Αποτυχία Αποστολής',
+          message: `Η αποστολή απέτυχε: ${result?.message || 'Άγνωστο σφάλμα στο SoftOne'}`
+        });
+        setSoftOneSending(false);
+        return;
+      }
+
+      setStatusModal({
+        show: true,
+        type: 'success',
+        title: 'Επιτυχής Αποστολή',
+        message: `Η παραγγελία στάλθηκε επιτυχώς στο SoftOne (ID: ${result.documentNumber || 'N/A'})`
+      });
+
+      setCart([]);
+      setNotes('');
+      setSelectedCustomer(null);
+      setEditingOrderId(null);
+
+    } catch (err: any) {
+      console.error('Send to SoftOne failed:', err);
+      setStatusModal({
+        show: true,
+        type: 'error',
+        title: 'Σφάλμα Συστήματος',
+        message: `Αποτυχία συστήματος: ${err?.message || 'Άγνωστο σφάλμα'}`
+      });
+    } finally {
+      setSoftOneSending(false);
+    }
+  };
+
   const loadSavedOrders = async () => {
     setIsLoadingOrders(true);
     try {
@@ -630,19 +695,13 @@ export default function App() {
         return;
       }
 
-      // 3. Διαγραφή από το Supabase ΜΟΝΟ αν λάβαμε επιβεβαίωση
-      const { error: deleteError } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', softOneModalOrder.id);
-
-      if (deleteError) {
-        console.error('Σφάλμα διαγραφής:', deleteError);
-        // Αντικατάστησε τη γραμμή 641 με αυτό:
-        //setShowError(`Η παραγγελία στάλθηκε με επιτυχία (ID: ${result && (result.documentNumber || result.docnum) ? (result.documentNumber || result.docnum) : 'N/A'}), αλλά υπήρξε πρόβλημα στη διαγραφή από τη βάση.`);
-      } else {
-        setShowSuccess(true); // Μόνο τώρα δείχνουμε επιτυχία
-      }
+// 3. Η παραγγελία παραμένει στο Supabase για ιστορικό
+      setStatusModal({
+        show: true,
+        type: 'success',
+        title: 'Επιτυχής Αποστολή',
+        message: `Η παραγγελία στάλθηκε επιτυχώς στο SoftOne (ID: ${result?.documentNumber || 'N/A'})`
+      });
 
       await loadSavedOrders();
       setSoftOneModalOrder(null);
@@ -964,24 +1023,24 @@ export default function App() {
           <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-12 gap-4 h-full pb-4 md:pb-4 lg:pb-0">
             {/* Brands Sidebar - Visible on Desktop/Tablet when activeTab is 'brands' */}
             <div className={`${activeTab === 'brands' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${sidebarCollapsed ? 'lg:hidden' : 'lg:flex lg:col-span-3'} h-full min-h-0`}>
-<BrandSidebar
-                 selectedCustomer={selectedCustomer}
-                 onChangeCustomer={handleChangeCustomer}
-                 brandSearch={brandSearch}
-                 setBrandSearch={setBrandSearch}
-                 allBrands={allBrands}
-                 selectedBrand={selectedBrand}
-                 onSelectBrand={(brand) => {
-                   setSelectedBrand(brand);
-                   if (window.innerWidth < 1024) setActiveTab('products');
-                 }}
-                 userRole={user.role}
-                 isLoading={isLoading}
-                 isCollapsed={sidebarCollapsed}
-                 onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
-                 cart={cart}
-                 onUpdateCartQuantity={updateCartQuantity}
-               />
+              <BrandSidebar
+                selectedCustomer={selectedCustomer}
+                onChangeCustomer={handleChangeCustomer}
+                brandSearch={brandSearch}
+                setBrandSearch={setBrandSearch}
+                allBrands={allBrands}
+                selectedBrand={selectedBrand}
+                onSelectBrand={(brand) => {
+                  setSelectedBrand(brand);
+                  if (window.innerWidth < 1024) setActiveTab('products');
+                }}
+                userRole={user.role}
+                isLoading={isLoading}
+                isCollapsed={sidebarCollapsed}
+                onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
+                cart={cart}
+                onUpdateCartQuantity={updateCartQuantity}
+              />
             </div>
 
             {/* Product List - Visible on Desktop/Tablet when activeTab is 'products' */}

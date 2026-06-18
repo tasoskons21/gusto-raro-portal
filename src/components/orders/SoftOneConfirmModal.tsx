@@ -52,7 +52,7 @@ export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
                 Αποστολή στο SoftOne
               </h3>
               <p className="text-purple-100 text-sm">
-                Η παραγγελία θα καταχωρηθεί στο SoftOne και θα διαγραφεί από το σύστημα
+                Η παραγγελία θα καταχωρηθεί στο SoftOne
               </p>
             </div>
 
@@ -62,9 +62,9 @@ export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-amber-800 mb-1">Προσοχή</p>
-                    <p className="text-xs text-amber-700">
-                      Μετά την επιτυχή αποστολή, η παραγγελία θα διαγραφεί αυτόματα από τη λίστα.
-                    </p>
+<p className="text-xs text-amber-700">
+                          Η παραγγελία θα σταλεί στο SoftOne και θα παραμείνει αποθηκευμένη για ιστορικό.
+                        </p>
                   </div>
                 </div>
               </div>

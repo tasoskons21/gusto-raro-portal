@@ -1,5 +1,5 @@
-import { onRequestOptions as __api_softone_ts_onRequestOptions } from "C:\\Users\\tasos\\Desktop\\gusto-raro-b2b-portal\\gusto-raro-b2b-portal\\functions\\api\\softone.ts"
-import { onRequestPost as __api_softone_ts_onRequestPost } from "C:\\Users\\tasos\\Desktop\\gusto-raro-b2b-portal\\gusto-raro-b2b-portal\\functions\\api\\softone.ts"
+import { onRequestOptions as __api_softone_ts_onRequestOptions } from "C:\\Users\\tasos\\Desktop\\gusto-raro-b2b-portal\\functions\\api\\softone.ts"
+import { onRequestPost as __api_softone_ts_onRequestPost } from "C:\\Users\\tasos\\Desktop\\gusto-raro-b2b-portal\\functions\\api\\softone.ts"
 
 export const routes = [
     {

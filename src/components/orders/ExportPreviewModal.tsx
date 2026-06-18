@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Download, FileSpreadsheet, FileText, Eye, Package, ShoppingCart, AlertCircle } from 'lucide-react';
+import { X, Download, FileSpreadsheet, FileText, Eye, Package, ShoppingCart, AlertCircle, Send } from 'lucide-react';
 import { CartItem, Customer } from '../../types';
 
 interface ExportPreviewModalProps {
@@ -23,8 +23,6 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
   notes,
 }) => {
   if (!show) return null;
-
-  const cartTotal = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <AnimatePresence>

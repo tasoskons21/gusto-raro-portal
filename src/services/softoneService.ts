@@ -1,11 +1,8 @@
 import { SoftOneOrder } from '../types';
-import { supabase } from '../lib/supabase'; // Χρήση του δικού σου Supabase Client
+import { supabase } from '../lib/supabase';
 
-const S1_URL = "/api/softone"; // Χρήση του proxy για αποφυγή CORS
+const S1_URL = "/api/softone";
 
-// ==========================================
-// 1. INTERFACES (TYPES) ΓΙΑ ΤΗΝ TYPESCRIPT
-// ==========================================
 interface SoftOneLineItem {
   CODE: string;
   DESCRIPTION: string;
@@ -20,36 +17,46 @@ interface SupabaseProductRow {
   ImageUrl: string | null;
 }
 
-// ==========================================
-// 2. ΚΟΙΝΗ ΣΥΝΑΡΤΗΣΗ ΓΙΑ REQUESTS ΣΤΟ ERP
-// ==========================================
 const s1Request = async (payload: any) => {
-  const response = await fetch(S1_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`SoftOne API Error: ${response.status} - ${errorText}`);
-  }
-
-  const buffer = await response.arrayBuffer();
-  const decoder = new TextDecoder('windows-1253');
-  const text = decoder.decode(buffer);
+  console.log(`s1Request starting for service: ${payload.service}`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    return JSON.parse(text);
-  } catch (e) {
-    console.error("❌ JSON Parse Error:", text);
-    throw new Error("Invalid JSON response from SoftOne");
+    const response = await fetch(S1_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`SoftOne API Error: ${response.status} - ${errorText}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    const decoder = new TextDecoder('windows-1253');
+    const text = decoder.decode(buffer);
+
+    try {
+      const result = JSON.parse(text);
+      console.log(`s1Request finished for service: ${payload.service}`);
+      return result;
+    } catch (e) {
+      console.error("❌ JSON Parse Error:", text);
+      throw new Error("Invalid JSON response from SoftOne");
+    }
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`SoftOne API timeout after 10 seconds for service: ${payload.service}`);
+    }
+    throw error;
   }
 };
 
-// ==========================================
-// 3. ΑΥΘΕΝΤΙΚΟΠΟΙΗΣΗ (LOGIN & AUTH)
-// ==========================================
 export const getSoftOneAuth = async () => {
   try {
     const login = await s1Request({
@@ -82,9 +89,6 @@ export const getSoftOneAuth = async () => {
   }
 };
 
-// ==========================================
-// 4. ΑΝΑΚΤΗΣΗ ΙΣΤΟΡΙΚΟΥ ΠΑΡΑΓΓΕΛΙΩΝ (ΒΑΣΙΚΑ ΣΤΟΙΧΕΙΑ)
-// ==========================================
 export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 30) => {
   if (!customerCode) {
     return { success: false, message: "Δεν επιλέχθηκε πελάτης", orders: [] };
@@ -155,15 +159,11 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
   }
 };
 
-// ==========================================
-// 5. ON-DEMAND ΦΟΡΤΩΣΗ ΛΕΠΤΟΜΕΡΕΙΩΝ (HIGH-PERFORMANCE)
-// ==========================================
 export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
   try {
     const auth = await getSoftOneAuth();
     if (!auth) throw new Error("Authentication failed");
 
-    // α) Λήψη των γραμμών από το MTRLINES (περιλαμβάνει τιμή και έκπτωση γραμμής)
     const linesRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
@@ -177,7 +177,6 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
     const rows = linesRes?.rows || [];
     if (rows.length === 0) return { success: true, items: [] };
 
-    // β) Παράλληλη ανάκτηση των εμπορικών κωδικών (CODE) από το SoftOne (MTRL) με Promise.all
     const softonePromises = rows.map(async (r: any) => {
       const mtrlId = Array.isArray(r) ? String(r[0] || '') : String(r.MTRL || '');
       const qty = Array.isArray(r) ? Number(r[1] || 0) : Number(r.QTY1 || 0);
@@ -216,7 +215,6 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
 
     const localItems: SoftOneLineItem[] = await Promise.all(softonePromises);
 
-    // γ) ΜΑΖΙΚΟ QUERY ΣΤΟ SUPABASE (ΜΟΝΟ 1 ΚΛΗΣΗ): Φέρνει φωτογραφίες και καθαρές περιγραφές
     const allCodes = localItems.map(item => item.CODE).filter(Boolean);
 
     const { data: supabaseProducts, error: sbError } = await supabase
@@ -228,7 +226,6 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
       console.error('⚠️ Supabase bulk fetch error:', sbError);
     }
 
-    // δ) In-memory πάντρεμα των δεδομένων (Ακαριαία ταχύτητα)
     const finalItems = localItems.map((s1Item) => {
       const matchedProduct = supabaseProducts?.find(
         (sp: SupabaseProductRow) => String(sp.Code).trim().toLowerCase() === String(s1Item.CODE).toLowerCase()
@@ -236,10 +233,10 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
 
       return {
         CODE: s1Item.CODE,
-        DESCRIPTION: matchedProduct?.Description || s1Item.DESCRIPTION, // Προτεραιότητα στο Supabase
+        DESCRIPTION: matchedProduct?.Description || s1Item.DESCRIPTION,
         QUANTITY: s1Item.QUANTITY,
-        PRICE: s1Item.PRICE, // Από SoftOne
-        DISCOUNT_PERCENT: s1Item.DISCOUNT_PERCENT, // Από SoftOne
+        PRICE: s1Item.PRICE,
+        DISCOUNT_PERCENT: s1Item.DISCOUNT_PERCENT,
         IMAGE_URL: matchedProduct?.ImageUrl || null
       };
     });
@@ -252,9 +249,6 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
   }
 };
 
-// ==========================================
-// 7. ΑΝΑΚΤΗΣΗ ΤΙΜΩΝ ΠΡΟΪΟΝΤΩΝ ΑΠΟ ΙΣΤΟΡΙΚΟ (ΚΩΔΙΚΟΛΟΓΙΟ)
-// ==========================================
 export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 365) => {
   if (!customerCode) {
     return { success: false, message: "Δεν επιλέχθηκε πελάτης", priceHistory: [] };
@@ -416,61 +410,119 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
   }
 };
 
-// ==========================================
-// 6. ΑΠΟΣΤΟΛΗ ΠΑΡΑΓΓΕΛΙΑΣ ΣΤΟ SOFT-ONE
-// ==========================================
 export const sendOrderToSoftOne = async (order: any) => {
   if (!order || !order.customer_code) {
     return { success: false, message: "Δεν παρέχεται παραγγελία ή κωδικός πελάτη" };
   }
 
   try {
+    console.log("Starting authentication...");
     const auth = await getSoftOneAuth();
+    console.log("Authentication finished...");
     if (!auth) throw new Error("Authentication failed");
 
-    const orderDate = new Date(order.date || order.created_at || new Date());
-    const formattedDate = orderDate.toISOString().split('T')[0].replace(/-/g, '');
-    const docNumber = order.id || `WEB${Date.now()}`;
-
-    const headerResult = await s1Request({
-      service: "insertDoc",
+    console.log("Starting customer lookup...");
+    const custRes = await s1Request({
+      service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
-      DOCTYPE: "ΠΑΡΑΣΤΑΤΙΚΟ",
-      DOCDATE: formattedDate,
-      DOCDUEDATE: formattedDate,
-      CUSTOMER: order.customer_code,
-      DESCRIPTION: order.notes || `Web order ${docNumber}`,
-      AMOUNT: order.total_value || 0
+      TABLENAME: "CUSTOMER",
+      KEYNAME: "CODE",
+      KEYVALUE: order.customer_code,
+      RESULTFIELDS: "TRDR"
     });
+    console.log("Customer lookup finished...");
 
-    if (!headerResult.success) {
-      throw new Error(`Failed to insert order header: ${headerResult.message}`);
+    const trdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
+    if (!trdr) {
+      return { success: false, message: "Δεν βρέθηκε ο πελάτης" };
     }
+    const trdrId = Number(trdr);
 
-    const docNum = headerResult.docnum || docNumber;
+    console.log("TRDR check:", trdrId, "SERIES: 7021");
 
+    const mtrlIds: { mtrlId: number; qty: number }[] = [];
     if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-      for (const item of order.items) {
-        await s1Request({
-          service: "insertDocLine",
-          clientID: auth.clientID,
-          appId: "157",
-          DOCTYPE: "ΠΑΡΑΣΤΑΤΙΚΟ",
-          DOCNUM: docNum,
-          CODE: item.code || item.Code || '',
-          DESCRIPTION: item.description || item.Description || '',
-          QUANTITY: item.quantity || 1,
-          PRICE: item.price || item.Price || 0,
-          DISCOUNT: 0
-        });
+      console.log("Starting item search...");
+      const mtrlPromises = order.items.map(async (item: any) => {
+        try {
+          const code = item.code || item.Code || '';
+          if (!code) return null;
+          const mtrlRes = await s1Request({
+            service: "selectorFields",
+            clientID: auth.clientID,
+            appId: "157",
+            TABLENAME: "MTRL",
+            KEYNAME: "CODE",
+            KEYVALUE: code,
+            RESULTFIELDS: "MTRL"
+          });
+          const mtrlIdRaw = mtrlRes?.rows?.[0] ? (Array.isArray(mtrlRes.rows[0]) ? mtrlRes.rows[0][0] : mtrlRes.rows[0].MTRL) : null;
+          if (mtrlIdRaw) {
+            return { mtrlId: Number(mtrlIdRaw), qty: item.quantity || 1 };
+          }
+          console.error(`MTRL not found for code: ${code}`);
+          return null;
+        } catch (mtrlError: any) {
+          console.error(`Error searching MTRL: ${mtrlError?.message || mtrlError}`);
+          return null;
+        }
+      });
+      const mtrlResults = await Promise.all(mtrlPromises);
+      console.log("Item search finished...");
+      mtrlIds.push(...mtrlResults.filter(Boolean));
+      if (mtrlIds.length === 0) {
+        return { success: false, message: "Δεν βρέθηκαν προϊόντα για την παραγγελία" };
       }
     }
+
+    console.log("Preparing date and payload...");
+    const orderDate = new Date(order.date || order.created_at || new Date());
+    const formattedDate = orderDate.toISOString().split('T')[0].replace(/-/g, '/');
+
+    const setDataPayload: any = {
+      service: "setData",
+      clientID: auth.clientID,
+      appId: "157",
+      object: "SALDOC",
+      KEY: "",
+      data: {
+        SALDOC: [{
+          TRDR: trdrId,
+          FINTYPE: 201,
+          SERIES: "7021",
+          TRNDATE: formattedDate,
+          DISDATE: formattedDate,
+          WHOUSE: 1,
+          SOCRU: 1,
+          CURRENCY: 0,
+          COMPANY: 500,
+          NOTES: order.notes || ""
+        }],
+ITELINES: mtrlIds.map((l, index) => ({
+           MTRL: l.mtrlId,
+           QTY1: l.qty,
+           LINENUM: (index + 1) * 1000
+         }))
+      }
+    };
+
+    console.log("setData payload:", JSON.stringify(setDataPayload, null, 2));
+
+    console.log("Starting setData...");
+    const result = await s1Request(setDataPayload);
+    console.log("setData response received:", JSON.stringify(result));
+
+    if (!result.success) {
+      throw new Error(`Failed to save order: ${JSON.stringify(result)}`);
+    }
+
+    const docNum = result.data?.FINDOC || result.docnum || "saved";
 
     return {
       success: true,
       message: `Παραγγελία ${docNum} στάλθηκε επιτυχώς στο SoftOne`,
-      documentNumber: docNum
+      documentNumber: String(docNum)
     };
 
   } catch (error: any) {
