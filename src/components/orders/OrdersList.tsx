@@ -30,6 +30,7 @@ interface OrdersListProps {
   onRefresh: () => void;
   onSendOrder: (order: any) => void;
   onSendToSoft1: (order: any) => void;
+  isLoadingSoftOne?: boolean;
 }
 
 export const OrdersList: React.FC<OrdersListProps> = ({
@@ -42,7 +43,8 @@ export const OrdersList: React.FC<OrdersListProps> = ({
   onDelete,
   onRefresh,
   onSendOrder,
-  onSendToSoft1
+  onSendToSoft1,
+  isLoadingSoftOne = false
 }) => {
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
@@ -248,10 +250,20 @@ export const OrdersList: React.FC<OrdersListProps> = ({
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onSendToSoft1(order); }}
-                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors min-h-[32px] sm:min-h-[36px]"
+                        disabled={isLoadingSoftOne}
+                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors min-h-[32px] sm:min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-purple-600"
                       >
-                        <Send className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="truncate">Soft1</span>
+                        {isLoadingSoftOne ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span className="truncate">Φόρτωση...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span className="truncate">Soft1</span>
+                          </>
+                        )}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onLoadDraft(order); }}

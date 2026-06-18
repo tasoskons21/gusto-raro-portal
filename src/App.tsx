@@ -71,6 +71,7 @@ export default function App() {
   const [showExportPreview, setShowExportPreview] = useState(false);
   const [softOneModalOrder, setSoftOneModalOrder] = useState<any>(null);
   const [softOneSending, setSoftOneSending] = useState(false);
+  const [softOneBranchesLoading, setSoftOneBranchesLoading] = useState(false);
   const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
   const [branchesForOrder, setBranchesForOrder] = useState<any[]>([]);
   const [confirmModal, setConfirmModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void }>({
@@ -677,16 +678,37 @@ export default function App() {
     dataService.exportToExcel(customer, order.items || [], order.total_value, order.notes);
   };
 
-var handleSendToSoft1 = async (order: any) => {
-    setSoftOneModalOrder(order);
-    setSelectedBranchId(0);
+  const handleSendToSoft1 = async (order: any) => {
+    if (softOneBranchesLoading || softOneSending) return;
+
+    setSoftOneBranchesLoading(true);
+    setSoftOneModalOrder(null);
     setBranchesForOrder([]);
+    setSelectedBranchId(null);
 
-    const module = await import('./services/softoneService');
-    const branchesResult = await module.fetchBranchesForCustomer(order.customer_code, order.customer_address);
+    try {
+      const module = await import('./services/softoneService');
+      const branchesResult = await module.fetchBranchesForCustomer(order.customer_code, order.customer_address);
 
-    if (branchesResult.success) {
-      setBranchesForOrder(branchesResult.branches);
+      if (!branchesResult.success) {
+        setShowError(branchesResult.message || 'Δεν ήταν δυνατή η φόρτωση των υποκαταστημάτων.');
+        return;
+      }
+
+      const branches = branchesResult.branches || [];
+      if (branches.length === 0) {
+        setShowError('Δεν βρέθηκαν υποκαταστήματα για αυτόν τον πελάτη.');
+        return;
+      }
+
+      setBranchesForOrder(branches);
+      setSelectedBranchId(branches[0].id);
+      setSoftOneModalOrder(order);
+    } catch (err: any) {
+      console.error('Load SoftOne branches failed:', err);
+      setShowError(err?.message || 'Αποτυχία φόρτωσης υποκαταστημάτων.');
+    } finally {
+      setSoftOneBranchesLoading(false);
     }
   };
 
@@ -1003,6 +1025,7 @@ var handleSendToSoft1 = async (order: any) => {
               onLoadDraft={handleLoadDraft}
               onSendOrder={handleSendOrder}
               onSendToSoft1={handleSendToSoft1}
+              isLoadingSoftOne={softOneBranchesLoading}
               onDelete={handleDeleteOrder}
               onRefresh={loadSavedOrders}
             />
@@ -1228,6 +1251,7 @@ var handleSendToSoft1 = async (order: any) => {
         show={!!softOneModalOrder}
         order={softOneModalOrder}
         branches={branchesForOrder}
+        defaultSelectedValue={branchesForOrder[0]?.id ?? null}
         selectedBranchId={selectedBranchId}
         onBranchChange={setSelectedBranchId}
         onConfirm={handleConfirmSoftOneSend}

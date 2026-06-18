@@ -11,6 +11,7 @@ interface SoftOneConfirmModalProps {
   show: boolean;
   order: any;
   branches?: Branch[];
+  defaultSelectedValue?: number | null;
   selectedBranchId: number | null;
   onBranchChange: (branchId: number) => void;
   onConfirm: () => void;
@@ -22,6 +23,7 @@ export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
   show,
   order,
   branches = [],
+  defaultSelectedValue,
   selectedBranchId,
   onBranchChange,
   onConfirm,
@@ -74,7 +76,7 @@ export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
                     Υποκαταστήμα
                   </label>
                   <select
-                    value={selectedBranchId ?? 0}
+                    value={selectedBranchId ?? defaultSelectedValue ?? 0}
                     onChange={(e) => onBranchChange(Number(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
