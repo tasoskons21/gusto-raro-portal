@@ -410,7 +410,59 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
   }
 };
 
-export const sendOrderToSoftOne = async (order: any) => {
+export const fetchBranchesForCustomer = async (customerCode?: string, address?: string) => {
+  if (!customerCode) {
+    return { success: false, message: "Δεν επιλέχθηκε πελάτης", branches: [] };
+  }
+
+  try {
+    const auth = await getSoftOneAuth();
+    if (!auth) throw new Error("Authentication failed");
+
+    const custRes = await s1Request({
+      service: "selectorFields",
+      clientID: auth.clientID,
+      appId: "157",
+      TABLENAME: "CUSTOMER",
+      KEYNAME: "CODE",
+      KEYVALUE: customerCode,
+      RESULTFIELDS: "TRDR"
+    });
+
+    const trdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
+    if (!trdr) {
+      return { success: false, message: "Δεν βρέθηκε ο πελάτης", branches: [] };
+    }
+
+    const branchesRes = await s1Request({
+      service: "selectorFields",
+      clientID: auth.clientID,
+      appId: "157",
+      TABLENAME: "TRDBRANCH",
+      KEYNAME: "TRDR",
+      KEYVALUE: trdr,
+      RESULTFIELDS: "TRDBRANCH,NAME"
+    });
+
+    const rows = branchesRes?.rows || [];
+    const branches = rows.map((r: any) => ({
+      id: Array.isArray(r) ? Number(r[0]) : Number(r.TRDBRANCH),
+      name: Array.isArray(r) ? String(r[1] || '') : String(r.NAME || '')
+    }));
+
+    const words = address ? address.trim().split(/\s+/) : [];
+    const streetName = words.length > 1 ? words.slice(0, -1).join(' ') : (words[0] || 'Κεντρικό');
+    const headOfficeBranch = { id: 0, name: streetName };
+    const allBranches = [headOfficeBranch, ...branches];
+
+    return { success: true, branches: allBranches };
+  } catch (error: any) {
+    console.error("❌ fetchBranchesForCustomer Error:", error);
+    return { success: false, message: error.message, branches: [] };
+  }
+};
+
+export const sendOrderToSoftOne = async (order: any, branchId?: number | null) => {
   if (!order || !order.customer_code) {
     return { success: false, message: "Δεν παρέχεται παραγγελία ή κωδικός πελάτη" };
   }
@@ -480,6 +532,24 @@ export const sendOrderToSoftOne = async (order: any) => {
     const orderDate = new Date(order.date || order.created_at || new Date());
     const formattedDate = orderDate.toISOString().split('T')[0].replace(/-/g, '/');
 
+    const saldocData: any = {
+      TRDR: trdrId,
+      FINTYPE: 201,
+      SERIES: "7021",
+      TRNDATE: formattedDate,
+      DISDATE: formattedDate,
+      WHOUSE: 1,
+      SOCRU: 1,
+      CURRENCY: 0,
+      COMPANY: 500,
+      NOTES: order.notes || "",
+      REMARKS: order.notes || ""
+    };
+
+    if (branchId) {
+      saldocData.TRDBRANCH = branchId;
+    }
+
     const setDataPayload: any = {
       service: "setData",
       clientID: auth.clientID,
@@ -487,24 +557,12 @@ export const sendOrderToSoftOne = async (order: any) => {
       object: "SALDOC",
       KEY: "",
       data: {
-        SALDOC: [{
-          TRDR: trdrId,
-          FINTYPE: 201,
-          SERIES: "7021",
-          TRNDATE: formattedDate,
-          DISDATE: formattedDate,
-          WHOUSE: 1,
-          SOCRU: 1,
-          CURRENCY: 0,
-          COMPANY: 500,
-          NOTES: order.notes || "",
-          REMARKS: order.notes || ""
-        }],
-ITELINES: mtrlIds.map((l, index) => ({
-           MTRL: l.mtrlId,
-           QTY1: l.qty,
-           LINENUM: (index + 1) * 1000
-         }))
+        SALDOC: [saldocData],
+        ITELINES: mtrlIds.map((l, index) => ({
+          MTRL: l.mtrlId,
+          QTY1: l.qty,
+          LINENUM: (index + 1) * 1000
+        }))
       }
     };
 

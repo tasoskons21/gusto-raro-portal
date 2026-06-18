@@ -1,10 +1,18 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, AlertTriangle, X } from 'lucide-react';
+import { Send, AlertTriangle, X, Building2 } from 'lucide-react';
+
+interface Branch {
+  id: number;
+  name: string;
+}
 
 interface SoftOneConfirmModalProps {
   show: boolean;
   order: any;
+  branches?: Branch[];
+  selectedBranchId: number | null;
+  onBranchChange: (branchId: number) => void;
   onConfirm: () => void;
   onCancel: () => void;
   isSending: boolean;
@@ -13,6 +21,9 @@ interface SoftOneConfirmModalProps {
 export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
   show,
   order,
+  branches = [],
+  selectedBranchId,
+  onBranchChange,
   onConfirm,
   onCancel,
   isSending
@@ -57,14 +68,33 @@ export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
             </div>
 
             <div className="px-6 py-5">
+              {branches.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Υποκαταστήμα
+                  </label>
+                  <select
+                    value={selectedBranchId ?? 0}
+                    onChange={(e) => onBranchChange(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {branches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-amber-800 mb-1">Προσοχή</p>
-<p className="text-xs text-amber-700">
-                          Η παραγγελία θα σταλεί στο SoftOne και θα παραμείνει αποθηκευμένη για ιστορικό.
-                        </p>
+                    <p className="text-xs text-amber-700">
+                      Η παραγγελία θα σταλεί στο SoftOne και θα παραμείνει αποθηκευμένη για ιστορικό.
+                    </p>
                   </div>
                 </div>
               </div>

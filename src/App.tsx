@@ -71,6 +71,8 @@ export default function App() {
   const [showExportPreview, setShowExportPreview] = useState(false);
   const [softOneModalOrder, setSoftOneModalOrder] = useState<any>(null);
   const [softOneSending, setSoftOneSending] = useState(false);
+  const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+  const [branchesForOrder, setBranchesForOrder] = useState<any[]>([]);
   const [confirmModal, setConfirmModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void }>({
     show: false,
     title: '',
@@ -482,12 +484,15 @@ export default function App() {
         items: cart,
         total_value: totalNet,
         notes: notes,
-        status: 'submitted' as const,
-        date: new Date().toISOString()
+        status: 'submitted' as const
       };
 
       const module = await import('./services/softoneService');
-      const result = await module.sendOrderToSoftOne(orderData);
+      
+      const branchesResult = await module.fetchBranchesForCustomer(customer.customer_code || customer.code, customer.address);
+      const branchId = branchesResult.success && branchesResult.branches.length > 0 ? 0 : null;
+
+      const result = await module.sendOrderToSoftOne(orderData, branchId);
 
       if (!result || result.success !== true) {
         console.error("SoftOne rejected the order:", result);
@@ -672,8 +677,17 @@ export default function App() {
     dataService.exportToExcel(customer, order.items || [], order.total_value, order.notes);
   };
 
-  const handleSendToSoft1 = (order: any) => {
+var handleSendToSoft1 = async (order: any) => {
     setSoftOneModalOrder(order);
+    setSelectedBranchId(0);
+    setBranchesForOrder([]);
+
+    const module = await import('./services/softoneService');
+    const branchesResult = await module.fetchBranchesForCustomer(order.customer_code, order.customer_address);
+
+    if (branchesResult.success) {
+      setBranchesForOrder(branchesResult.branches);
+    }
   };
 
   const handleConfirmSoftOneSend = async () => {
@@ -683,11 +697,10 @@ export default function App() {
     try {
       const module = await import('./services/softoneService');
 
-      // 1. Αποστολή στο SoftOne
-      const result = await module.sendOrderToSoftOne(softOneModalOrder);
+      const branchId = branchesForOrder.length > 0 ? (selectedBranchId ?? 0) : null;
 
-      // 2. ΕΛΕΓΧΟΣ ΑΣΦΑΛΕΙΑΣ
-      // Αν δεν υπάρχει επιβεβαίωση, σταματάμε. Η παραγγελία παραμένει στο Supabase.
+      const result = await module.sendOrderToSoftOne(softOneModalOrder, branchId);
+
       if (!result || result.success !== true) {
         console.error("SoftOne rejected the order:", result);
         setShowError(`Η αποστολή απέτυχε: ${result?.message || 'Άγνωστο σφάλμα στο SoftOne'}`);
@@ -695,16 +708,17 @@ export default function App() {
         return;
       }
 
-// 3. Η παραγγελία παραμένει στο Supabase για ιστορικό
       setStatusModal({
         show: true,
         type: 'success',
         title: 'Επιτυχής Αποστολή',
-        message: `Η παραγγελία στάλθηκε επιτυχώς στο SoftOne (ID: ${result?.documentNumber || 'N/A'})`
+        message: `Η παραγγελία στάλθηκε επιτυχώς στο SoftOne (ID: ${result.documentNumber || 'N/A'})`
       });
 
       await loadSavedOrders();
       setSoftOneModalOrder(null);
+      setBranchesForOrder([]);
+      setSelectedBranchId(null);
 
     } catch (err: any) {
       console.error('Send to SoftOne failed (Exception):', err);
@@ -1213,8 +1227,11 @@ export default function App() {
       <SoftOneConfirmModal
         show={!!softOneModalOrder}
         order={softOneModalOrder}
+        branches={branchesForOrder}
+        selectedBranchId={selectedBranchId}
+        onBranchChange={setSelectedBranchId}
         onConfirm={handleConfirmSoftOneSend}
-        onCancel={() => setSoftOneModalOrder(null)}
+        onCancel={() => { setSoftOneModalOrder(null); setBranchesForOrder([]); setSelectedBranchId(null); }}
         isSending={softOneSending}
       />
 
