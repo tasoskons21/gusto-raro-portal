@@ -679,7 +679,7 @@ export default function App() {
   };
 
   const handleSendToSoft1 = async (order: any) => {
-    if (softOneBranchesLoading || softOneSending) return;
+    if (softOneBranchesLoading || softOneSending || order.status === 'sent') return;
 
     setSoftOneBranchesLoading(true);
     setSoftOneModalOrder(null);
@@ -729,6 +729,15 @@ export default function App() {
         setSoftOneSending(false);
         return;
       }
+
+      const statusUpdateResult = await dataService.updateOrderStatus(softOneModalOrder.id, 'sent');
+      if (!statusUpdateResult) {
+        throw new Error('Failed to update order status');
+      }
+
+      setSavedOrders(prev => prev.map(item =>
+        item.id === softOneModalOrder.id ? { ...item, status: 'sent' as const } : item
+      ));
 
       setStatusModal({
         show: true,

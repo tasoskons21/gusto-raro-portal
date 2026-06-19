@@ -297,10 +297,58 @@ class DataService {
     }
   }
 
+  private async fetchOrderForUpsert(orderId: string): Promise<any | null> {
+    try {
+      const result = await fetchWithTimeout<any>(
+        supabase.from('orders').select('*').match({ id: orderId }).single(),
+        15000,
+        3
+      );
+      if (result.error || !result.data) return null;
+      return result.data;
+    } catch {
+      return null;
+    }
+  }
+
+  private async buildOrderUpsertPayload(orderId: string, orderData: any): Promise<any> {
+    const existingOrder = await this.fetchOrderForUpsert(orderId);
+
+    return {
+      ...existingOrder,
+      ...orderData,
+      id: orderId,
+      user_id: orderData.user_id ?? existingOrder?.user_id ?? '',
+      user_email: orderData.user_email ?? existingOrder?.user_email ?? '',
+      user_role: orderData.user_role ?? existingOrder?.user_role ?? 'customer',
+      items: orderData.items ?? existingOrder?.items ?? []
+    };
+  }
+
+  async updateOrderStatus(orderId: string, status: string): Promise<boolean> {
+    try {
+      const payload = await this.buildOrderUpsertPayload(orderId, { status });
+      const result = await fetchWithTimeout(
+        supabase.from('orders').upsert(payload, { onConflict: 'id' }),
+        15000,
+        3
+      );
+      if (result.error) {
+        console.error('Update order status error:', result.error);
+        return false;
+      }
+      return !result.error;
+    } catch (error) {
+      console.error('Update order status failed:', error);
+      return false;
+    }
+  }
+
   async updateOrder(orderId: string, orderData: any): Promise<boolean> {
     try {
+      const payload = await this.buildOrderUpsertPayload(orderId, orderData);
       const result = await fetchWithTimeout(
-        supabase.from('orders').upsert({ id: orderId, ...orderData }, { onConflict: 'id' }),
+        supabase.from('orders').upsert(payload, { onConflict: 'id' }),
         15000,
         3
       );

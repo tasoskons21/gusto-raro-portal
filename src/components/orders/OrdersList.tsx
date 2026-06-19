@@ -81,10 +81,20 @@ export const OrdersList: React.FC<OrdersListProps> = ({
         </span>
       );
     }
+
+    if (status === 'sent') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+          <Send className="w-3 h-3" />
+          Σταλθηκε
+        </span>
+      );
+    }
+
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
         <Send className="w-3 h-3" />
-        Υποβλήθηκε
+        Αποθηκεύτηκε
       </span>
     );
   };
@@ -113,6 +123,8 @@ export const OrdersList: React.FC<OrdersListProps> = ({
       </div>
     );
   }
+
+  const isSoftOneSent = (order: any) => order.status === 'sent';
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -250,7 +262,7 @@ export const OrdersList: React.FC<OrdersListProps> = ({
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onSendToSoft1(order); }}
-                        disabled={isLoadingSoftOne}
+                        disabled={isLoadingSoftOne || isSoftOneSent(order)}
                         className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors min-h-[32px] sm:min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-purple-600"
                       >
                         {isLoadingSoftOne ? (
@@ -261,13 +273,14 @@ export const OrdersList: React.FC<OrdersListProps> = ({
                         ) : (
                           <>
                             <Send className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span className="truncate">Soft1</span>
+                            <span className="truncate">{isSoftOneSent(order) ? 'Σταλθηκε' : 'Soft1'}</span>
                           </>
                         )}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onLoadDraft(order); }}
-                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors min-h-[32px] sm:min-h-[36px]"
+                        disabled={isSoftOneSent(order)}
+                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors min-h-[32px] sm:min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-amber-500"
                       >
                         <FileEdit className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span className="truncate">Επεξεργασία</span>

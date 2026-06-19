@@ -29,10 +29,20 @@ export const OrderViewModal: React.FC<OrderViewModalProps> = ({ order, isOpen, o
         </span>
       );
     }
+
+    if (status === 'sent') {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+          <Send className="w-4 h-4" />
+          Σταλθηκε
+        </span>
+      );
+    }
+
     return (
       <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
         <Send className="w-4 h-4" />
-        Υποβλήθηκε
+        Αποθηκεύτηκε
       </span>
     );
   };
