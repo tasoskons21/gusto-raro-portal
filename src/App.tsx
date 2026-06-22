@@ -258,10 +258,10 @@ export default function App() {
   }, [user.isLoggedIn, user.role, user.customer_id]);
 
   useEffect(() => {
-    if ((activeView as string) === 'orders' && user.isLoggedIn) {
+    if ((activeView as string) === 'orders' && user.isLoggedIn && user.id) {
       loadSavedOrders();
     }
-  }, [activeView, user.isLoggedIn]);
+  }, [activeView, user.isLoggedIn, user.role, user.id]);
 
   useEffect(() => {
     if (showError) {
@@ -535,13 +535,8 @@ export default function App() {
   const loadSavedOrders = async () => {
     setIsLoadingOrders(true);
     try {
-      const result = await fetchWithTimeout<any[]>(
-        supabase.from('orders').select('*').order('created_at', { ascending: false }),
-        15000,
-        3
-      );
-      if (result.error) throw result.error;
-      setSavedOrders(result.data || []);
+      const orders = await dataService.fetchOrders(user.role, user.id);
+      setSavedOrders(orders);
     } catch (err) {
       console.error('Load orders failed:', err);
     } finally {

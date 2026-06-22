@@ -400,6 +400,21 @@ class DataService {
       throw error;
     }
   }
+
+  async fetchOrders(userRole: string, userId: string): Promise<any[]> {
+    try {
+      let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+      if (userRole !== 'admin') {
+        query = query.eq('user_id', userId);
+      }
+      const result = await fetchWithTimeout<any[]>(query, 15000, 3);
+      if (result.error) throw result.error;
+      return result.data || [];
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+  }
 }
 
 export const dataService = new DataService();
