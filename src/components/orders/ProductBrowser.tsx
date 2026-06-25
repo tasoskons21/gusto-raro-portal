@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Search, Package, X, Eye, ShoppingCart } from 'lucide-react';
 import { Product, CartItem } from '../../types';
 
@@ -28,7 +28,7 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
   onViewProduct,
   isLoading = false,
 }) => {
-  const cartItemsByCode = new Map(cart.map(item => [item.code, item.quantity]));
+  const cartItemsByCode = useMemo(() => new Map(cart.map(item => [item.code, item.quantity])), [cart]);
 
   return (
     <div className="w-full h-full flex flex-col min-h-0">

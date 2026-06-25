@@ -21,7 +21,7 @@ interface BrandSidebarProps {
   onUpdateCartQuantity?: (product: Product, qty: number) => void;
 }
 
-export const BrandSidebar: React.FC<BrandSidebarProps> = ({
+export const BrandSidebar = React.memo<BrandSidebarProps>(({
   selectedCustomer,
   onChangeCustomer,
   brandSearch,
@@ -287,4 +287,4 @@ export const BrandSidebar: React.FC<BrandSidebarProps> = ({
       </AnimatePresence>
     </>
   );
-};
+});

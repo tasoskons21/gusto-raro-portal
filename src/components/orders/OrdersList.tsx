@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ClipboardList, 
@@ -33,7 +33,7 @@ interface OrdersListProps {
   isLoadingSoftOne?: boolean;
 }
 
-export const OrdersList: React.FC<OrdersListProps> = ({
+export const OrdersList = React.memo<OrdersListProps>(({
   orders,
   user,
   customers,
@@ -61,7 +61,7 @@ export const OrdersList: React.FC<OrdersListProps> = ({
   };
 
   const isExpanded = (orderId: string) => expandedOrders.has(orderId);
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('el-GR', {
       day: '2-digit',
@@ -70,9 +70,9 @@ export const OrdersList: React.FC<OrdersListProps> = ({
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }, []);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = useCallback((status: string) => {
     if (status === 'draft') {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
@@ -97,7 +97,7 @@ export const OrdersList: React.FC<OrdersListProps> = ({
         Αποθηκεύτηκε
       </span>
     );
-  };
+  }, []);
 
   if (isLoading) {
     return (
@@ -302,4 +302,4 @@ export const OrdersList: React.FC<OrdersListProps> = ({
       </div>
     </div>
   );
-};
+});

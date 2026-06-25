@@ -14,7 +14,7 @@ interface HeaderProps {
   onToggleSidebar?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
+export const Header = React.memo<HeaderProps>(({
   user,
   isLoading,
   onShowAdminModal,
@@ -170,4 +170,4 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
     </header>
   );
-};
+});

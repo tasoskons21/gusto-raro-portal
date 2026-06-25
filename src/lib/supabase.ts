@@ -3,9 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Anon Key present:', !!supabaseAnonKey);
-
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase URL or Anon Key is missing.');
 }
@@ -27,13 +24,16 @@ export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
    }
  });
 
-// Connection state monitoring
-let isOnline = navigator?.onLine ?? true;
-let retryCount = 0;
-const MAX_RETRY_DELAY = 30000; // 30 seconds max
+let isOnline: boolean = true;
+let retryCount: number = 0;
+const MAX_RETRY_DELAY = 30000;
 
-// Monitor connection state
-if (typeof window !== 'undefined') {
+export const initSupabaseConnectionMonitoring = () => {
+  if (typeof window === 'undefined') return;
+
+  isOnline = navigator?.onLine ?? true;
+  retryCount = 0;
+
   window.addEventListener('online', () => {
     isOnline = true;
     retryCount = 0;
@@ -45,11 +45,6 @@ if (typeof window !== 'undefined') {
     console.log('🔴 Supabase connection lost - working offline');
   });
 
-  // Handle page visibility changes to maintain Supabase session
-  // Mobile/tablet browsers throttle JS timers when page is hidden, breaking autoRefreshToken.
-  // When returning to foreground, restart the auto-refresh cycle so Supabase
-  // re-validates the token if it expired while in background.
-  // Note: tablets use the same throttling behavior as mobile browsers.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       console.log('📱 App returned to foreground - restarting Supabase auto-refresh');
@@ -57,31 +52,27 @@ if (typeof window !== 'undefined') {
     }
   });
 
-  // Handle pageshow/pagehide for tablets and mobile browsers that use these events
-  // These fire when navigating between pages or when the browser process suspends/resumes
   window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
       console.log('📱 App restored from page cache - restarting Supabase auto-refresh');
       supabase.auth.startAutoRefresh();
     }
   });
-}
+};
 
-// Enhanced fetch with offline detection and retry
 export const fetchWithTimeout = async <T>(
   queryBuilder: any,
   timeoutMs: number = 15000,
   retries: number = 3
 ): Promise<{ data: T | null; error: any }> => {
-  // Check if we're online before making request
   if (!isOnline && retries > 0) {
     console.warn('⚠️ Offline mode - waiting for connection');
     await new Promise(resolve => setTimeout(resolve, 1000));
     return fetchWithTimeout(queryBuilder, timeoutMs, retries - 1);
   }
-  
+
   let lastError: any = null;
-  
+
   for (let i = 0; i < retries; i++) {
     const timeoutPromise = new Promise<{ data: T | null; error: any }>((_, reject) => {
       setTimeout(() => reject(new Error(`Request timeout after ${timeoutMs}ms`)), timeoutMs);
@@ -92,14 +83,13 @@ export const fetchWithTimeout = async <T>(
         data: result.data || result || null,
         error: result.error || null
       }));
-      
+
       const result = await Promise.race([queryPromise, timeoutPromise]);
-      
-      // Reset retry count on success
+
       if (!result.error) {
         retryCount = 0;
       }
-      
+
       if (result && result.error) {
         lastError = result.error;
         if (i < retries - 1) {
@@ -112,15 +102,14 @@ export const fetchWithTimeout = async <T>(
       return result;
     } catch (error: any) {
       lastError = error;
-      
-      // Handle timeout/abort errors
+
       if (error.name === 'AbortError' || error.message?.includes('timeout')) {
         console.warn(`⚠️ Request timeout (attempt ${i + 1}/${retries})`);
         if (i === retries - 1) {
           console.error('❌ Max retries reached - returning cached/empty data');
         }
       }
-      
+
       if (i < retries - 1) {
         const delay = Math.min(Math.pow(2, i) * 1000, MAX_RETRY_DELAY);
         retryCount++;
@@ -129,12 +118,11 @@ export const fetchWithTimeout = async <T>(
       }
     }
   }
-  
-  // Return empty result instead of throwing to prevent app crash
+
   if (lastError) {
     console.warn('⚠️ Returning empty data after all retries failed');
     return { data: null, error: lastError };
   }
-  
+
   return { data: null, error: lastError };
 };

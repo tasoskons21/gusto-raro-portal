@@ -13,7 +13,7 @@ interface CartProps {
   onNotesChange: (notes: string) => void;
 }
 
-export const Cart: React.FC<CartProps> = ({
+export const Cart = React.memo<CartProps>(({
   cart,
   totalNet,
   onUpdateCartQuantity,
@@ -153,4 +153,4 @@ export const Cart: React.FC<CartProps> = ({
       </div>
     </div>
   );
-};
+});

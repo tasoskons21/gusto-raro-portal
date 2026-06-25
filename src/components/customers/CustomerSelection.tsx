@@ -11,7 +11,7 @@ interface CustomerSelectionProps {
   onSelectCustomer: (customer: Customer) => void;
 }
 
-export const CustomerSelection: React.FC<CustomerSelectionProps> = ({
+export const CustomerSelection = React.memo<CustomerSelectionProps>(({
   customers,
   searchTerm,
   setSearchTerm,
@@ -93,4 +93,4 @@ export const CustomerSelection: React.FC<CustomerSelectionProps> = ({
       </div>
     </div>
   );
-};
+});

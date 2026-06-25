@@ -13,7 +13,7 @@ interface ProductListProps {
   isLoading?: boolean;
 }
 
-export const ProductList: React.FC<ProductListProps> = ({
+export const ProductList = React.memo<ProductListProps>(({
   productSearch,
   setProductSearch,
   selectedBrand,
@@ -109,7 +109,7 @@ export const ProductList: React.FC<ProductListProps> = ({
       </div>
     </div>
   );
-};
+});
 
 interface ProductRowProps {
   product: Product;
@@ -118,7 +118,7 @@ interface ProductRowProps {
   onViewProduct: (product: Product) => void;
 }
 
-const ProductRow: React.FC<ProductRowProps> = ({ product, currentQty, onUpdateQty, onViewProduct }) => {
+  const ProductRow = React.memo<ProductRowProps>(({ product, currentQty, onUpdateQty, onViewProduct }) => {
   const imageUrl = product.imageUrl || product.ImageUrl || product.imageurl;
 
   return (
@@ -187,4 +187,4 @@ const ProductRow: React.FC<ProductRowProps> = ({ product, currentQty, onUpdateQt
       </td>
     </tr>
   );
-};
+});

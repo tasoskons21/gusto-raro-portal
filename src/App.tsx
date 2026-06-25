@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import XLSX from 'xlsx-js-style';
 import { motion, AnimatePresence } from 'motion/react';
 import { Customer, Product, CartItem, OrderRecord, User, Brand, Profile } from './types';
 import { dataService } from './services/dataService';
-import { supabase, fetchWithTimeout } from './lib/supabase';
+import { supabase, fetchWithTimeout, initSupabaseConnectionMonitoring } from './lib/supabase';
 
 // Components
 import { LoginForm } from './components/auth/LoginForm';
@@ -15,15 +15,15 @@ import { BrandSidebar } from './components/orders/BrandSidebar';
 import { ProductList } from './components/orders/ProductList';
 import { ProductBrowser } from './components/orders/ProductBrowser';
 import { Cart } from './components/orders/Cart';
-import { AdminModal } from './components/admin/AdminModal';
-import { ProductDetailsModal } from './components/orders/ProductDetailsModal';
-import { OrderConfirmationModal } from './components/orders/OrderConfirmationModal';
-import { ExportPreviewModal } from './components/orders/ExportPreviewModal';
 import { OrdersList } from './components/orders/OrdersList';
-import { OrderViewModal } from './components/orders/OrderViewModal';
-import { SoftOneConfirmModal } from './components/orders/SoftOneConfirmModal';
-import { ConfirmModal } from './components/common/ConfirmModal';
-import { StatusModal } from './components/common/StatusModal';
+const AdminModal = React.lazy(() => import('./components/admin/AdminModal').then(m => ({ default: m.AdminModal })));
+const ProductDetailsModal = React.lazy(() => import('./components/orders/ProductDetailsModal').then(m => ({ default: m.ProductDetailsModal })));
+const OrderConfirmationModal = React.lazy(() => import('./components/orders/OrderConfirmationModal').then(m => ({ default: m.OrderConfirmationModal })));
+const ExportPreviewModal = React.lazy(() => import('./components/orders/ExportPreviewModal').then(m => ({ default: m.ExportPreviewModal })));
+const OrderViewModal = React.lazy(() => import('./components/orders/OrderViewModal').then(m => ({ default: m.OrderViewModal })));
+const SoftOneConfirmModal = React.lazy(() => import('./components/orders/SoftOneConfirmModal').then(m => ({ default: m.SoftOneConfirmModal })));
+const ConfirmModal = React.lazy(() => import('./components/common/ConfirmModal').then(m => ({ default: m.ConfirmModal })));
+const StatusModal = React.lazy(() => import('./components/common/StatusModal').then(m => ({ default: m.StatusModal })));
 import { LayoutGrid, ShoppingBag, ShoppingCart, ClipboardList, Package } from 'lucide-react';
 
 export default function App() {
@@ -95,7 +95,7 @@ export default function App() {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
   // Load Initial Data Function
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [custData, prodData, brandData] = await Promise.all([
@@ -128,7 +128,19 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedBrand, user.isLoggedIn, user.role, user.customer_id]);
+
+  const loadSavedOrders = useCallback(async () => {
+    setIsLoadingOrders(true);
+    try {
+      const orders = await dataService.fetchOrders(user.role, user.id);
+      setSavedOrders(orders);
+    } catch (err) {
+      console.error('Load orders failed:', err);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  }, [user.role, user.id]);
 
   // Auth Effects - handle session check and auth state changes
   useEffect(() => {
@@ -252,6 +264,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      initSupabaseConnectionMonitoring();
+    }
+  }, []);
+
+  useEffect(() => {
     if (user.isLoggedIn) {
       loadInitialData();
     }
@@ -317,7 +335,7 @@ export default function App() {
   const totalNet = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   // Auth Handlers
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     setAuthLoading(true);
@@ -350,9 +368,9 @@ export default function App() {
     } finally {
       setAuthLoading(false);
     }
-  };
+  }, [loginForm, supabase]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       setUser({ id: '', email: '', role: 'customer', isLoggedIn: false });
       setCart([]);
@@ -365,32 +383,32 @@ export default function App() {
       localStorage.clear();
       window.location.reload();
     }
-  };
+  }, [supabase]);
 
-  const handleChangeCustomer = () => {
+  const handleChangeCustomer = useCallback(() => {
     setCart([]);
     setNotes('');
     setEditingOrderId(null);
     setSelectedCustomer(null);
-  };
+  }, []);
 
   // Cart Handlers
-  const updateCartQuantity = (product: Product, qty: number) => {
+  const updateCartQuantity = useCallback((product: Product, qty: number) => {
     setCart(prev => {
       const existing = prev.find(item => item.code === product.code);
       if (qty <= 0) return prev.filter(item => item.code !== product.code);
       if (existing) return prev.map(item => item.code === product.code ? { ...item, quantity: qty } : item);
       return [...prev, { ...product, quantity: qty }];
     });
-  };
+  }, []);
 
   // Order Handlers
-  const handleCheckout = async () => {
+  const handleCheckout = useCallback(async () => {
     if (!selectedCustomer) return;
     setShowExportPreview(true);
-  };
+  }, [selectedCustomer]);
 
-  const handleConfirmExport = async () => {
+  const handleConfirmExport = useCallback(async () => {
     setShowExportPreview(false);
     setIsExporting(true);
 
@@ -398,7 +416,6 @@ export default function App() {
       const customer = selectedCustomer;
       if (!customer) return;
 
-      // Προετοιμασία δεδομένων
       const orderData: any = {
         user_id: user.id,
         user_email: user.email,
@@ -415,13 +432,10 @@ export default function App() {
         status: 'submitted' as const
       };
 
-      // Αν επεξεργαζόμαστε υπάρχουσα παραγγελία, συμπεριλαμβάνουμε το ID 
-      // ώστε το upsert να ξέρει ποια εγγραφή να ενημερώσει
       if (editingOrderId) {
         orderData.id = editingOrderId;
       }
 
-      // Χρήση upsert αντί για update/insert για αποφυγή CORS θεμάτων με το PATCH
       const result = await fetchWithTimeout(
         supabase.from('orders').upsert(orderData, { onConflict: 'id' }),
         20000,
@@ -430,7 +444,6 @@ export default function App() {
 
       if (result.error) throw result.error;
 
-      // Εμφάνιση ΜΟΝΟ του StatusModal για επιτυχία
       setStatusModal({
         show: true,
         type: 'success',
@@ -440,7 +453,6 @@ export default function App() {
           : 'Η παραγγελία σας αποθηκεύτηκε επιτυχώς.'
       });
 
-      // Καθαρισμός κατάστασης
       setCart([]);
       setNotes('');
       setSelectedCustomer(null);
@@ -450,21 +462,18 @@ export default function App() {
     } catch (err: any) {
       console.error('Order checkout failed:', err);
 
-      // Εμφάνιση ΜΟΝΟ του StatusModal για αποτυχία
       setStatusModal({
         show: true,
         type: 'error',
         title: 'Σφάλμα Σύνδεσης',
         message: 'Παρουσιάστηκε σφάλμα κατά την επικοινωνία με τη βάση (CORS ή Database error). Δοκιμάστε ξανά.'
       });
-
-      // Αφαιρέθηκε το setShowError για να μην βγαίνει δεύτερο μήνυμα
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [selectedCustomer, user, cart, totalNet, notes, editingOrderId, loadSavedOrders, supabase]);
 
-  const handleSendToSoft1FromCheckout = async () => {
+  const handleSendToSoft1FromCheckout = useCallback(async () => {
     setShowExportPreview(false);
     setSoftOneSending(true);
 
@@ -489,7 +498,7 @@ export default function App() {
       };
 
       const module = await import('./services/softoneService');
-      
+
       const branchesResult = await module.fetchBranchesForCustomer(customer.customer_code || customer.code, customer.address);
       const branchId = branchesResult.success && branchesResult.branches.length > 0 ? 0 : null;
 
@@ -530,21 +539,9 @@ export default function App() {
     } finally {
       setSoftOneSending(false);
     }
-  };
+  }, [selectedCustomer, user, cart, totalNet, notes]);
 
-  const loadSavedOrders = async () => {
-    setIsLoadingOrders(true);
-    try {
-      const orders = await dataService.fetchOrders(user.role, user.id);
-      setSavedOrders(orders);
-    } catch (err) {
-      console.error('Load orders failed:', err);
-    } finally {
-      setIsLoadingOrders(false);
-    }
-  };
-
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = useCallback(async () => {
     if (!selectedCustomer || cart.length === 0) return;
     setIsExporting(true);
     try {
@@ -598,9 +595,9 @@ export default function App() {
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [selectedCustomer, cart, totalNet, notes, editingOrderId, user, loadSavedOrders, supabase]);
 
-  const handleDeleteOrder = async (orderId: string) => {
+  const handleDeleteOrder = useCallback(async (orderId: string) => {
     setConfirmModal({
       show: true,
       title: 'Διαγραφή Παραγγελίας',
@@ -608,11 +605,9 @@ export default function App() {
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, show: false }));
         try {
-          // Use timeout wrapper with retry logic
           const success = await dataService.deleteOrder(orderId);
 
           if (success) {
-            // Εμφάνιση StatusModal για επιτυχία
             setStatusModal({
               show: true,
               type: 'success',
@@ -627,7 +622,6 @@ export default function App() {
         } catch (err: any) {
           console.error('Delete order failed:', err);
 
-          // Εμφάνιση StatusModal για αποτυχία (αντί για το setShowError)
           setStatusModal({
             show: true,
             type: 'error',
@@ -637,13 +631,13 @@ export default function App() {
         }
       }
     });
-  };
+  }, [loadSavedOrders]);
 
-  const handleViewOrder = (order: any) => {
+  const handleViewOrder = useCallback((order: any) => {
     setViewingOrder(order);
-  };
+  }, []);
 
-  const handleLoadDraft = async (order: any) => {
+  const handleLoadDraft = useCallback(async (order: any) => {
     const items = order.items || [];
     setCart(items);
     setNotes(order.notes || '');
@@ -658,9 +652,9 @@ export default function App() {
       address: order.customer_address || '',
       city: order.customer_city || ''
     } as Customer);
-  };
+  }, []);
 
-  const handleSendOrder = (order: any) => {
+  const handleSendOrder = useCallback((order: any) => {
     const customer = {
       id: order.customer_id,
       name: order.customer_name,
@@ -671,9 +665,9 @@ export default function App() {
       city: order.customer_city || ''
     };
     dataService.exportToExcel(customer, order.items || [], order.total_value, order.notes);
-  };
+  }, []);
 
-  const handleSendToSoft1 = async (order: any) => {
+  const handleSendToSoft1 = useCallback(async (order: any) => {
     if (softOneBranchesLoading || softOneSending || order.status === 'sent') return;
 
     setSoftOneBranchesLoading(true);
@@ -705,9 +699,9 @@ export default function App() {
     } finally {
       setSoftOneBranchesLoading(false);
     }
-  };
+  }, [softOneBranchesLoading, softOneSending, setSoftOneBranchesLoading, setSoftOneModalOrder, setBranchesForOrder, setSelectedBranchId, setShowError]);
 
-  const handleConfirmSoftOneSend = async () => {
+  const handleConfirmSoftOneSend = useCallback(async () => {
     if (!softOneModalOrder) return;
 
     setSoftOneSending(true);
@@ -752,10 +746,10 @@ export default function App() {
     } finally {
       setSoftOneSending(false);
     }
-  };
+  }, [softOneModalOrder, branchesForOrder, selectedBranchId, setSoftOneSending, setStatusModal, setSavedOrders, setSoftOneModalOrder, setBranchesForOrder, setSelectedBranchId, loadSavedOrders, dataService]);
 
   // Admin Handlers
-  const fetchAllUsers = async (showLoading = true) => {
+  const fetchAllUsers = useCallback(async (showLoading = true) => {
     if (showLoading) setIsAdminLoading(true);
     try {
       const { data, error } = await supabase
@@ -769,9 +763,9 @@ export default function App() {
     } finally {
       if (showLoading) setIsAdminLoading(false);
     }
-  };
+  }, [supabase, setIsAdminLoading, setAllUsers]);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleCreateUser = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAdminLoading(true);
     try {
@@ -808,9 +802,9 @@ export default function App() {
     } finally {
       setIsAdminLoading(false);
     }
-  };
+  }, [newUserForm, supabase, setIsAdminLoading, setStatusModal, setNewUserForm, fetchAllUsers]);
 
-  const handleUpdateUserRole = async (userId: string, newRole: string) => {
+  const handleUpdateUserRole = useCallback(async (userId: string, newRole: string) => {
     try {
       const { error } = await supabase.from('profiles').upsert({ id: userId, role: newRole }, { onConflict: 'id' });
       if (error) throw error;
@@ -819,9 +813,9 @@ export default function App() {
     } catch (err: any) {
       setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά την ενημέρωση ρόλου.' });
     }
-  };
+  }, [supabase, fetchAllUsers, setStatusModal]);
 
-  const handleDeleteUser = async (userId: string, role: string) => {
+  const handleDeleteUser = useCallback(async (userId: string, role: string) => {
     if (role === 'admin') return;
     setConfirmModal({
       show: true,
@@ -839,9 +833,9 @@ export default function App() {
         }
       }
     });
-  };
+  }, [setConfirmModal, setStatusModal, supabase, fetchAllUsers]);
 
-  const handleCreateBrand = async (e: React.FormEvent) => {
+  const handleCreateBrand = useCallback(async (e: React.FormEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -874,9 +868,9 @@ export default function App() {
     } finally {
       setIsAdminLoading(false);
     }
-  };
+  }, [newBrandForm, supabase, setIsAdminLoading, setStatusModal, setNewBrandForm, loadInitialData]);
 
-  const handleDeleteBrand = async (id: string) => {
+  const handleDeleteBrand = useCallback(async (id: string) => {
     setConfirmModal({
       show: true,
       title: 'Διαγραφή Brand',
@@ -893,9 +887,9 @@ export default function App() {
         }
       }
     });
-  };
+  }, [setConfirmModal, setStatusModal, supabase, loadInitialData]);
 
-  const handleCreateProduct = async (e: React.FormEvent) => {
+  const handleCreateProduct = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAdminLoading(true);
     try {
@@ -915,9 +909,9 @@ export default function App() {
     } finally {
       setIsAdminLoading(false);
     }
-  };
+  }, [newProductForm, supabase, setIsAdminLoading, setStatusModal, setNewProductForm, loadInitialData]);
 
-  const handleSearchProduct = async () => {
+  const handleSearchProduct = useCallback(async () => {
     if (!searchCode.trim()) return;
     setIsAdminLoading(true);
     try {
@@ -933,9 +927,9 @@ export default function App() {
     } finally {
       setIsAdminLoading(false);
     }
-  };
+  }, [searchCode, supabase, setIsAdminLoading, setStatusModal, setAdminSearchResults]);
 
-  const handleUpdateProduct = async (code: string) => {
+  const handleUpdateProduct = useCallback(async (code: string) => {
     setIsAdminLoading(true);
     try {
       const updateData: any = {
@@ -959,9 +953,9 @@ export default function App() {
     } finally {
       setIsAdminLoading(false);
     }
-  };
+  }, [editForm, supabase, setIsAdminLoading, setStatusModal, setEditingProduct, loadInitialData, handleSearchProduct]);
 
-  const handleDeleteProduct = async (code: string) => {
+  const handleDeleteProduct = useCallback(async (code: string) => {
     setConfirmModal({
       show: true,
       title: 'Διαγραφή Προϊόντος',
@@ -979,7 +973,7 @@ export default function App() {
         }
       }
     });
-  };
+  }, [setConfirmModal, setStatusModal, supabase, loadInitialData, handleSearchProduct]);
 
   // Render
   if (authLoading) {
@@ -1176,125 +1170,127 @@ export default function App() {
         </div>
       </main>
 
-      {/* Modals */}
-      <AdminModal
-        show={showAdminModal}
-        onClose={() => setShowAdminModal(false)}
-        users={allUsers}
-        onAddUser={handleCreateUser}
-        onDeleteUser={handleDeleteUser}
-        newUser={newUserForm}
-        setNewUser={setNewUserForm}
-        customers={customers}
-        allBrands={allBrands}
-        newBrandForm={newBrandForm}
-        setNewBrandForm={setNewBrandForm}
-        onAddBrand={handleCreateBrand}
-        onDeleteBrand={handleDeleteBrand}
-        products={products}
-        newProductForm={newProductForm}
-        setNewProductForm={setNewProductForm}
-        onAddProduct={handleCreateProduct}
-        onDeleteProduct={handleDeleteProduct}
-        onUpdateProduct={handleUpdateProduct}
-        searchCode={searchCode}
-        setSearchCode={setSearchCode}
-        onSearchProduct={handleSearchProduct}
-        adminSearchResults={adminSearchResults}
-        setAdminSearchResults={setAdminSearchResults}
-        editingProduct={editingProduct}
-        setEditingProduct={setEditingProduct}
-        editForm={editForm}
-        setEditForm={setEditForm}
-        isLoading={isAdminLoading}
-        currentUser={user}
-      />
+      <Suspense fallback={null}>
+        {/* Modals */}
+        <AdminModal
+          show={showAdminModal}
+          onClose={() => setShowAdminModal(false)}
+          users={allUsers}
+          onAddUser={handleCreateUser}
+          onDeleteUser={handleDeleteUser}
+          newUser={newUserForm}
+          setNewUser={setNewUserForm}
+          customers={customers}
+          allBrands={allBrands}
+          newBrandForm={newBrandForm}
+          setNewBrandForm={setNewBrandForm}
+          onAddBrand={handleCreateBrand}
+          onDeleteBrand={handleDeleteBrand}
+          products={products}
+          newProductForm={newProductForm}
+          setNewProductForm={setNewProductForm}
+          onAddProduct={handleCreateProduct}
+          onDeleteProduct={handleDeleteProduct}
+          onUpdateProduct={handleUpdateProduct}
+          searchCode={searchCode}
+          setSearchCode={setSearchCode}
+          onSearchProduct={handleSearchProduct}
+          adminSearchResults={adminSearchResults}
+          setAdminSearchResults={setAdminSearchResults}
+          editingProduct={editingProduct}
+          setEditingProduct={setEditingProduct}
+          editForm={editForm}
+          setEditForm={setEditForm}
+          isLoading={isAdminLoading}
+          currentUser={user}
+        />
 
-      <ProductDetailsModal
-        product={viewingProduct}
-        onClose={() => setViewingProduct(null)}
-        currentQty={cart.find(item => item.code === viewingProduct?.code)?.quantity || 0}
-        onUpdateQty={updateCartQuantity}
-        isViewOnly={activeView === 'products'}
-      />
+        <ProductDetailsModal
+          product={viewingProduct}
+          onClose={() => setViewingProduct(null)}
+          currentQty={cart.find(item => item.code === viewingProduct?.code)?.quantity || 0}
+          onUpdateQty={updateCartQuantity}
+          isViewOnly={activeView === 'products'}
+        />
 
-      <OrderConfirmationModal
-        show={showSuccess}
-        onClose={() => {
-          setShowSuccess(false);
-          setCart([]);
-          setSelectedCustomer(null);
-          setNotes('');
-        }}
-        orderId={viewingOrder?.id || null}
-      />
+        <OrderConfirmationModal
+          show={showSuccess}
+          onClose={() => {
+            setShowSuccess(false);
+            setCart([]);
+            setSelectedCustomer(null);
+            setNotes('');
+          }}
+          orderId={viewingOrder?.id || null}
+        />
 
-      {showError && (
-        <div className="fixed top-4 right-4 z-50 max-w-md animate-slide-in">
-          <div className="bg-red-50 border border-red-200 rounded-xl shadow-lg p-4 flex items-start gap-3">
-            <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-red-800">Σφάλμα</p>
-              <p className="text-sm text-red-700 mt-1">{showError}</p>
-            </div>
-            <button
-              onClick={() => setShowError(null)}
-              className="text-red-400 hover:text-red-600 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        {showError && (
+          <div className="fixed top-4 right-4 z-50 max-w-md animate-slide-in">
+            <div className="bg-red-50 border border-red-200 rounded-xl shadow-lg p-4 flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-            </button>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800">Σφάλμα</p>
+                <p className="text-sm text-red-700 mt-1">{showError}</p>
+              </div>
+              <button
+                onClick={() => setShowError(null)}
+                className="text-red-400 hover:text-red-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <SoftOneConfirmModal
-        show={!!softOneModalOrder}
-        order={softOneModalOrder}
-        branches={branchesForOrder}
-        defaultSelectedValue={branchesForOrder[0]?.id ?? null}
-        selectedBranchId={selectedBranchId}
-        onBranchChange={setSelectedBranchId}
-        onConfirm={handleConfirmSoftOneSend}
-        onCancel={() => { setSoftOneModalOrder(null); setBranchesForOrder([]); setSelectedBranchId(null); }}
-        isSending={softOneSending}
-      />
+        <SoftOneConfirmModal
+          show={!!softOneModalOrder}
+          order={softOneModalOrder}
+          branches={branchesForOrder}
+          defaultSelectedValue={branchesForOrder[0]?.id ?? null}
+          selectedBranchId={selectedBranchId}
+          onBranchChange={setSelectedBranchId}
+          onConfirm={handleConfirmSoftOneSend}
+          onCancel={() => { setSoftOneModalOrder(null); setBranchesForOrder([]); setSelectedBranchId(null); }}
+          isSending={softOneSending}
+        />
 
-      <ConfirmModal
-        show={confirmModal.show}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-        variant="danger"
-      />
+        <ConfirmModal
+          show={confirmModal.show}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+          variant="danger"
+        />
 
-      <StatusModal
-        show={statusModal.show}
-        type={statusModal.type}
-        title={statusModal.title}
-        message={statusModal.message}
-        onClose={() => setStatusModal(prev => ({ ...prev, show: false }))}
-      />
+        <StatusModal
+          show={statusModal.show}
+          type={statusModal.type}
+          title={statusModal.title}
+          message={statusModal.message}
+          onClose={() => setStatusModal(prev => ({ ...prev, show: false }))}
+        />
 
-      <ExportPreviewModal
-        show={showExportPreview}
-        onClose={() => setShowExportPreview(false)}
-        onConfirm={handleConfirmExport}
-        customer={selectedCustomer}
-        cart={cart}
-        totalNet={totalNet}
-        notes={notes}
-      />
+        <ExportPreviewModal
+          show={showExportPreview}
+          onClose={() => setShowExportPreview(false)}
+          onConfirm={handleConfirmExport}
+          customer={selectedCustomer}
+          cart={cart}
+          totalNet={totalNet}
+          notes={notes}
+        />
 
-      <OrderViewModal
-        order={viewingOrder}
-        isOpen={!!viewingOrder}
-        onClose={() => setViewingOrder(null)}
-      />
+        <OrderViewModal
+          order={viewingOrder}
+          isOpen={!!viewingOrder}
+          onClose={() => setViewingOrder(null)}
+        />
+      </Suspense>
     </div>
   );
 }
