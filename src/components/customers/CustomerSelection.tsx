@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, ChevronRight } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Customer } from '../../types';
 
 interface CustomerSelectionProps {
@@ -55,36 +55,51 @@ export const CustomerSelection = React.memo<CustomerSelectionProps>(({
           </div>
 
           <div className="mt-2 sm:mt-3 max-h-[45vh] sm:max-h-[calc(100vh-350px)] overflow-y-auto customer-scroll space-y-1.5">
-            {isLoading ? (
-              <div className="text-center py-8">
-                <div className="w-8 h-8 border-3 border-gusto-green border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                <p className="text-slate-500 text-sm font-medium">Φόρτωση πελατών...</p>
+           {isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="p-3 rounded-xl border border-slate-100 bg-white">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg skeleton shrink-0"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="skeleton skeleton-title"></div>
+                        <div className="flex gap-2">
+                          <div className="skeleton h-2 w-16"></div>
+                          <div className="skeleton h-2 w-12"></div>
+                        </div>
+                      </div>
+                      <div className="skeleton w-4 h-4 rounded-full"></div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : customers.length === 0 ? (
-              <div className="text-center py-8 bg-red-50 rounded-lg border border-red-100">
-                <p className="text-red-600 font-bold text-sm">⚠️ Δεν βρέθηκαν δεδομένα πελατών.</p>
-                <p className="text-[10px] text-red-500 mt-1">Ελέγξτε το αρχείο δεδομένων.</p>
+              <div className="text-center py-8 bg-gusto-error-bg rounded-xl border border-red-100">
+                <p className="text-gusto-error font-bold text-sm">⚠️ Δεν βρέθηκαν δεδομένα πελατών.</p>
+                <p className="text-[10px] text-red-400 mt-1">Ελέγξτε το αρχείο δεδομένων.</p>
               </div>
             ) : filteredCustomers.length > 0 ? (
               filteredCustomers.map(cust => (
                 <button
                   key={cust.id}
                   onClick={() => onSelectCustomer(cust)}
-                  className="w-full text-left p-3 rounded-lg bg-white hover:bg-slate-50 border border-slate-100 hover:border-gusto-green/30 transition-all flex items-center justify-between group shadow-sm"
+                  className="w-full text-left p-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-100 hover:border-gusto-green/30 transition-all flex items-center justify-between group shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08),0_2px_4px_rgba(0,0,0,0.04)]"
                 >
                   <div className="flex-1 min-w-0 pr-3 text-left">
                     <h3 className="font-bold text-slate-800 uppercase truncate group-hover:text-gusto-green transition-colors text-sm">{cust.name}</h3>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                      <span className="text-[9px] bg-slate-50 text-slate-600 px-1 py-0.5 rounded font-mono border border-slate-100">Κωδ: {cust.code}</span>
-                      <span className="text-[9px] bg-slate-50 text-slate-600 px-1 py-0.5 rounded font-mono border border-slate-100">ΑΦΜ: {cust.afm}</span>
+                      <span className="text-[9px] bg-gusto-slate-50 text-slate-600 px-1.5 py-0.5 rounded font-mono border border-gusto-slate-100">Κωδ: {cust.code}</span>
+                      <span className="text-[9px] bg-gusto-slate-50 text-slate-600 px-1.5 py-0.5 rounded font-mono border border-gusto-slate-100">ΑΦΜ: {cust.afm}</span>
                       <span className="text-[9px] font-black text-amber-600 uppercase tracking-wide">{cust.city}</span>
                     </div>
                   </div>
-                  <ChevronRight className="text-slate-300 group-hover:text-gusto-green transition-transform group-hover:translate-x-1" size={16} />
+                  <svg className="text-slate-300 group-hover:text-gusto-green transition-transform group-hover:translate-x-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </button>
               ))
             ) : searchTerm.length > 0 ? (
-              <div className="text-center py-8 bg-slate-50/50 rounded-lg border border-slate-100">
+              <div className="text-center py-8 bg-gusto-slate-50/50 rounded-xl border border-gusto-slate-200">
                 <p className="text-slate-500 text-sm">Δεν βρέθηκαν πελάτες για "{searchTerm}"</p>
               </div>
             ) : null}

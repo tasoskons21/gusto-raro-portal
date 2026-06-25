@@ -26,7 +26,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-8 rounded-[32px] shadow-2xl w-full max-w-md border-4 border-gusto-gold/20"
+        className="bg-white p-8 rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.12),0_8px_16px_rgba(0,0,0,0.06)] w-full max-w-md border-4 border-gusto-gold/20"
       >
         <div className="text-center mb-8">
           <img
@@ -88,13 +88,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <button
             type="submit"
             disabled={authLoading}
-            className="w-full bg-gusto-green text-white font-black py-5 rounded-2xl shadow-xl shadow-gusto-green/20 hover:bg-gusto-green-light hover:scale-[1.02] active:scale-[0.98] transition-all text-lg mt-4 flex items-center justify-center gap-2"
+            className="w-full bg-gusto-green text-white font-black py-5 rounded-2xl shadow-[0_1px_2px_rgba(30,57,50,0.24)] hover:bg-gusto-green-light hover:shadow-[0_4px_12px_rgba(30,57,50,0.28)] hover:scale-[1.01] active:scale-[0.98] transition-all text-lg mt-4 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             {authLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                <span>Σύνδεση...</span>
+              </div>
             ) : (
               <>
-                <LogOut className="rotate-180" size={20} />
+                <svg className="rotate-180" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
                 ΕΙΣΟΔΟΣ
               </>
             )}

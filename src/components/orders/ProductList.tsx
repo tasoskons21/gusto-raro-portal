@@ -24,8 +24,8 @@ export const ProductList = React.memo<ProductListProps>(({
   isLoading = false,
 }) => {
   return (
-    <div className="w-full lg:col-span-6 flex flex-col min-h-0 h-full">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col min-h-0 flex-1 overflow-hidden">
+     <div className="w-full lg:col-span-6 flex flex-col min-h-0 h-full">
+       <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-gusto-slate-200 p-4 flex flex-col min-h-0 flex-1 overflow-hidden">
         <div className="flex items-center justify-between mb-4 shrink-0">
           <h3 className="font-bold text-slate-800 uppercase tracking-tight flex items-center gap-2">
             <span className="w-2 h-2 bg-gusto-green rounded-full"></span>
@@ -53,11 +53,11 @@ export const ProductList = React.memo<ProductListProps>(({
 
         <div className="w-full overflow-y-auto customer-scroll flex-1 -mx-1 px-1">
           <table className="w-full text-left border-collapse table-fixed">
-            <thead className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest sticky top-0 z-10">
+            <thead className="bg-gusto-slate-50 text-[9px] font-black text-gusto-slate-400 uppercase tracking-widest sticky top-0 z-10">
               <tr>
-                <th className="px-2 py-2 border-b border-slate-100 w-1/2 text-xs">ΠΕΡΙΓΡΑΦΗ</th>
-                <th className="px-2 py-2 border-b border-slate-100 w-1/4 text-right text-xs">ΤΙΜΗ</th>
-                <th className="px-2 py-2 border-b border-slate-100 w-1/4 text-center text-xs">ΠΟΣΟΤΗΤΑ</th>
+                <th className="px-2 py-2 border-b border-gusto-slate-100 w-1/2 text-xs">ΠΕΡΙΓΡΑΦΗ</th>
+                <th className="px-2 py-2 border-b border-gusto-slate-100 w-1/4 text-right text-xs">ΤΙΜΗ</th>
+                <th className="px-2 py-2 border-b border-gusto-slate-100 w-1/4 text-center text-xs">ΠΟΣΟΤΗΤΑ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -98,11 +98,14 @@ export const ProductList = React.memo<ProductListProps>(({
 
           {!isLoading && filteredProducts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                <Search size={32} className="opacity-20" />
+              <div className="w-16 h-16 bg-gusto-slate-50 rounded-full flex items-center justify-center mb-4">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gusto-slate-300">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
               </div>
-              <p className="font-medium">Δεν βρέθηκαν προϊόντα</p>
-              <p className="text-xs mt-1">Δοκιμάστε άλλη αναζήτηση ή εταιρία</p>
+              <p className="font-semibold text-sm text-slate-500">Δεν βρέθηκαν προϊόντα</p>
+              <p className="text-xs mt-1 text-slate-400">Δοκιμάστε άλλη αναζήτηση ή εταιρία</p>
             </div>
           )}
         </div>

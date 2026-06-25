@@ -36,7 +36,7 @@ export const Header = React.memo<HeaderProps>(({
   };
 
   return (
-    <header className="bg-white/95 backdrop-blur-md shadow-md sticky top-0 z-50 border-b border-slate-200">
+    <header className="bg-white/95 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] sticky top-0 z-50 border-b border-gusto-slate-200">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo & Brand */}
         <div className="flex items-center gap-3">
@@ -62,7 +62,7 @@ export const Header = React.memo<HeaderProps>(({
               onClick={() => setMenuOpen(!menuOpen)}
               aria-expanded={menuOpen}
               className={`p-2.5 rounded-xl transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 ${
-                menuOpen ? 'bg-gusto-green text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-gusto-green'
+                menuOpen ? 'bg-gusto-green text-white shadow-[0_1px_2px_rgba(30,57,50,0.24)]' : 'text-gusto-slate-600 hover:bg-gusto-slate-100 hover:text-gusto-green'
               }`}
               title="Μενού Πλοήγησης"
             >
@@ -78,7 +78,7 @@ export const Header = React.memo<HeaderProps>(({
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50 origin-top-right"
+                  className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.12),0_8px_16px_rgba(0,0,0,0.06)] border border-gusto-slate-200 overflow-hidden z-50 origin-top-right"
                 >
                   <div className="p-2">
                     <p className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Πλοήγηση</p>
@@ -92,8 +92,8 @@ export const Header = React.memo<HeaderProps>(({
                               onClick={() => { onViewChange(view); setMenuOpen(false); }}
                               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 ${
                                 activeView === view
-                                  ? 'bg-gusto-green text-white font-semibold'
-                                  : 'text-slate-600 hover:bg-slate-100'
+                                  ? 'bg-gusto-green text-white font-semibold shadow-sm'
+                                  : 'text-gusto-slate-600 hover:bg-gusto-slate-100'
                               }`}
                             >
                               <Icon size={20} />
@@ -106,13 +106,13 @@ export const Header = React.memo<HeaderProps>(({
                         })}
                       </div>
                     )}
-                    <div className="h-px bg-slate-200 my-2 mx-2"></div>
-                    <div className="flex flex-col gap-1">
-                      {user.role === 'admin' && (
-                        <button
-                          onClick={() => { onShowAdminModal(); setMenuOpen(false); }}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl text-left text-slate-600 hover:bg-slate-100 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
-                        >
+                   <div className="h-px bg-gusto-slate-200 my-2 mx-2"></div>
+                     <div className="flex flex-col gap-1">
+                       {user.role === 'admin' && (
+                         <button
+                           onClick={() => { onShowAdminModal(); setMenuOpen(false); }}
+                           className="flex items-center gap-3 px-4 py-3 rounded-xl text-left text-gusto-slate-600 hover:bg-gusto-slate-100 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
+                         >
                           <Settings size={20} />
                           <span>Ρυθμίσεις</span>
                         </button>
@@ -133,7 +133,10 @@ export const Header = React.memo<HeaderProps>(({
 
           {/* Loading indicator (hidden on mobile to save space) */}
           {isLoading && (
-            <span className="hidden sm:inline-block text-xs bg-gusto-gold/30 text-gusto-green px-3 py-1.5 rounded-full animate-pulse font-bold">Φόρτωση...</span>
+            <div className="hidden sm:flex items-center gap-2 bg-gusto-green/10 text-gusto-green px-3 py-1.5 rounded-full animate-pulse-subtle">
+              <div className="w-3 h-3 rounded-full bg-gusto-green/40"></div>
+              <span className="text-xs font-bold">Φόρτωση...</span>
+            </div>
           )}
 
           {/* Desktop only: Sidebar toggle, Admin & Logout as icons when menu is closed */}
@@ -141,7 +144,7 @@ export const Header = React.memo<HeaderProps>(({
           {activeView === 'order' && onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="p-2.5 text-slate-600 hover:bg-slate-100 hover:text-gusto-green rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
+              className="p-2.5 text-gusto-slate-600 hover:bg-gusto-slate-100 hover:text-gusto-green rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
               title={sidebarCollapsed ? "Εμφάνιση Πλαϊνού Μενού" : "Απόκρυψη Πλαϊνού Μενού"}
             >
               {sidebarCollapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
@@ -150,7 +153,7 @@ export const Header = React.memo<HeaderProps>(({
           {user.role === 'admin' && !menuOpen && (
             <button
               onClick={onShowAdminModal}
-              className="p-2.5 text-slate-600 hover:bg-slate-100 hover:text-gusto-green rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
+              className="p-2.5 text-gusto-slate-600 hover:bg-gusto-slate-100 hover:text-gusto-green rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
               title="Ρυθμίσεις Διαχειριστή"
             >
               <Settings size={20} />
@@ -159,7 +162,7 @@ export const Header = React.memo<HeaderProps>(({
           {!menuOpen && (
             <button
               onClick={onLogout}
-              className="p-2.5 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+              className="p-2.5 text-gusto-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
               title="Έξοδος"
             >
               <LogOut size={20} />

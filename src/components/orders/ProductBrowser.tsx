@@ -32,7 +32,7 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
 
   return (
     <div className="w-full h-full flex flex-col min-h-0">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col min-h-0 flex-1 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border border-gusto-slate-200 p-4 flex flex-col min-h-0 flex-1 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 shrink-0 gap-2">
           <h3 className="font-bold text-slate-800 uppercase tracking-tight flex items-center gap-2 text-sm">
@@ -79,18 +79,29 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
         {/* Products Grid */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="w-10 h-10 border-4 border-gusto-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-slate-500 font-medium">Φόρτωση προϊόντων...</p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-gusto-slate-200 overflow-hidden">
+                  <div className="h-48 skeleton"></div>
+                  <div className="p-3 space-y-2">
+                    <div className="skeleton skeleton-title w-1/2"></div>
+                    <div className="skeleton skeleton-text w-3/4"></div>
+                    <div className="flex items-center justify-between">
+                      <div className="skeleton w-16 h-5 rounded-md"></div>
+                      <div className="skeleton w-10 h-3 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center p-8">
-                <Package size={48} className="mx-auto text-slate-300 mb-4" />
-                <p className="text-slate-500 font-medium">Δεν βρέθηκαν προϊόντα</p>
-                <p className="text-sm text-slate-400 mt-1">Δοκιμάστε να αλλάξετε τα φίλτρα ή την αναζήτηση</p>
+                <div className="w-20 h-20 rounded-full bg-gusto-slate-100 flex items-center justify-center mx-auto mb-4">
+                  <Package size={32} className="text-gusto-slate-300" />
+                </div>
+                <p className="text-slate-500 font-semibold text-sm">Δεν βρέθηκαν προϊόντα</p>
+                <p className="text-xs text-slate-400 mt-1">Δοκιμάστε να αλλάξετε τα φίλτρα ή την αναζήτηση</p>
               </div>
             </div>
           ) : (
@@ -106,11 +117,11 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
                 return (
                   <div
                     key={code}
-                    className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group"
+                    className="bg-white rounded-xl border border-gusto-slate-200 overflow-hidden hover:shadow-[0_4px_12px_rgba(0,0,0,0.08),0_2px_4px_rgba(0,0,0,0.04)] transition-all group"
                   >
                     {/* Product Image */}
                     <div
-                      className="h-48 bg-slate-50 relative overflow-hidden flex items-center justify-center cursor-pointer"
+                      className="h-48 bg-gusto-slate-50 relative overflow-hidden flex items-center justify-center cursor-pointer"
                       onClick={() => onViewProduct(product)}
                     >
                       {imageUrl ? (
@@ -124,22 +135,22 @@ export const ProductBrowser: React.FC<ProductBrowserProps> = ({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Package size={32} className="text-slate-300" />
+                          <Package size={32} className="text-gusto-slate-300" />
                         </div>
                       )}
                     </div>
 
                     {/* Product Info */}
                     <div className="p-3">
-                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{brand}</p>
-                      <h4 className="font-semibold text-slate-800 text-sm mb-2 line-clamp-2" title={description}>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-medium mb-1">{brand}</p>
+                      <h4 className="font-semibold text-slate-800 text-sm mb-2 line-clamp-2 leading-snug" title={description}>
                         {description}
                       </h4>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-gusto-green font-bold text-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gusto-green font-black text-base">
                           €{price.toFixed(2)}
                         </span>
-                        <span className="text-xs text-slate-500 font-mono">{code}</span>
+                        <span className="text-[10px] text-slate-500 font-mono font-medium">{code}</span>
                       </div>
                     </div>
                   </div>
