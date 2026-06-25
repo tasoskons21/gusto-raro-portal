@@ -39,7 +39,7 @@ export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onCancel}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-gusto-slate-900/50 backdrop-blur-sm"
           />
 
           <motion.div
@@ -47,9 +47,9 @@ export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', duration: 0.5 }}
-            className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+            className="relative bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.12),0_8px_16px_rgba(0,0,0,0.06)] max-w-md w-full overflow-hidden"
           >
-            <div className="relative bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-8 text-center">
+            <div className="relative bg-gradient-to-r from-gusto-green to-gusto-green/90 px-6 py-8 text-center">
               <button
                 onClick={onCancel}
                 className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
@@ -64,7 +64,7 @@ export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
               <h3 className="text-xl font-bold text-white mb-2">
                 Αποστολή στο SoftOne
               </h3>
-              <p className="text-purple-100 text-sm">
+              <p className="text-white/80 text-sm">
                 Η παραγγελία θα καταχωρηθεί στο SoftOne
               </p>
             </div>

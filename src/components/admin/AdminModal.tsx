@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { Profile, Brand, Product, Customer } from '../../types';
 
+type AdminTab = 'users' | 'brands' | 'products';
+
 interface AdminModalProps {
   show: boolean;
   onClose: () => void;
@@ -59,7 +61,7 @@ interface SmartInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElemen
   previewImage?: boolean;
 }
 
-const SmartInput: React.FC<SmartInputProps> = ({ 
+  const SmartInput: React.FC<SmartInputProps> = ({ 
   value, onChange, debounceTime = 300, label, icon, previewImage, className, ...props 
 }) => {
   const [localValue, setLocalValue] = React.useState(value);
@@ -84,10 +86,10 @@ const SmartInput: React.FC<SmartInputProps> = ({
 
   return (
     <div className="space-y-1.5 w-full">
-      {label && <label className="text-[10px] font-black text-slate-400 uppercase ml-1">{label}</label>}
+      {label && <label className="text-[10px] font-black text-gusto-slate-500 uppercase ml-1 tracking-wider">{label}</label>}
       <div className="relative">
         {icon && (
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300">
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gusto-slate-400">
             {icon}
           </div>
         )}
@@ -102,10 +104,10 @@ const SmartInput: React.FC<SmartInputProps> = ({
             }
             props.onKeyDown?.(e);
           }}
-          className={`${className} ${icon ? 'pl-11' : 'pl-4'} pr-12 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-900 transition-all`}
+          className={`${className} ${icon ? 'pl-11' : 'pl-4'} pr-12 py-3 bg-gusto-slate-50 border border-gusto-slate-200 rounded-xl font-bold text-gusto-slate-700 outline-none focus:bg-white focus:border-gusto-slate-900 transition-all`}
         />
         {previewImage && debouncedPreviewUrl && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white border border-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white border border-gusto-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
             <img 
               src={debouncedPreviewUrl || undefined}
               alt="" 
@@ -131,7 +133,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   adminSearchResults, setAdminSearchResults, editingProduct, setEditingProduct,
   editForm, setEditForm, isLoading, currentUser
 }) => {
-  const [activeTab, setActiveTab] = React.useState<'users' | 'brands' | 'products'>('users');
+  const [activeTab, setActiveTab] = React.useState<AdminTab>('users');
   const [showAddForm, setShowAddForm] = React.useState(false);
 
   if (!show) return null;
@@ -146,7 +148,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     <div className="fixed inset-0 flex items-center justify-center z-[150] p-0 sm:p-4">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-md"
+        onClick={onClose} className="fixed inset-0 bg-gusto-slate-900/60 backdrop-blur-md"
       />
       
       <motion.div
@@ -154,33 +156,33 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         className="bg-white w-full max-w-6xl h-full sm:h-[90vh] sm:rounded-[40px] shadow-2xl relative z-10 overflow-hidden flex flex-col"
       >
         {/* --- MODERN HEADER --- */}
-        <div className="bg-white border-b border-slate-100 p-6 shrink-0">
+        <div className="bg-white border-b border-gusto-slate-100 p-6 shrink-0">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-200">
+              <div className="w-12 h-12 bg-gusto-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-gusto-slate-200">
                 <Settings className="text-white" size={24} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Admin Panel</h2>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Διαχείριση Πλατφόρμας</p>
+                <h2 className="text-2xl font-black text-gusto-slate-900 tracking-tight leading-none">Admin Panel</h2>
+                <p className="text-gusto-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Διαχείριση Πλατφόρμας</p>
               </div>
             </div>
-            <button onClick={onClose} className="w-10 h-10 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-xl transition-all flex items-center justify-center">
+            <button onClick={onClose} className="w-10 h-10 bg-gusto-slate-50 hover:bg-gusto-slate-100 text-gusto-slate-400 hover:text-gusto-slate-900 rounded-xl transition-all flex items-center justify-center">
               <X size={20} />
             </button>
           </div>
 
-          <div className="flex p-1.5 bg-slate-50 rounded-2xl w-fit">
+          <div className="flex p-1.5 bg-gusto-slate-50 rounded-2xl w-fit">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => { setActiveTab(tab.id as any); setShowAddForm(false); }}
+                  onClick={() => { setActiveTab(tab.id as AdminTab); setShowAddForm(false); }}
                   className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
                     activeTab === tab.id 
-                    ? 'bg-white text-slate-900 shadow-sm' 
-                    : 'text-slate-400 hover:text-slate-600'
+                    ? 'bg-white text-gusto-slate-900 shadow-sm' 
+                    : 'text-gusto-slate-400 hover:text-gusto-slate-600'
                   }`}
                 >
                   <Icon size={18} />
@@ -192,15 +194,15 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         </div>
 
         {/* --- CONTENT AREA --- */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30 customer-scroll">
+        <div className="flex-1 overflow-y-auto p-6 bg-gusto-slate-50/30 customer-scroll">
           {/* --- TAB 1: USERS --- */}
           {activeTab === 'users' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Διαχείριση Χρηστών</h3>
+                <h3 className="text-xl font-black text-gusto-slate-900 tracking-tight">Διαχείριση Χρηστών</h3>
                 <button 
                   onClick={() => setShowAddForm(!showAddForm)}
-                  className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-slate-200"
+                  className="bg-gusto-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gusto-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-gusto-slate-200"
                 >
                   <Plus size={18} />
                   Νέος Χρήστης
@@ -210,14 +212,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               <AnimatePresence>
                 {showAddForm && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <div className="bg-gradient-to-br from-white to-slate-50/50 p-8 rounded-[32px] border border-slate-200 shadow-lg shadow-slate-100/50 mb-6">
+                    <div className="bg-gradient-to-br from-white to-gusto-slate-50/50 p-8 rounded-[32px] border border-gusto-slate-200 shadow-lg shadow-gusto-slate-100/50 mb-6">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gusto-slate-900 rounded-xl flex items-center justify-center">
                           <UsersIcon size={20} className="text-white" />
                         </div>
                         <div>
-                          <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">Στοιχεία Χρήστη</h3>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Συμπληρώστε τα απαραίτητα πεδία</p>
+                          <h3 className="font-black text-gusto-slate-900 text-sm uppercase tracking-wider">Στοιχεία Χρήστη</h3>
+                          <p className="text-[10px] font-bold text-gusto-slate-400 uppercase tracking-widest">Συμπληρώστε τα απαραίτητα πεδία</p>
                         </div>
                       </div>
                       <form onSubmit={(e) => { 
@@ -226,9 +228,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       }}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Email *</label>
+                            <label className="text-[10px] font-black text-gusto-slate-500 uppercase ml-1 tracking-wider">Email *</label>
                             <div className="relative">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400">
                                 <Mail size={16} />
                               </div>
                               <input 
@@ -237,14 +239,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 placeholder="user@example.com"
                                 value={newUser.email || ''}
                                 onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all"
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gusto-slate-200 rounded-xl font-bold text-gusto-slate-700 text-sm placeholder:text-gusto-slate-300 focus:border-gusto-slate-900 focus:bg-white outline-none transition-all"
                               />
                             </div>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Κωδικός *</label>
+                            <label className="text-[10px] font-black text-gusto-slate-500 uppercase ml-1 tracking-wider">Κωδικός *</label>
                             <div className="relative">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400">
                                 <Lock size={16} />
                               </div>
                               <input 
@@ -253,24 +255,24 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 placeholder="••••••••"
                                 value={newUser.password || ''}
                                 onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all"
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gusto-slate-200 rounded-xl font-bold text-gusto-slate-700 text-sm placeholder:text-gusto-slate-300 focus:border-gusto-slate-900 focus:bg-white outline-none transition-all"
                               />
                             </div>
                           </div>
                         </div>
                         <div className="mb-5">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Ρόλος *</label>
+                            <label className="text-[10px] font-black text-gusto-slate-500 uppercase ml-1 tracking-wider">Ρόλος *</label>
                             <div className="relative max-w-md">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400">
                                 <Award size={16} />
                               </div>
-                              <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value as any })} className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all appearance-none cursor-pointer">
+                              <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value as any })} className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gusto-slate-200 rounded-xl font-bold text-gusto-slate-700 text-sm outline-none focus:border-gusto-slate-900 focus:bg-white transition-all appearance-none cursor-pointer">
                                 <option value="customer">Πελάτης</option>
                                 <option value="seller">Πωλητής</option>
                                 <option value="admin">Admin</option>
                               </select>
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gusto-slate-400 pointer-events-none">
                                 <ChevronDown size={16} />
                               </div>
                             </div>
@@ -290,7 +292,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400">
                                 <Building2 size={16} />
                               </div>
-                              <select required value={newUser.customerId || ''} onChange={e => setNewUser({ ...newUser, customerId: e.target.value })} className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-blue-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer">
+                              <select required value={newUser.customerId || ''} onChange={e => setNewUser({ ...newUser, customerId: e.target.value })} className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-blue-200 rounded-xl font-bold text-gusto-slate-700 text-sm outline-none focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer">
                                 <option value="">Επιλέξτε Κατάστημα...</option>
                                 {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.city})</option>)}
                               </select>
@@ -301,7 +303,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           </motion.div>
                         )}
                         <div className="pt-2">
-                          <button type="submit" className="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:from-slate-800 hover:to-slate-700 transition-all shadow-xl shadow-slate-200/50 flex items-center justify-center gap-2">
+                          <button type="submit" className="bg-gradient-to-r from-gusto-green to-gusto-green/90 text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:from-gusto-green-light hover:to-gusto-green transition-all shadow-lg shadow-gusto-green/10 flex items-center justify-center gap-2">
                             <Check size={16} />
                             Δημιουργία Χρήστη
                           </button>
@@ -312,31 +314,31 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 )}
               </AnimatePresence>
 
-              <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-[32px] border border-gusto-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    <tr className="bg-gusto-slate-50/50 text-[10px] font-black text-gusto-slate-400 uppercase tracking-[0.2em]">
                       <th className="px-8 py-5">Στοιχεία Χρήστη</th>
                       <th className="px-8 py-5">Ρόλος Πρόσβασης</th>
                       <th className="px-8 py-5 text-right">Ενέργειες</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-gusto-slate-50">
                     {users?.map((u) => (
-                      <tr key={u.id} className="hover:bg-slate-50/30 transition-colors">
+                      <tr key={u.id} className="hover:bg-gusto-slate-50/30 transition-colors">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
+                            <div className="w-10 h-10 bg-gusto-slate-100 rounded-xl flex items-center justify-center text-gusto-slate-400">
                               <Mail size={18} />
                             </div>
-                            <span className="font-bold text-slate-700">{u.email}</span>
+                            <span className="font-bold text-gusto-slate-700">{u.email}</span>
                           </div>
                         </td>
                         <td className="px-8 py-5">
                           <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
                             u.role === 'admin' ? 'bg-amber-100 text-amber-700' : 
                             u.role === 'seller' ? 'bg-blue-100 text-blue-700' : 
-                            'bg-slate-100 text-slate-600'
+                            'bg-gusto-slate-100 text-gusto-slate-600'
                           }`}>
                             {u.role}
                           </span>
@@ -360,10 +362,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           {activeTab === 'brands' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Διαχείριση Brands</h3>
+                <h3 className="text-xl font-black text-gusto-slate-900 tracking-tight">Διαχείριση Brands</h3>
                 <button 
                   onClick={() => setShowAddForm(!showAddForm)}
-                  className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-slate-200"
+                  className="bg-gusto-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gusto-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-gusto-slate-200"
                 >
                   <Plus size={18} />
                   Νέο Brand
@@ -373,7 +375,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               <AnimatePresence>
                 {showAddForm && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm mb-6">
+                    <div className="bg-white p-6 rounded-[32px] border border-gusto-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] mb-6">
                       <form onSubmit={onAddBrand} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <SmartInput 
                           label="Όνομα Brand"
@@ -384,7 +386,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           className="uppercase"
                         />
                         <div className="flex items-end">
-                          <button type="submit" disabled={isLoading} className="w-full bg-slate-900 text-white h-[48px] rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-50">
+                          <button type="submit" disabled={isLoading} className="w-full bg-gusto-green text-white h-[48px] rounded-xl font-black text-xs uppercase tracking-widest hover:bg-gusto-green-light transition-all disabled:opacity-50">
                             {isLoading ? 'Αποθήκευση...' : 'Προσθήκη'}
                           </button>
                         </div>
@@ -394,25 +396,25 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 )}
               </AnimatePresence>
 
-              <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-[32px] border border-gusto-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    <tr className="bg-gusto-slate-50/50 text-[10px] font-black text-gusto-slate-400 uppercase tracking-[0.2em]">
                       <th className="px-8 py-5">Λογότυπο</th>
                       <th className="px-8 py-5">Όνομα Εταιρείας</th>
                       <th className="px-8 py-5 text-right">Ενέργειες</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-gusto-slate-50">
                     {allBrands?.map((b, idx) => (
-                      <tr key={b.id || idx} className="hover:bg-slate-50/30 transition-colors">
+                      <tr key={b.id || idx} className="hover:bg-gusto-slate-50/30 transition-colors">
                         <td className="px-8 py-4">
-                          <div className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center overflow-hidden p-2">
-                            {b.logo_url ? <img src={b.logo_url} className="max-w-full max-h-full object-contain" alt="" /> : <Building2 size={20} className="text-slate-200" />}
+                          <div className="w-12 h-12 bg-white border border-gusto-slate-100 rounded-xl flex items-center justify-center overflow-hidden p-2">
+                            {b.logo_url ? <img src={b.logo_url} className="max-w-full max-h-full object-contain" alt="" /> : <Building2 size={20} className="text-gusto-slate-200" />}
                           </div>
                         </td>
                         <td className="px-8 py-4">
-                          <span className="font-black text-slate-800 uppercase tracking-tight">{b.name}</span>
+                          <span className="font-black text-gusto-slate-800 uppercase tracking-tight">{b.name}</span>
                         </td>
                         <td className="px-8 py-4 text-right">
                           <button onClick={() => onDeleteBrand(b.id || (b as any).ID)} className="w-9 h-9 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center ml-auto">
@@ -431,10 +433,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           {activeTab === 'products' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Διαχείριση Προϊόντων</h3>
+                <h3 className="text-xl font-black text-gusto-slate-900 tracking-tight">Διαχείριση Προϊόντων</h3>
                 <button 
                   onClick={() => setShowAddForm(!showAddForm)}
-                  className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-slate-200"
+                  className="bg-gusto-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gusto-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-gusto-slate-200"
                 >
                   <Plus size={18} />
                   Νέο Προϊόν
@@ -444,22 +446,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               <AnimatePresence>
                 {showAddForm && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <div className="bg-gradient-to-br from-white to-slate-50/50 p-8 rounded-[32px] border border-slate-200 shadow-lg shadow-slate-100/50 mb-6">
+                    <div className="bg-gradient-to-br from-white to-gusto-slate-50/50 p-8 rounded-[32px] border border-gusto-slate-200 shadow-lg shadow-gusto-slate-100/50 mb-6">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gusto-slate-900 rounded-xl flex items-center justify-center">
                           <Plus size={20} className="text-white" />
                         </div>
                         <div>
-                          <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">Στοιχεία Προϊόντος</h3>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Συμπληρώστε τα απαραίτητα πεδία</p>
+                          <h3 className="font-black text-gusto-slate-900 text-sm uppercase tracking-wider">Στοιχεία Προϊόντος</h3>
+                          <p className="text-[10px] font-bold text-gusto-slate-400 uppercase tracking-widest">Συμπληρώστε τα απαραίτητα πεδία</p>
                         </div>
                       </div>
                       <form onSubmit={onAddProduct} className="space-y-5">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Κωδικός Προϊόντος *</label>
+                            <label className="text-[10px] font-black text-gusto-slate-500 uppercase ml-1 tracking-wider">Κωδικός Προϊόντος *</label>
                             <div className="relative">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400">
                                 <Hash size={16} />
                               </div>
                               <input 
@@ -467,14 +469,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 placeholder="Π.Χ. 10-20-30"
                                 value={newProductForm.code || ''}
                                 onChange={e => setNewProductForm({ ...newProductForm, code: e.target.value.toUpperCase() })}
-                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all uppercase"
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gusto-slate-200 rounded-xl font-bold text-gusto-slate-700 text-sm placeholder:text-gusto-slate-300 focus:border-gusto-slate-900 focus:bg-white outline-none transition-all uppercase"
                               />
                             </div>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Τιμή (€) *</label>
+                            <label className="text-[10px] font-black text-gusto-slate-500 uppercase ml-1 tracking-wider">Τιμή (€) *</label>
                             <div className="relative">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">€</div>
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400 font-black text-sm">€</div>
                               <input 
                                 required
                                 type="number"
@@ -482,14 +484,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 placeholder="0.00"
                                 value={newProductForm.price || ''}
                                 onChange={e => setNewProductForm({ ...newProductForm, price: e.target.value })}
-                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all"
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gusto-slate-200 rounded-xl font-bold text-gusto-slate-700 text-sm placeholder:text-gusto-slate-300 focus:border-gusto-slate-900 focus:bg-white outline-none transition-all"
                               />
                             </div>
                           </div>
                           <div className="md:col-span-2 space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Περιγραφή Προϊόντος *</label>
+                            <label className="text-[10px] font-black text-gusto-slate-500 uppercase ml-1 tracking-wider">Περιγραφή Προϊόντος *</label>
                             <div className="relative">
-                              <div className="absolute left-4 top-4 text-slate-400">
+                              <div className="absolute left-4 top-4 text-gusto-slate-400">
                                 <FileText size={16} />
                               </div>
                               <input 
@@ -497,27 +499,27 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 placeholder="ΠΕΡΙΓΡΑΦΗ ΠΡΟΪΟΝΤΟΣ"
                                 value={newProductForm.description || ''}
                                 onChange={e => setNewProductForm({ ...newProductForm, description: e.target.value.toUpperCase() })}
-                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm placeholder:text-slate-300 focus:border-slate-900 focus:bg-white outline-none transition-all uppercase"
+                                className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gusto-slate-200 rounded-xl font-bold text-gusto-slate-700 text-sm placeholder:text-gusto-slate-300 focus:border-gusto-slate-900 focus:bg-white outline-none transition-all uppercase"
                               />
                             </div>
                           </div>
                           <div className="md:col-span-2 space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-wider">Brand *</label>
+                            <label className="text-[10px] font-black text-gusto-slate-500 uppercase ml-1 tracking-wider">Brand *</label>
                             <div className="relative">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400">
                                 <Award size={16} />
                               </div>
-                              <select required value={newProductForm.brand || ''} onChange={e => setNewProductForm({ ...newProductForm, brand: e.target.value })} className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:border-slate-900 focus:bg-white transition-all appearance-none cursor-pointer">
+                              <select required value={newProductForm.brand || ''} onChange={e => setNewProductForm({ ...newProductForm, brand: e.target.value })} className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gusto-slate-200 rounded-xl font-bold text-gusto-slate-700 text-sm outline-none focus:border-gusto-slate-900 focus:bg-white transition-all appearance-none cursor-pointer">
                                 <option value="">Επιλέξτε Brand...</option>
                                 {allBrands?.map(b => <option key={b.id || (b as any).ID} value={b.name}>{b.name}</option>)}
                               </select>
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gusto-slate-400 pointer-events-none">
                                 <ChevronDown size={16} />
                               </div>
                             </div>
                           </div>
                         </div>
-                        <button type="submit" className="w-full bg-gradient-to-r from-slate-900 to-slate-800 text-white py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:from-slate-800 hover:to-slate-700 transition-all shadow-xl shadow-slate-200/50 flex items-center justify-center gap-2">
+                        <button type="submit" className="w-full bg-gradient-to-r from-gusto-green to-gusto-green/90 text-white py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:from-gusto-green-light hover:to-gusto-green transition-all shadow-lg shadow-gusto-green/10 flex items-center justify-center gap-2">
                           <Check size={16} />
                           Αποθήκευση Προϊόντος
                         </button>
@@ -535,52 +537,52 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     onChange={val => setSearchCode(val.toUpperCase())} 
                     onKeyDown={(e) => e.key === 'Enter' && onSearchProduct()} 
                     icon={<Search size={20} />}
-                    className="py-4 rounded-2xl shadow-sm uppercase"
+                    className="py-4 rounded-2xl shadow-sm"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={onSearchProduct} className="px-8 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">Αναζήτηση</button>
-                  <button onClick={() => { setSearchCode(''); setAdminSearchResults([]); }} className="px-6 bg-white text-slate-400 hover:text-slate-900 border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">Καθαρισμός</button>
+                  <button onClick={onSearchProduct} className="px-8 bg-gusto-green text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gusto-green-light transition-all shadow-lg shadow-gusto-green/10">Αναζήτηση</button>
+                  <button onClick={() => { setSearchCode(''); setAdminSearchResults([]); }} className="px-6 bg-white text-gusto-slate-400 hover:text-gusto-slate-900 border border-gusto-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">Καθαρισμός</button>
                 </div>
               </div>
 
-              <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-[32px] border border-gusto-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    <tr className="bg-gusto-slate-50/50 text-[10px] font-black text-gusto-slate-400 uppercase tracking-[0.2em]">
                       <th className="px-8 py-5">Προϊόν</th>
                       <th className="px-8 py-5">Κωδικός</th>
                       <th className="px-8 py-5 text-right">Τιμή</th>
                       <th className="px-8 py-5 text-right">Ενέργειες</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-gusto-slate-50">
                     {adminSearchResults.map((p, idx) => {
                       const pCode = p.code || (p as any).Code;
                       const isEditing = editingProduct === pCode;
                       return (
-                        <tr key={pCode + idx} className="hover:bg-slate-50/30 transition-colors">
+                        <tr key={pCode + idx} className="hover:bg-gusto-slate-50/30 transition-colors">
                           <td className="px-8 py-4">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center overflow-hidden p-2">
+                              <div className="w-12 h-12 bg-white border border-gusto-slate-100 rounded-xl flex items-center justify-center overflow-hidden p-2">
                                 <img src={p.imageUrl || (p as any).ImageUrl || 'https://via.placeholder.com/40'} className="max-w-full max-h-full object-contain" alt="" />
                               </div>
                               <div className="flex flex-col">
                                 {isEditing ? (
                                   <input 
-                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-sm focus:bg-white focus:border-slate-900 outline-none transition-all uppercase"
+                                    className="w-full px-4 py-2 bg-gusto-slate-50 border border-gusto-slate-200 rounded-lg font-bold text-gusto-slate-700 text-sm focus:bg-white focus:border-gusto-slate-900 outline-none transition-all uppercase"
                                     value={editForm.description}
                                     onChange={e => setEditForm({ ...editForm, description: e.target.value.toUpperCase() })}
                                   />
                                 ) : (
-                                  <span className="font-bold text-slate-800 uppercase leading-tight">{p.description || (p as any).Description}</span>
+                                  <span className="font-bold text-gusto-slate-800 uppercase leading-tight">{p.description || (p as any).Description}</span>
                                 )}
                                 
                               </div>
                             </div>
                           </td>
                           <td className="px-8 py-4">
-                            <span className="font-mono text-[11px] font-black text-slate-400 tracking-wider uppercase">{pCode}</span>
+                            <span className="font-mono text-[11px] font-black text-gusto-slate-400 tracking-wider uppercase">{pCode}</span>
                           </td>
                           <td className="px-8 py-4 text-right">
                             {isEditing ? (
@@ -588,22 +590,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 <input 
                                   type="number"
                                   step="0.01"
-                                  className="w-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-right focus:bg-white focus:border-slate-900 outline-none transition-all"
+                                  className="w-24 px-3 py-2 bg-gusto-slate-50 border border-gusto-slate-200 rounded-lg font-bold text-gusto-slate-700 text-right focus:bg-white focus:border-gusto-slate-900 outline-none transition-all"
                                   value={editForm.price}
                                   onChange={e => setEditForm({ ...editForm, price: e.target.value })}
                                 />
                                 <span className="font-black">€</span>
                               </div>
                             ) : (
-                              <span className="font-black text-slate-900">{Number(p.price || (p as any).Price || 0).toFixed(2)}€</span>
+                              <span className="font-black text-gusto-slate-900">{Number(p.price || (p as any).Price || 0).toFixed(2)}€</span>
                             )}
                           </td>
                           <td className="px-8 py-4 text-right">
                             <div className="flex justify-end gap-2">
-                              {isEditing ? (
+                                {isEditing ? (
                                 <>
-                                  <button onClick={() => onUpdateProduct(pCode)} className="w-9 h-9 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-all flex items-center justify-center"><Check size={18} /></button>
-                                  <button onClick={() => setEditingProduct(null)} className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-lg transition-all flex items-center justify-center"><X size={18} /></button>
+                                  <button onClick={() => onUpdateProduct(pCode)} className="w-9 h-9 bg-gusto-green/10 hover:bg-gusto-green/20 text-gusto-green rounded-lg transition-all flex items-center justify-center"><Check size={18} /></button>
+                                  <button onClick={() => setEditingProduct(null)} className="w-9 h-9 bg-gusto-slate-100 hover:bg-gusto-slate-200 text-gusto-slate-400 rounded-lg transition-all flex items-center justify-center"><X size={18} /></button>
                                 </>
                               ) : (
                                 <>

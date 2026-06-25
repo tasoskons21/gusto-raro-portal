@@ -37,7 +37,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-gusto-slate-900/50 backdrop-blur-sm"
           />
 
           <motion.div
@@ -45,11 +45,11 @@ export const StatusModal: React.FC<StatusModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', duration: 0.5 }}
-            className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden"
+            className="relative bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.12),0_8px_16px_rgba(0,0,0,0.06)] max-w-sm w-full overflow-hidden"
           >
             <div
               className={`relative bg-gradient-to-r ${
-                isSuccess ? 'from-emerald-500 to-emerald-600' : 'from-red-500 to-red-600'
+                isSuccess ? 'from-gusto-green to-gusto-green/90' : 'from-red-500 to-red-600'
               } px-6 py-8 text-center`}
             >
               <button
@@ -73,7 +73,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({
             </div>
 
             <div className="px-6 py-5">
-              <p className="text-sm text-gray-600 text-center mb-6">
+              <p className="text-sm text-gusto-slate-600 text-center mb-6">
                 {message}
               </p>
 
@@ -81,7 +81,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({
                 onClick={onClose}
                 className={`w-full px-4 py-3 text-sm font-bold text-white bg-gradient-to-r ${
                   isSuccess
-                    ? 'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700'
+                    ? 'from-gusto-green to-gusto-green/90 hover:from-gusto-green-light hover:to-gusto-green'
                     : 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
                 } rounded-xl transition-all uppercase tracking-wider`}
               >

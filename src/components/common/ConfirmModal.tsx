@@ -35,19 +35,19 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       icon: Trash2
     },
     warning: {
-      gradient: 'from-amber-500 to-amber-600',
+      gradient: 'from-gusto-gold to-gusto-gold-dark',
       iconBg: 'bg-white/20',
       iconColor: 'text-white',
-      confirmBg: 'from-amber-500 to-amber-600',
-      confirmHover: 'hover:from-amber-600 hover:to-amber-700',
+      confirmBg: 'from-gusto-gold to-gusto-gold-dark',
+      confirmHover: 'hover:from-gusto-gold-dark hover:to-amber-600',
       icon: AlertTriangle
     },
     info: {
-      gradient: 'from-blue-500 to-blue-600',
+      gradient: 'from-gusto-green to-gusto-green/90',
       iconBg: 'bg-white/20',
       iconColor: 'text-white',
-      confirmBg: 'from-blue-500 to-blue-600',
-      confirmHover: 'hover:from-blue-600 hover:to-blue-700',
+      confirmBg: 'from-gusto-green to-gusto-green/90',
+      confirmHover: 'hover:from-gusto-green-light hover:to-gusto-green',
       icon: AlertTriangle
     }
   };
@@ -72,7 +72,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', duration: 0.5 }}
-            className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden"
+            className="relative bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.12),0_8px_16px_rgba(0,0,0,0.06)] max-w-sm w-full overflow-hidden"
           >
             <div className={`relative bg-gradient-to-r ${config.gradient} px-6 py-8 text-center`}>
               <button
@@ -93,7 +93,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             </div>
 
             <div className="px-6 py-5">
-              <p className="text-sm text-gray-600 text-center mb-6">
+              <p className="text-sm text-gusto-slate-600 text-center mb-6">
                 {message}
               </p>
 
@@ -101,7 +101,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 <button
                   onClick={onCancel}
                   disabled={isProcessing}
-                  className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
+                  className="flex-1 px-4 py-3 text-sm font-bold text-gusto-slate-700 bg-gusto-slate-100 rounded-xl hover:bg-gusto-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
                 >
                   {cancelLabel}
                 </button>
