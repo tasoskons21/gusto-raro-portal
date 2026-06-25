@@ -491,9 +491,9 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
     }
     const trdrId = Number(trdr);
 
-    console.log("TRDR check:", trdrId, "SERIES: 7021");
+    console.log("TRDR check:", trdrId, "SERIES: 7022");
 
-    const mtrlIds: { mtrlId: number; qty: number }[] = [];
+    const mtrlIds: { mtrlId: number; qty: number; discount?: number }[] = [];
     if (order.items && Array.isArray(order.items) && order.items.length > 0) {
       console.log("Starting item search...");
       const mtrlPromises = order.items.map(async (item: any) => {
@@ -528,6 +528,53 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
       }
     }
 
+    const discounts = new Map<number, { disc: number; date: string }>();
+    const neededMtrlIds = mtrlIds.map(l => l.mtrlId);
+
+    const ordersRes = await s1Request({
+      service: "selectorFields",
+      clientID: auth.clientID,
+      appId: "157",
+      TABLENAME: "SALDOC",
+      KEYNAME: "TRDR",
+      KEYVALUE: String(trdrId),
+      RESULTFIELDS: "FINDOC,TRNDATE"
+    });
+
+    const orderRows = ordersRes?.rows || [];
+    const sortedOrders = orderRows.sort((a: any, b: any) => {
+      const dateA = new Date(Array.isArray(a) ? a[1] : a.TRNDATE);
+      const dateB = new Date(Array.isArray(b) ? b[1] : b.TRNDATE);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    for (const orderRow of sortedOrders) {
+      if (discounts.size === neededMtrlIds.length) break;
+      const orderId = Array.isArray(orderRow) ? orderRow[0] : orderRow.FINDOC;
+      if (!orderId) continue;
+      const linesRes = await s1Request({
+        service: "selectorFields",
+        clientID: auth.clientID,
+        appId: "157",
+        TABLENAME: "MTRLINES",
+        KEYNAME: "FINDOC",
+        KEYVALUE: orderId,
+        RESULTFIELDS: "MTRL,DISC1PRC"
+      });
+      const lineRows = linesRes?.rows || [];
+      for (const lineRow of lineRows) {
+        const mtrlId = Array.isArray(lineRow) ? Number(lineRow[0]) : Number(lineRow.MTRL);
+        const disc = Array.isArray(lineRow) ? Number(lineRow[1] || 0) : Number(lineRow.DISC1PRC || 0);
+        if (!isNaN(mtrlId) && neededMtrlIds.includes(mtrlId) && !discounts.has(mtrlId)) {
+          discounts.set(mtrlId, { disc, date: Array.isArray(orderRow) ? String(orderRow[1] || '') : String(orderRow.TRNDATE || '') });
+        }
+      }
+    }
+
+    mtrlIds.forEach(l => {
+      l.discount = discounts.get(l.mtrlId)?.disc || 0;
+    });
+
     console.log("Preparing date and payload...");
     const orderDate = new Date(order.date || order.created_at || new Date());
     const formattedDate = orderDate.toISOString().split('T')[0].replace(/-/g, '/');
@@ -535,7 +582,7 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
     const saldocData: any = {
       TRDR: trdrId,
       FINTYPE: 201,
-      SERIES: "7021",
+      SERIES: "7022",
       TRNDATE: formattedDate,
       DISDATE: formattedDate,
       WHOUSE: 1,
@@ -561,6 +608,7 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
         ITELINES: mtrlIds.map((l, index) => ({
           MTRL: l.mtrlId,
           QTY1: l.qty,
+          DISC1PRC: l.discount || 0,
           LINENUM: (index + 1) * 1000
         }))
       }
