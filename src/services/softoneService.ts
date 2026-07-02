@@ -57,7 +57,15 @@ const s1Request = async (payload: any) => {
   }
 };
 
+let authCache: { clientID: string; fetchedAt: number } | null = null;
+const AUTH_CACHE_TTL_MS = 5 * 60 * 1000;
+
 export const getSoftOneAuth = async () => {
+  const now = Date.now();
+  if (authCache && now - authCache.fetchedAt < AUTH_CACHE_TTL_MS) {
+    return { clientID: authCache.clientID };
+  }
+
   try {
     const login = await s1Request({
       service: "login",
@@ -82,7 +90,12 @@ export const getSoftOneAuth = async () => {
 
     if (!auth.success) throw new Error("SoftOne Auth Failed");
 
-    return { ...auth, clientID: auth.sessionToken || auth.clientID || login.clientID };
+    authCache = {
+      clientID: auth.sessionToken || auth.clientID || login.clientID,
+      fetchedAt: now
+    };
+
+    return { clientID: authCache.clientID };
   } catch (error) {
     console.error("❌ SoftOne Auth Error:", error);
     return null;
@@ -548,11 +561,10 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
       return dateB.getTime() - dateA.getTime();
     });
 
-    for (const orderRow of sortedOrders) {
-      if (discounts.size === neededMtrlIds.length) break;
+    const linesPromises = sortedOrders.map((orderRow: any) => {
       const orderId = Array.isArray(orderRow) ? orderRow[0] : orderRow.FINDOC;
-      if (!orderId) continue;
-      const linesRes = await s1Request({
+      if (!orderId) return Promise.resolve(null);
+      return s1Request({
         service: "selectorFields",
         clientID: auth.clientID,
         appId: "157",
@@ -560,7 +572,13 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
         KEYNAME: "FINDOC",
         KEYVALUE: orderId,
         RESULTFIELDS: "MTRL,DISC1PRC"
-      });
+      }).then((linesRes: any) => ({ linesRes, orderRow }));
+    });
+
+    const linesResults = await Promise.all(linesPromises);
+
+    for (const { linesRes, orderRow } of linesResults) {
+      if (discounts.size === neededMtrlIds.length) break;
       const lineRows = linesRes?.rows || [];
       for (const lineRow of lineRows) {
         const mtrlId = Array.isArray(lineRow) ? Number(lineRow[0]) : Number(lineRow.MTRL);

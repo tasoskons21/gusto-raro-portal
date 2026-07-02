@@ -253,3 +253,11 @@
   border-left-color: rgba(255, 255, 255, 0.6);
   animation: spin-brand 1.2s linear infinite reverse;
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

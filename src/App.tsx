@@ -1013,7 +1013,7 @@ export default function App() {
 
       <main className="w-full px-2 sm:px-4 py-2 sm:py-4 flex-1 min-h-0 overflow-hidden relative">
         {(activeView as string) === 'orders' ? (
-          <div className="max-w-5xl mx-auto w-full h-full overflow-y-auto pb-20 lg:pb-4">
+          <div className="max-w-5xl mx-auto w-full h-full overflow-y-auto pb-20 lg:pb-4 scrollbar-hide">
             <OrdersList
               orders={savedOrders}
               user={user}
@@ -1029,7 +1029,7 @@ export default function App() {
             />
           </div>
         ) : (activeView as string) === 'products' ? (
-          <div className="max-w-7xl mx-auto w-full h-full overflow-y-auto pb-20 lg:pb-4">
+          <div className="max-w-7xl mx-auto w-full h-full overflow-y-auto pb-20 lg:pb-4 scrollbar-hide">
             <ProductBrowser
               productSearch={productSearch}
               setProductSearch={setProductSearch}
