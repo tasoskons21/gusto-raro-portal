@@ -979,7 +979,7 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="order-page-bg flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full skeleton"></div>
+        <div className="brand-spinner"></div>
       </div>
     );
   }
