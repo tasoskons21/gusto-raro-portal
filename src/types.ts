@@ -79,6 +79,14 @@ export interface SoftOneOrderItem {
   IMAGE_URL?: string;
 }
 
+export interface SoftOneOrderPayload {
+  customer_code: string;
+  items: { code?: string; Code?: string; quantity: number }[];
+  date?: string;
+  created_at?: string;
+  notes?: string;
+}
+
 export interface ProductPriceHistory {
   CODE: string;
   DESCRIPTION: string;

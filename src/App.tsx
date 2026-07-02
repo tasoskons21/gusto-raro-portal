@@ -13,9 +13,10 @@ import { Header } from './components/layout/Header';
 import { CustomerSelection } from './components/customers/CustomerSelection';
 import { BrandSidebar } from './components/orders/BrandSidebar';
 import { ProductList } from './components/orders/ProductList';
-import { ProductBrowser } from './components/orders/ProductBrowser';
 import { Cart } from './components/orders/Cart';
-import { OrdersList } from './components/orders/OrdersList';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+const OrdersList = React.lazy(() => import('./components/orders/OrdersList').then(m => ({ default: m.OrdersList })));
+const ProductBrowser = React.lazy(() => import('./components/orders/ProductBrowser').then(m => ({ default: m.ProductBrowser })));
 const AdminModal = React.lazy(() => import('./components/admin/AdminModal').then(m => ({ default: m.AdminModal })));
 const ProductDetailsModal = React.lazy(() => import('./components/orders/ProductDetailsModal').then(m => ({ default: m.ProductDetailsModal })));
 const OrderConfirmationModal = React.lazy(() => import('./components/orders/OrderConfirmationModal').then(m => ({ default: m.OrderConfirmationModal })));
@@ -1014,34 +1015,60 @@ export default function App() {
       <main className="w-full px-2 sm:px-4 py-2 sm:py-4 flex-1 min-h-0 overflow-hidden relative">
         {(activeView as string) === 'orders' ? (
           <div className="max-w-5xl mx-auto w-full h-full overflow-y-auto pb-20 lg:pb-4 scrollbar-hide">
-            <OrdersList
-              orders={savedOrders}
-              user={user}
-              customers={customers}
-              isLoading={isLoadingOrders}
-              onView={handleViewOrder}
-              onLoadDraft={handleLoadDraft}
-              onSendOrder={handleSendOrder}
-              onSendToSoft1={handleSendToSoft1}
-              isLoadingSoftOne={softOneBranchesLoading}
-              onDelete={handleDeleteOrder}
-              onRefresh={loadSavedOrders}
-            />
+            <ErrorBoundary>
+              <Suspense fallback={
+                <div className="space-y-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                      <div className="skeleton w-16 h-5 rounded-md"></div>
+                      <div className="skeleton w-24 h-4 rounded"></div>
+                    </div>
+                  ))}
+                </div>
+              }>
+                <OrdersList
+                  orders={savedOrders}
+                  user={user}
+                  customers={customers}
+                  isLoading={isLoadingOrders}
+                  onView={handleViewOrder}
+                  onLoadDraft={handleLoadDraft}
+                  onSendOrder={handleSendOrder}
+                  onSendToSoft1={handleSendToSoft1}
+                  isLoadingSoftOne={softOneBranchesLoading}
+                  onDelete={handleDeleteOrder}
+                  onRefresh={loadSavedOrders}
+                />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         ) : (activeView as string) === 'products' ? (
           <div className="max-w-7xl mx-auto w-full h-full overflow-y-auto pb-20 lg:pb-4 scrollbar-hide">
-            <ProductBrowser
-              productSearch={productSearch}
-              setProductSearch={setProductSearch}
-              selectedBrand={selectedBrand}
-              setSelectedBrand={setSelectedBrand}
-              allBrands={allBrands}
-              filteredProducts={filteredProducts}
-              cart={cart}
-              onUpdateCartQuantity={updateCartQuantity}
-              onViewProduct={setViewingProduct}
-              isLoading={isLoading}
-            />
+            <ErrorBoundary>
+              <Suspense fallback={
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                      <div className="skeleton w-32 h-5 rounded-md"></div>
+                      <div className="skeleton w-full h-4 rounded"></div>
+                    </div>
+                  ))}
+                </div>
+              }>
+                <ProductBrowser
+                  productSearch={productSearch}
+                  setProductSearch={setProductSearch}
+                  selectedBrand={selectedBrand}
+                  setSelectedBrand={setSelectedBrand}
+                  allBrands={allBrands}
+                  filteredProducts={filteredProducts}
+                  cart={cart}
+                  onUpdateCartQuantity={updateCartQuantity}
+                  onViewProduct={setViewingProduct}
+                  isLoading={isLoading}
+                />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         ) : !selectedCustomer ? (
           <div className="max-w-7xl mx-auto w-full">

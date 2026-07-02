@@ -11,14 +11,40 @@ interface SoftOneLineItem {
   DISCOUNT_PERCENT: number;
 }
 
-interface SupabaseProductRow {
-  Code: string;
-  Description: string;
-  ImageUrl: string | null;
+interface SoftOneSelectorPayload extends Record<string, unknown> {
+  service: string;
+  clientID: string;
+  appId: string;
+  TABLENAME: string;
+  KEYNAME: string;
+  KEYVALUE: string;
+  RESULTFIELDS: string;
 }
 
-const s1Request = async (payload: any) => {
-  console.log(`s1Request starting for service: ${payload.service}`);
+interface SoftOneSetDataPayload extends Record<string, unknown> {
+  service: string;
+  clientID: string;
+  appId: string;
+  object: string;
+  KEY: string;
+  data: Record<string, unknown>;
+}
+
+interface SoftOneOrderPayload {
+  customer_code: string;
+  items: { code: string; quantity: number }[];
+  date?: string;
+  created_at?: string;
+  notes?: string;
+}
+
+interface SoftOneAuthResponse {
+  success: boolean;
+  sessionToken?: string;
+  clientID?: string;
+}
+
+const s1Request = async <T>(payload: SoftOneSelectorPayload | SoftOneSetDataPayload): Promise<T> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -41,17 +67,14 @@ const s1Request = async (payload: any) => {
     const text = decoder.decode(buffer);
 
     try {
-      const result = JSON.parse(text);
-      console.log(`s1Request finished for service: ${payload.service}`);
-      return result;
-    } catch (e) {
-      console.error("❌ JSON Parse Error:", text);
+      return JSON.parse(text) as T;
+    } catch {
       throw new Error("Invalid JSON response from SoftOne");
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error(`SoftOne API timeout after 10 seconds for service: ${payload.service}`);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`SoftOne API timeout after 10 seconds for service: ${(payload as any).service}`);
     }
     throw error;
   }
@@ -67,17 +90,22 @@ export const getSoftOneAuth = async () => {
   }
 
   try {
-    const login = await s1Request({
+    const login = await s1Request<{ success: boolean; clientID: string }>({
       service: "login",
       username: "web",
       password: "gustoraro",
       appId: "157",
-      language: "GRE"
+      language: "GRE",
+      clientID: "",
+      TABLENAME: "",
+      KEYNAME: "",
+      KEYVALUE: "",
+      RESULTFIELDS: ""
     });
 
     if (!login.success) throw new Error("SoftOne Login Failed");
 
-    const auth = await s1Request({
+    const auth = await s1Request<SoftOneAuthResponse>({
       service: "authenticate",
       clientID: login.clientID,
       appId: "157",
@@ -85,7 +113,11 @@ export const getSoftOneAuth = async () => {
       branch: "1000",
       module: "0",
       refId: "1",
-      userId: "1"
+      userId: "1",
+      TABLENAME: "",
+      KEYNAME: "",
+      KEYVALUE: "",
+      RESULTFIELDS: ""
     });
 
     if (!auth.success) throw new Error("SoftOne Auth Failed");
@@ -96,10 +128,32 @@ export const getSoftOneAuth = async () => {
     };
 
     return { clientID: authCache.clientID };
-  } catch (error) {
-    console.error("❌ SoftOne Auth Error:", error);
+  } catch {
     return null;
   }
+};
+
+interface SoftOneSelectorResult {
+  rows?: unknown[];
+}
+
+const getSelectorField = <T>(res: SoftOneSelectorResult | undefined, index: number): T | null => {
+  if (!res?.rows?.[0]) return null;
+  const row = res.rows[0];
+  if (Array.isArray(row)) return (row as T[])[index] ?? null;
+  return (row as Record<string, T>)?.[Object.keys(row)[index]] ?? null;
+};
+
+const getArrayValue = <T>(row: unknown, index: number, fallback: T): T => {
+  if (Array.isArray(row)) return (row as T[])[index] ?? fallback;
+  return fallback;
+};
+
+const getObjectValue = <T>(row: unknown, key: string, fallback: T): T => {
+  if (row && typeof row === 'object' && key in (row as Record<string, unknown>)) {
+    return (row as Record<string, T>)[key] ?? fallback;
+  }
+  return fallback;
 };
 
 export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 30) => {
@@ -111,7 +165,7 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
     const auth = await getSoftOneAuth();
     if (!auth) throw new Error("Authentication failed");
 
-    const custRes = await s1Request({
+    const custRes = await s1Request<SoftOneSelectorResult>({
       service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
@@ -121,12 +175,12 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
       RESULTFIELDS: "TRDR"
     });
 
-    const targetTrdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
+    const targetTrdr = getSelectorField<string>(custRes, 0) ?? getObjectValue<string>(custRes?.rows?.[0], 'TRDR', null);
     if (!targetTrdr) {
       return { success: false, message: "Δεν βρέθηκε πελάτης", orders: [] };
     }
 
-    const selectorRes = await s1Request({
+    const selectorRes = await s1Request<SoftOneSelectorResult>({
       service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
@@ -137,17 +191,16 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
     });
 
     const rows = selectorRes?.rows || [];
-    const ordersList = [];
+    const ordersList: SoftOneOrder[] = [];
 
     const limitDate = new Date();
     limitDate.setDate(limitDate.getDate() - daysBack);
 
     for (const r of rows) {
-      const row = r as any;
-      const findoc = Array.isArray(row) ? row[0] : row.FINDOC;
-      const fincode = Array.isArray(row) ? row[1] : row.FINCODE;
-      const dateStr = Array.isArray(row) ? row[2] : row.TRNDATE;
-      const total = Array.isArray(row) ? row[3] : row.SUMAMNT;
+      const findoc = getArrayValue<string>(r, 0, '') || getObjectValue<string>(r, 'FINDOC', '');
+      const fincode = getArrayValue<string>(r, 1, '') || getObjectValue<string>(r, 'FINCODE', '');
+      const dateStr = getArrayValue<string>(r, 2, '') || getObjectValue<string>(r, 'TRNDATE', '');
+      const total = getArrayValue<number>(r, 3, 0) || getObjectValue<number>(r, 'SUMAMNT', 0);
 
       const rDate = new Date(dateStr);
       if (rDate < limitDate) continue;
@@ -166,9 +219,9 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
     ordersList.sort((a, b) => new Date(b.TRD_DATE).getTime() - new Date(a.TRD_DATE).getTime());
     return { success: true, orders: ordersList };
 
-  } catch (error: any) {
-    console.error("❌ fetchOrderHistory Error:", error);
-    return { success: false, message: error.message, orders: [] };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, message, orders: [] };
   }
 };
 
@@ -177,7 +230,7 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
     const auth = await getSoftOneAuth();
     if (!auth) throw new Error("Authentication failed");
 
-    const linesRes = await s1Request({
+    const linesRes = await s1Request<SoftOneSelectorResult>({
       service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
@@ -190,17 +243,17 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
     const rows = linesRes?.rows || [];
     if (rows.length === 0) return { success: true, items: [] };
 
-    const softonePromises = rows.map(async (r: any) => {
-      const mtrlId = Array.isArray(r) ? String(r[0] || '') : String(r.MTRL || '');
-      const qty = Array.isArray(r) ? Number(r[1] || 0) : Number(r.QTY1 || 0);
-      const price = Array.isArray(r) ? Number(r[2] || 0) : Number(r.PRICE || 0);
-      const discount = Array.isArray(r) ? Number(r[3] || 0) : Number(r.DISC1PRC || 0);
+    const softonePromises = rows.map(async (r: unknown) => {
+      const mtrlId = getArrayValue<string>(r, 0, '') || getObjectValue<string>(r, 'MTRL', '');
+      const qty = getArrayValue<number>(r, 1, 0) || getObjectValue<number>(r, 'QTY1', 0);
+      const price = getArrayValue<number>(r, 2, 0) || getObjectValue<number>(r, 'PRICE', 0);
+      const discount = getArrayValue<number>(r, 3, 0) || getObjectValue<number>(r, 'DISC1PRC', 0);
 
       let realCode = mtrlId;
       let tempDescription = `Προϊόν ${mtrlId}`;
 
       if (mtrlId) {
-        const itemInfoRes = await s1Request({
+        const itemInfoRes = await s1Request<SoftOneSelectorResult>({
           service: "selectorFields",
           clientID: auth.clientID,
           appId: "157",
@@ -212,8 +265,8 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
 
         if (itemInfoRes?.rows?.[0]) {
           const iRow = itemInfoRes.rows[0];
-          realCode = Array.isArray(iRow) ? String(iRow[0] || mtrlId) : String(iRow.CODE || mtrlId);
-          tempDescription = Array.isArray(iRow) ? String(iRow[1] || tempDescription) : String(iRow.NAME || tempDescription);
+          realCode = getArrayValue<string>(iRow, 0, mtrlId) || getObjectValue<string>(iRow, 'CODE', mtrlId);
+          tempDescription = getArrayValue<string>(iRow, 1, tempDescription) || getObjectValue<string>(iRow, 'NAME', tempDescription);
         }
       }
 
@@ -233,15 +286,15 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
     const { data: supabaseProducts, error: sbError } = await supabase
       .from('products')
       .select('Code, Description, ImageUrl')
-      .in('Code', allCodes) as { data: SupabaseProductRow[] | null, error: any };
+      .in('Code', allCodes) as { data: (Pick<import('../types').Product, 'Code' | 'Description' | 'ImageUrl'>)[] | null, error: unknown };
 
     if (sbError) {
-      console.error('⚠️ Supabase bulk fetch error:', sbError);
+      console.error('Supabase bulk fetch error:', sbError);
     }
 
     const finalItems = localItems.map((s1Item) => {
       const matchedProduct = supabaseProducts?.find(
-        (sp: SupabaseProductRow) => String(sp.Code).trim().toLowerCase() === String(s1Item.CODE).toLowerCase()
+        (sp) => String(sp.Code).trim().toLowerCase() === String(s1Item.CODE).toLowerCase()
       );
 
       return {
@@ -256,9 +309,9 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
 
     return { success: true, items: finalItems };
 
-  } catch (error: any) {
-    console.error("❌ fetchOrderDetailsFromSoftOne Error:", error);
-    return { success: false, message: error.message, items: [] };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, message, items: [] };
   }
 };
 
@@ -271,7 +324,7 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
     const auth = await getSoftOneAuth();
     if (!auth) throw new Error("Authentication failed");
 
-    const custRes = await s1Request({
+    const custRes = await s1Request<SoftOneSelectorResult>({
       service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
@@ -281,12 +334,12 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
       RESULTFIELDS: "TRDR"
     });
 
-    const targetTrdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
+    const targetTrdr = getSelectorField<string>(custRes, 0) ?? getObjectValue<string>(custRes?.rows?.[0], 'TRDR', null);
     if (!targetTrdr) {
       return { success: false, message: "Δεν βρέθηκε πελάτης", priceHistory: [] };
     }
 
-    const selectorRes = await s1Request({
+    const selectorRes = await s1Request<SoftOneSelectorResult>({
       service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
@@ -307,15 +360,15 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
     const allProductEntries: { mtrlId: string; CODE: string; DESCRIPTION: string; PRICE: number; DISCOUNT_PERCENT: number; TRD_DATE: string }[] = [];
 
     for (const orderRow of orderRows) {
-      const orderId = Array.isArray(orderRow) ? orderRow[0] : orderRow.FINDOC;
-      const orderDate = Array.isArray(orderRow) ? orderRow[1] : orderRow.TRNDATE;
+      const orderId = getArrayValue<string>(orderRow, 0, '') || getObjectValue<string>(orderRow, 'FINDOC', '');
+      const orderDate = getArrayValue<string>(orderRow, 1, '') || getObjectValue<string>(orderRow, 'TRNDATE', '');
 
       if (!orderId || !orderDate) continue;
 
       const rDate = new Date(String(orderDate).split(' ')[0]);
       if (rDate < limitDate) continue;
 
-      const linesRes = await s1Request({
+      const linesRes = await s1Request<SoftOneSelectorResult>({
         service: "selectorFields",
         clientID: auth.clientID,
         appId: "157",
@@ -328,14 +381,14 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
       const lineRows = linesRes?.rows || [];
 
       for (const lineRow of lineRows) {
-        const mtrlId = Array.isArray(lineRow) ? String(lineRow[0] || '') : String(lineRow.MTRL || '');
-        const price = Array.isArray(lineRow) ? Number(lineRow[2] || 0) : Number(lineRow.PRICE || 0);
-        const discount = Array.isArray(lineRow) ? Number(lineRow[3] || 0) : Number(lineRow.DISC1PRC || 0);
+        const mtrlId = getArrayValue<string>(lineRow, 0, '') || getObjectValue<string>(lineRow, 'MTRL', '');
+        const price = getArrayValue<number>(lineRow, 2, 0) || getObjectValue<number>(lineRow, 'PRICE', 0);
+        const discount = getArrayValue<number>(lineRow, 3, 0) || getObjectValue<number>(lineRow, 'DISC1PRC', 0);
 
         if (!mtrlId) continue;
 
         allProductEntries.push({
-          mtrlId: mtrlId,
+          mtrlId,
           CODE: mtrlId,
           DESCRIPTION: `Προϊόν ${mtrlId}`,
           PRICE: price,
@@ -346,7 +399,7 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
     }
 
     const softonePromises = allProductEntries.map(async (entry) => {
-      const itemInfoRes = await s1Request({
+      const itemInfoRes = await s1Request<SoftOneSelectorResult>({
         service: "selectorFields",
         clientID: auth.clientID,
         appId: "157",
@@ -361,8 +414,8 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
 
       if (itemInfoRes?.rows?.[0]) {
         const iRow = itemInfoRes.rows[0];
-        realCode = Array.isArray(iRow) ? String(iRow[0] || entry.mtrlId) : String(iRow.CODE || entry.mtrlId);
-        description = Array.isArray(iRow) ? String(iRow[1] || description) : String(iRow.NAME || description);
+        realCode = getArrayValue<string>(iRow, 0, entry.mtrlId) || getObjectValue<string>(iRow, 'CODE', entry.mtrlId);
+        description = getArrayValue<string>(iRow, 1, description) || getObjectValue<string>(iRow, 'NAME', description);
       }
 
       return {
@@ -379,17 +432,17 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
     const { data: supabaseProducts, error: sbError } = await supabase
       .from('products')
       .select('Code, Description, ImageUrl')
-      .in('Code', uniqueCodes) as { data: SupabaseProductRow[] | null, error: any };
+      .in('Code', uniqueCodes) as { data: (Pick<import('../types').Product, 'Code' | 'Description' | 'ImageUrl'>)[] | null, error: unknown };
 
     if (sbError) {
-      console.error('⚠️ Supabase bulk fetch error:', sbError);
+      console.error('Supabase bulk fetch error:', sbError);
     }
 
     const productMap = new Map<string, { CODE: string; DESCRIPTION: string; PRICE: number; DISCOUNT_PERCENT: number; TRD_DATE: string; IMAGE_URL?: string }>();
 
     for (const entry of entriesWithCodes) {
       const matchedProduct = supabaseProducts?.find(
-        (sp: SupabaseProductRow) => String(sp.Code).trim().toLowerCase() === String(entry.CODE).toLowerCase()
+        (sp) => String(sp.Code).trim().toLowerCase() === String(entry.CODE).toLowerCase()
       );
 
       const finalEntry = {
@@ -398,16 +451,14 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
         IMAGE_URL: matchedProduct?.ImageUrl || undefined
       };
 
-      delete (finalEntry as any).mtrlId;
-
       const existing = productMap.get(finalEntry.CODE);
       if (!existing) {
-        productMap.set(finalEntry.CODE, finalEntry as any);
+        productMap.set(finalEntry.CODE, finalEntry);
       } else {
         const existingDate = new Date(existing.TRD_DATE);
         const entryDate = new Date(finalEntry.TRD_DATE);
         if (entryDate > existingDate) {
-          productMap.set(finalEntry.CODE, finalEntry as any);
+          productMap.set(finalEntry.CODE, finalEntry);
         }
       }
     }
@@ -417,9 +468,9 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
 
     return { success: true, priceHistory };
 
-  } catch (error: any) {
-    console.error("❌ fetchProductPriceHistoryFromSoftOne Error:", error);
-    return { success: false, message: error.message, priceHistory: [] };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, message, priceHistory: [] };
   }
 };
 
@@ -432,7 +483,7 @@ export const fetchBranchesForCustomer = async (customerCode?: string, address?: 
     const auth = await getSoftOneAuth();
     if (!auth) throw new Error("Authentication failed");
 
-    const custRes = await s1Request({
+    const custRes = await s1Request<SoftOneSelectorResult>({
       service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
@@ -442,12 +493,12 @@ export const fetchBranchesForCustomer = async (customerCode?: string, address?: 
       RESULTFIELDS: "TRDR"
     });
 
-    const trdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
+    const trdr = getSelectorField<string>(custRes, 0) ?? getObjectValue<string>(custRes?.rows?.[0], 'TRDR', null);
     if (!trdr) {
       return { success: false, message: "Δεν βρέθηκε ο πελάτης", branches: [] };
     }
 
-    const branchesRes = await s1Request({
+    const branchesRes = await s1Request<SoftOneSelectorResult>({
       service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
@@ -458,9 +509,9 @@ export const fetchBranchesForCustomer = async (customerCode?: string, address?: 
     });
 
     const rows = branchesRes?.rows || [];
-    const branches = rows.map((r: any) => ({
-      id: Array.isArray(r) ? Number(r[0]) : Number(r.TRDBRANCH),
-      name: Array.isArray(r) ? String(r[1] || '') : String(r.NAME || '')
+    const branches = rows.map((r: unknown) => ({
+      id: getArrayValue<number>(r, 0, 0) || getObjectValue<number>(r, 'TRDBRANCH', 0),
+      name: getArrayValue<string>(r, 1, '') || getObjectValue<string>(r, 'NAME', '')
     }));
 
     const words = address ? address.trim().split(/\s+/) : [];
@@ -469,25 +520,22 @@ export const fetchBranchesForCustomer = async (customerCode?: string, address?: 
     const allBranches = [headOfficeBranch, ...branches];
 
     return { success: true, branches: allBranches };
-  } catch (error: any) {
-    console.error("❌ fetchBranchesForCustomer Error:", error);
-    return { success: false, message: error.message, branches: [] };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, message, branches: [] };
   }
 };
 
-export const sendOrderToSoftOne = async (order: any, branchId?: number | null) => {
+export const sendOrderToSoftOne = async (order: SoftOneOrderPayload, branchId?: number | null) => {
   if (!order || !order.customer_code) {
     return { success: false, message: "Δεν παρέχεται παραγγελία ή κωδικός πελάτη" };
   }
 
   try {
-    console.log("Starting authentication...");
     const auth = await getSoftOneAuth();
-    console.log("Authentication finished...");
     if (!auth) throw new Error("Authentication failed");
 
-    console.log("Starting customer lookup...");
-    const custRes = await s1Request({
+    const custRes = await s1Request<SoftOneSelectorResult>({
       service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
@@ -496,46 +544,37 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
       KEYVALUE: order.customer_code,
       RESULTFIELDS: "TRDR"
     });
-    console.log("Customer lookup finished...");
 
-    const trdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
+    const trdr = getSelectorField<string>(custRes, 0) ?? getObjectValue<string>(custRes?.rows?.[0], 'TRDR', null);
     if (!trdr) {
       return { success: false, message: "Δεν βρέθηκε ο πελάτης" };
     }
     const trdrId = Number(trdr);
 
-    console.log("TRDR check:", trdrId, "SERIES: 7022");
-
     const mtrlIds: { mtrlId: number; qty: number; discount?: number }[] = [];
     if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-      console.log("Starting item search...");
-      const mtrlPromises = order.items.map(async (item: any) => {
-        try {
-          const code = item.code || item.Code || '';
-          if (!code) return null;
-          const mtrlRes = await s1Request({
-            service: "selectorFields",
-            clientID: auth.clientID,
-            appId: "157",
-            TABLENAME: "MTRL",
-            KEYNAME: "CODE",
-            KEYVALUE: code,
-            RESULTFIELDS: "MTRL"
-          });
-          const mtrlIdRaw = mtrlRes?.rows?.[0] ? (Array.isArray(mtrlRes.rows[0]) ? mtrlRes.rows[0][0] : mtrlRes.rows[0].MTRL) : null;
-          if (mtrlIdRaw) {
-            return { mtrlId: Number(mtrlIdRaw), qty: item.quantity || 1 };
-          }
-          console.error(`MTRL not found for code: ${code}`);
-          return null;
-        } catch (mtrlError: any) {
-          console.error(`Error searching MTRL: ${mtrlError?.message || mtrlError}`);
-          return null;
+      const mtrlPromises = order.items.map(async (item: { code?: string; Code?: string; quantity: number }) => {
+        const code = item.code || item.Code || '';
+        if (!code) return null;
+        const mtrlRes = await s1Request<SoftOneSelectorResult>({
+          service: "selectorFields",
+          clientID: auth.clientID,
+          appId: "157",
+          TABLENAME: "MTRL",
+          KEYNAME: "CODE",
+          KEYVALUE: code,
+          RESULTFIELDS: "MTRL"
+        });
+        const mtrlIdRaw = getSelectorField<string>(mtrlRes, 0) ?? getObjectValue<string>(mtrlRes?.rows?.[0], 'MTRL', null);
+        if (mtrlIdRaw) {
+          return { mtrlId: Number(mtrlIdRaw), qty: item.quantity || 1 };
         }
+        return null;
       });
+
       const mtrlResults = await Promise.all(mtrlPromises);
-      console.log("Item search finished...");
-      mtrlIds.push(...mtrlResults.filter(Boolean));
+      mtrlIds.push(...mtrlResults.filter((item): item is { mtrlId: number; qty: number } => item !== null));
+
       if (mtrlIds.length === 0) {
         return { success: false, message: "Δεν βρέθηκαν προϊόντα για την παραγγελία" };
       }
@@ -544,7 +583,7 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
     const discounts = new Map<number, { disc: number; date: string }>();
     const neededMtrlIds = mtrlIds.map(l => l.mtrlId);
 
-    const ordersRes = await s1Request({
+    const ordersRes = await s1Request<SoftOneSelectorResult>({
       service: "selectorFields",
       clientID: auth.clientID,
       appId: "157",
@@ -555,16 +594,16 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
     });
 
     const orderRows = ordersRes?.rows || [];
-    const sortedOrders = orderRows.sort((a: any, b: any) => {
-      const dateA = new Date(Array.isArray(a) ? a[1] : a.TRNDATE);
-      const dateB = new Date(Array.isArray(b) ? b[1] : b.TRNDATE);
+    const sortedOrders = orderRows.sort((a: unknown, b: unknown) => {
+      const dateA = new Date(getArrayValue<string>(a, 1, '') || getObjectValue<string>(a, 'TRNDATE', ''));
+      const dateB = new Date(getArrayValue<string>(b, 1, '') || getObjectValue<string>(b, 'TRNDATE', ''));
       return dateB.getTime() - dateA.getTime();
     });
 
-    const linesPromises = sortedOrders.map((orderRow: any) => {
-      const orderId = Array.isArray(orderRow) ? orderRow[0] : orderRow.FINDOC;
+    const linesPromises = sortedOrders.map((orderRow: unknown) => {
+      const orderId = getArrayValue<string>(orderRow, 0, '') || getObjectValue<string>(orderRow, 'FINDOC', '');
       if (!orderId) return Promise.resolve(null);
-      return s1Request({
+      return s1Request<SoftOneSelectorResult>({
         service: "selectorFields",
         clientID: auth.clientID,
         appId: "157",
@@ -572,19 +611,24 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
         KEYNAME: "FINDOC",
         KEYVALUE: orderId,
         RESULTFIELDS: "MTRL,DISC1PRC"
-      }).then((linesRes: any) => ({ linesRes, orderRow }));
+      }).then((linesRes) => ({ linesRes, orderRow }));
     });
 
     const linesResults = await Promise.all(linesPromises);
 
-    for (const { linesRes, orderRow } of linesResults) {
+    for (const result of linesResults) {
+      if (!result) continue;
       if (discounts.size === neededMtrlIds.length) break;
+      const { linesRes, orderRow } = result;
       const lineRows = linesRes?.rows || [];
       for (const lineRow of lineRows) {
-        const mtrlId = Array.isArray(lineRow) ? Number(lineRow[0]) : Number(lineRow.MTRL);
-        const disc = Array.isArray(lineRow) ? Number(lineRow[1] || 0) : Number(lineRow.DISC1PRC || 0);
+        const mtrlId = getArrayValue<number>(lineRow, 0, 0) || getObjectValue<number>(lineRow, 'MTRL', 0);
+        const disc = getArrayValue<number>(lineRow, 1, 0) || getObjectValue<number>(lineRow, 'DISC1PRC', 0);
         if (!isNaN(mtrlId) && neededMtrlIds.includes(mtrlId) && !discounts.has(mtrlId)) {
-          discounts.set(mtrlId, { disc, date: Array.isArray(orderRow) ? String(orderRow[1] || '') : String(orderRow.TRNDATE || '') });
+          discounts.set(mtrlId, {
+            disc,
+            date: getArrayValue<string>(orderRow, 1, '') || getObjectValue<string>(orderRow, 'TRNDATE', '')
+          });
         }
       }
     }
@@ -593,11 +637,10 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
       l.discount = discounts.get(l.mtrlId)?.disc || 0;
     });
 
-    console.log("Preparing date and payload...");
     const orderDate = new Date(order.date || order.created_at || new Date());
     const formattedDate = orderDate.toISOString().split('T')[0].replace(/-/g, '/');
 
-    const saldocData: any = {
+    const saldocData: Record<string, unknown> = {
       TRDR: trdrId,
       FINTYPE: 201,
       SERIES: "7022",
@@ -615,7 +658,7 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
       saldocData.TRDBRANCH = branchId;
     }
 
-    const setDataPayload: any = {
+    const setDataPayload: SoftOneSetDataPayload = {
       service: "setData",
       clientID: auth.clientID,
       appId: "157",
@@ -632,11 +675,7 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
       }
     };
 
-    console.log("setData payload:", JSON.stringify(setDataPayload, null, 2));
-
-    console.log("Starting setData...");
-    const result = await s1Request(setDataPayload);
-    console.log("setData response received:", JSON.stringify(result));
+    const result = await s1Request<{ success: boolean; data?: { FINDOC?: string }; docnum?: string }>(setDataPayload);
 
     if (!result.success) {
       throw new Error(`Failed to save order: ${JSON.stringify(result)}`);
@@ -650,8 +689,8 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
       documentNumber: String(docNum)
     };
 
-  } catch (error: any) {
-    console.error("❌ sendOrderToSoftOne Error:", error);
-    return { success: false, message: error.message };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, message };
   }
 };
