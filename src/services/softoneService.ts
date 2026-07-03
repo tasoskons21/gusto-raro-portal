@@ -19,17 +19,13 @@ interface SupabaseProductRow {
 
 const s1Request = async (payload: any) => {
   console.log(`s1Request starting for service: ${payload.service}`);
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const response = await fetch(S1_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal
+      body: JSON.stringify(payload)
     });
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -49,10 +45,6 @@ const s1Request = async (payload: any) => {
       throw new Error("Invalid JSON response from SoftOne");
     }
   } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error(`SoftOne API timeout after 10 seconds for service: ${payload.service}`);
-    }
     throw error;
   }
 };

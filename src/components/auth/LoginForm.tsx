@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { User as UserIcon, Lock, Eye, EyeOff, LogOut } from 'lucide-react';
+import { User as UserIcon, Lock, Eye, EyeOff, LogOut, Loader2 } from 'lucide-react';
 
 interface LoginFormProps {
   loginForm: { email: string; password: string };
@@ -92,7 +92,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           >
             {authLoading ? (
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
                 <span>Σύνδεση...</span>
               </div>
             ) : (

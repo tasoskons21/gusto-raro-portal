@@ -24,7 +24,7 @@ const OrderViewModal = React.lazy(() => import('./components/orders/OrderViewMod
 const SoftOneConfirmModal = React.lazy(() => import('./components/orders/SoftOneConfirmModal').then(m => ({ default: m.SoftOneConfirmModal })));
 const ConfirmModal = React.lazy(() => import('./components/common/ConfirmModal').then(m => ({ default: m.ConfirmModal })));
 const StatusModal = React.lazy(() => import('./components/common/StatusModal').then(m => ({ default: m.StatusModal })));
-import { LayoutGrid, ShoppingBag, ShoppingCart, ClipboardList, Package } from 'lucide-react';
+import { LayoutGrid, ShoppingBag, ShoppingCart, ClipboardList, Package, Loader2 } from 'lucide-react';
 
 export default function App() {
   // Auth State
@@ -149,16 +149,7 @@ export default function App() {
     const checkSession = async () => {
       setAuthLoading(true);
       try {
-        // Wrap getSession in a timeout to prevent infinite loading
-        const sessionResult = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<{ data: { session: any } }>((_, reject) =>
-            setTimeout(() => reject(new Error('getSession timeout')), 8000)
-          )
-        ]);
-
-        if (!mounted) return;
-        const session = sessionResult.data?.session;
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (session) {
           // Token close to expiry? Try refreshing proactively
@@ -979,7 +970,7 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="order-page-bg flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full skeleton"></div>
+        <Loader2 className="w-12 h-12 animate-spin text-gusto-green" />
       </div>
     );
   }
