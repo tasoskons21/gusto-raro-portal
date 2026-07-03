@@ -226,38 +226,3 @@
 .animate-pulse-subtle {
   animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-
-@keyframes spin-brand {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.brand-spinner {
-  width: 64px;
-  height: 64px;
-  position: relative;
-  border-radius: 50%;
-  border: 4px solid rgba(245, 197, 66, 0.2);
-  border-top-color: #f5c542;
-  animation: spin-brand 0.8s linear infinite;
-}
-
-.brand-spinner::after {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  border-bottom-color: rgba(255, 255, 255, 0.6);
-  border-left-color: rgba(255, 255, 255, 0.6);
-  animation: spin-brand 1.2s linear infinite reverse;
-}
-
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
