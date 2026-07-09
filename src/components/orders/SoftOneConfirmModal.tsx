@@ -135,19 +135,35 @@ export const SoftOneConfirmModal: React.FC<SoftOneConfirmModalProps> = ({
                 <button
                   onClick={onConfirm}
                   disabled={isSending}
-                  className="flex-1 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[140px] px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isSending ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Αποστολή...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Αποστολή
-                    </>
-                  )}
+                  <AnimatePresence mode="wait">
+                    {isSending ? (
+                      <motion.div
+                        key="sending"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="flex items-center justify-center gap-2"
+                      >
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Αποστολή...
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="idle"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="flex items-center justify-center gap-2"
+                      >
+                        <Send className="w-4 h-4" />
+                        Αποστολή
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </button>
               </div>
             </div>
