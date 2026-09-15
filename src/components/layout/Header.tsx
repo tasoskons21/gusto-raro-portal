@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User as UserIcon, Settings, LogOut, ClipboardList, ShoppingCart, Package, Menu, X, ChevronDown, PanelLeft, PanelLeftClose } from 'lucide-react';
+import { User as UserIcon, Settings, LogOut, ClipboardList, ShoppingCart, Package, Menu, X, ChevronDown, PanelLeft, PanelLeftClose, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 import { User } from '../../types';
 
@@ -27,7 +27,7 @@ export const Header = React.memo<HeaderProps>(({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const getViewLabel = (view: string) => {
-    switch(view) {
+    switch (view) {
       case 'products': return { label: 'Προβολή Προϊόντων', icon: Package };
       case 'order': return { label: 'Νέα Παραγγελία', icon: ShoppingCart };
       case 'orders': return { label: 'Οι Παραγγελίες μου', icon: ClipboardList };
@@ -61,9 +61,8 @@ export const Header = React.memo<HeaderProps>(({
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               aria-expanded={menuOpen}
-              className={`p-2.5 rounded-xl transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 ${
-                menuOpen ? 'bg-gusto-green text-white shadow-[0_1px_2px_rgba(30,57,50,0.24)]' : 'text-gusto-slate-600 hover:bg-gusto-slate-100 hover:text-gusto-green'
-              }`}
+              className={`p-2.5 rounded-xl transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 ${menuOpen ? 'bg-gusto-green text-white shadow-[0_1px_2px_rgba(30,57,50,0.24)]' : 'text-gusto-slate-600 hover:bg-gusto-slate-100 hover:text-gusto-green'
+                }`}
               title="Μενού Πλοήγησης"
             >
               {menuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -90,11 +89,10 @@ export const Header = React.memo<HeaderProps>(({
                             <button
                               key={view}
                               onClick={() => { onViewChange(view); setMenuOpen(false); }}
-                              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 ${
-                                activeView === view
+                              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30 ${activeView === view
                                   ? 'bg-gusto-green text-white font-semibold shadow-sm'
                                   : 'text-gusto-slate-600 hover:bg-gusto-slate-100'
-                              }`}
+                                }`}
                             >
                               <Icon size={20} />
                               <span className="flex-1">{getViewLabel(view).label}</span>
@@ -106,13 +104,20 @@ export const Header = React.memo<HeaderProps>(({
                         })}
                       </div>
                     )}
-                   <div className="h-px bg-gusto-slate-200 my-2 mx-2"></div>
-                     <div className="flex flex-col gap-1">
-                       {user.role === 'admin' && (
-                         <button
-                           onClick={() => { onShowAdminModal(); setMenuOpen(false); }}
-                           className="flex items-center gap-3 px-4 py-3 rounded-xl text-left text-gusto-slate-600 hover:bg-gusto-slate-100 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
-                         >
+                    <button
+                      onClick={() => { window.open('https://gustoraro.gr/presentation/', '_blank', 'noopener,noreferrer'); setMenuOpen(false); }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-left text-gusto-slate-600 hover:bg-gusto-slate-100 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
+                    >
+                      <ExternalLink size={20} />
+                      <span>Παρουσίαση</span>
+                    </button>
+                    <div className="h-px bg-gusto-slate-200 my-2 mx-2"></div>
+                    <div className="flex flex-col gap-1">
+                      {user.role === 'admin' && (
+                        <button
+                          onClick={() => { onShowAdminModal(); setMenuOpen(false); }}
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl text-left text-gusto-slate-600 hover:bg-gusto-slate-100 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
+                        >
                           <Settings size={20} />
                           <span>Ρυθμίσεις</span>
                         </button>
@@ -141,33 +146,33 @@ export const Header = React.memo<HeaderProps>(({
 
           {/* Desktop only: Sidebar toggle, Admin & Logout as icons when menu is closed */}
           <div className="hidden md:flex items-center gap-1">
-          {activeView === 'order' && onToggleSidebar && (
-            <button
-              onClick={onToggleSidebar}
-              className="p-2.5 text-gusto-slate-600 hover:bg-gusto-slate-100 hover:text-gusto-green rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
-              title={sidebarCollapsed ? "Εμφάνιση Πλαϊνού Μενού" : "Απόκρυψη Πλαϊνού Μενού"}
-            >
-              {sidebarCollapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
-            </button>
-          )}
-          {user.role === 'admin' && !menuOpen && (
-            <button
-              onClick={onShowAdminModal}
-              className="p-2.5 text-gusto-slate-600 hover:bg-gusto-slate-100 hover:text-gusto-green rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
-              title="Ρυθμίσεις Διαχειριστή"
-            >
-              <Settings size={20} />
-            </button>
-          )}
-          {!menuOpen && (
-            <button
-              onClick={onLogout}
-              className="p-2.5 text-gusto-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
-              title="Έξοδος"
-            >
-              <LogOut size={20} />
-            </button>
-          )}
+            {activeView === 'order' && onToggleSidebar && (
+              <button
+                onClick={onToggleSidebar}
+                className="p-2.5 text-gusto-slate-600 hover:bg-gusto-slate-100 hover:text-gusto-green rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
+                title={sidebarCollapsed ? "Εμφάνιση Πλαϊνού Μενού" : "Απόκρυψη Πλαϊνού Μενού"}
+              >
+                {sidebarCollapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
+              </button>
+            )}
+            {user.role === 'admin' && !menuOpen && (
+              <button
+                onClick={onShowAdminModal}
+                className="p-2.5 text-gusto-slate-600 hover:bg-gusto-slate-100 hover:text-gusto-green rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gusto-green/30"
+                title="Ρυθμίσεις Διαχειριστή"
+              >
+                <Settings size={20} />
+              </button>
+            )}
+            {!menuOpen && (
+              <button
+                onClick={onLogout}
+                className="p-2.5 text-gusto-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                title="Έξοδος"
+              >
+                <LogOut size={20} />
+              </button>
+            )}
           </div>
         </div>
       </div>
