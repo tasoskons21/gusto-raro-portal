@@ -303,6 +303,24 @@ class DataService {
     }
   }
 
+  async deleteAllOrders(userId: string): Promise<boolean> {
+    try {
+      const result = await fetchWithTimeout(
+        supabase.from('orders').delete().eq('user_id', userId),
+        15000,
+        3
+      );
+      if (result.error) {
+        console.error('Delete all orders error:', result.error);
+        return false;
+      }
+      return !result.error;
+    } catch (error) {
+      console.error('Delete all orders failed:', error);
+      return false;
+    }
+  }
+
   private async fetchOrderForUpsert(orderId: string): Promise<any | null> {
     try {
       const result = await fetchWithTimeout<any>(

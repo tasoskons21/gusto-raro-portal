@@ -27,6 +27,7 @@ interface OrdersListProps {
   onView: (order: any) => void;
   onLoadDraft: (order: any) => void;
   onDelete: (orderId: string) => void;
+  onDeleteAll: () => void;
   onRefresh: () => void;
   onSendOrder: (order: any) => void;
   onSendToSoft1: (order: any) => void;
@@ -41,6 +42,7 @@ export const OrdersList = React.memo<OrdersListProps>(({
   onView,
   onLoadDraft,
   onDelete,
+  onDeleteAll,
   onRefresh,
   onSendOrder,
   onSendToSoft1,
@@ -166,12 +168,21 @@ export const OrdersList = React.memo<OrdersListProps>(({
           Αποθηκευμένες Παραγγελίες
           <span className="text-xs sm:text-sm font-normal text-gray-300">({orders.length})</span>
         </h2>
-        <button
-          onClick={onRefresh}
-          className="px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Ανανέωση
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onDeleteAll}
+            className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-white bg-red-600 border border-red-600 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="truncate">Διαγραφή όλων</span>
+          </button>
+          <button
+            onClick={onRefresh}
+            className="px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Ανανέωση
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:gap-4">

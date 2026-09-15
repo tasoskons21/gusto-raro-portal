@@ -624,6 +624,42 @@ export default function App() {
     });
   }, [loadSavedOrders]);
 
+  const handleDeleteAllOrders = useCallback(async () => {
+    setConfirmModal({
+      show: true,
+      title: 'Διαγραφή όλων των παραγγελιών',
+      message: 'Είστε σίγουροι ότι θέλετε να διαγράψετε όλες τις παραγγελίες; Η ενέργεια δεν αναιρείται.',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
+        try {
+          const success = await dataService.deleteAllOrders(user.id);
+
+          if (success) {
+            setStatusModal({
+              show: true,
+              type: 'success',
+              title: 'Επιτυχής Διαγραφή',
+              message: 'Όλες οι παραγγελίες διαγράφηκαν οριστικά.'
+            });
+
+            await loadSavedOrders();
+          } else {
+            throw new Error('Delete all orders failed');
+          }
+        } catch (err: any) {
+          console.error('Delete all orders failed:', err);
+
+          setStatusModal({
+            show: true,
+            type: 'error',
+            title: 'Σφάλμα Διαγραφής',
+            message: 'Δεν ήταν δυνατή η ολοκλήρωση της διαγραφής. Ξαναπροσπαθήστε.'
+          });
+        }
+      }
+    });
+  }, [user.id, loadSavedOrders]);
+
   const handleViewOrder = useCallback((order: any) => {
     setViewingOrder(order);
   }, []);
@@ -1016,6 +1052,7 @@ export default function App() {
               onSendToSoft1={handleSendToSoft1}
               isLoadingSoftOne={softOneBranchesLoading}
               onDelete={handleDeleteOrder}
+              onDeleteAll={handleDeleteAllOrders}
               onRefresh={loadSavedOrders}
             />
           </div>
