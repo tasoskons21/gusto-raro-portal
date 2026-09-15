@@ -1,4 +1,9 @@
 // functions/api/softone.ts
+const DATABASE_URLS: Record<string, string> = {
+  'default': 'https://gustoraro.oncloud.gr/s1services',
+  'soft1': 'https://gustoraro2.oncloud.gr/s1services',
+};
+
 export async function onRequestOptions() {
   return new Response(null, {
     headers: {
@@ -10,15 +15,21 @@ export async function onRequestOptions() {
 }
 
 export async function onRequestPost(context: any) {
-  const S1_URL = "https://gustoraro.oncloud.gr/s1services";
-
   try {
-    const body = await context.request.text();
+    const bodyText = await context.request.text();
+    const payload = JSON.parse(bodyText);
+    const database = payload.database || 'soft1';
+    const S1_URL = DATABASE_URLS[database] || DATABASE_URLS['default'];
+
+    delete payload.database;
+
+    console.log(`[PROXY DEBUG] Forwarding to: ${S1_URL}`);
+    console.log(`[PROXY DEBUG] Payload:`, JSON.stringify(payload, null, 2));
 
     const response = await fetch(S1_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: body
+      body: JSON.stringify(payload)
     });
 
     const data = await response.arrayBuffer();

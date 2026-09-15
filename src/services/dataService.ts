@@ -13,13 +13,21 @@ const isCacheValid = (timestamp: number, ttl: number) => {
 };
 
 class DataService {
-  // Ιδιωτική μέθοδος για τα αιτήματα στο SoftOne για ασφάλεια και επαναχρησιμοποίηση
-  // src/services/dataService.ts
-  private async s1Request(payload: any) {
-    const response = await fetch('/api/softone', { // Σιγουρέψου ότι δεν υπάρχει http://localhost εδώ
+  private getSoftOneCredentials(database: string = 'soft1') {
+    const prefix = database === 'soft1' ? 'SOFTONE1' : 'SOFTONE';
+    return {
+      username: import.meta.env[`VITE_${prefix}_USERNAME`],
+      password: import.meta.env[`VITE_${prefix}_PASSWORD`],
+      appId: import.meta.env[`VITE_${prefix}_APPID`],
+      company: import.meta.env[`VITE_${prefix}_COMPANY`],
+    };
+  }
+
+  private async s1Request(payload: any, database: string = 'soft1') {
+    const response = await fetch('/api/softone', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ ...payload, database })
     });
 
     if (!response.ok) {
@@ -33,54 +41,52 @@ class DataService {
   }
 
   // 1. ΑΥΤΟΜΑΤΗ ΑΝΑΚΤΗΣΗ ΠΕΛΑΤΩΝ ΑΠΟ SOFTONE
-  async fetchCustomers(): Promise<Customer[]> {
+  async fetchCustomers(database: string = 'soft1'): Promise<Customer[]> {
     try {
-      // Βήμα 1: Login χρησιμοποιώντας το .env
+      const creds = this.getSoftOneCredentials(database);
+
       const loginData = await this.s1Request({
         SERVICE: "login",
-        USERNAME: import.meta.env.VITE_SOFTONE_USERNAME,
-        PASSWORD: import.meta.env.VITE_SOFTONE_PASSWORD,
-        APPID: import.meta.env.VITE_SOFTONE_APPID,
+        USERNAME: creds.username,
+        PASSWORD: creds.password,
+        APPID: creds.appId,
         LANGUAGE: "GRE"
-      });
+      }, database);
 
       if (!loginData?.success) {
         console.error("❌ SoftOne Login Failed");
         return [];
       }
 
-      // Βήμα 2: Authenticate
       const authData = await this.s1Request({
         service: "authenticate",
         clientID: loginData.clientID,
-        appId: "156", // Σταθερό AppId για το module
-        COMPANY: import.meta.env.VITE_SOFTONE_COMPANY,
-        BRANCH: "1000",
-        MODULE: "0",
-        REFID: "1",
-        USERID: "1",
-        WEBACCOUNT: "1"
-      });
+        appId: creds.appId,
+        COMPANY: '1001',
+        BRANCH: '1000',
+        MODULE: '0',
+        REFID: '263',
+        USERID: '263',
+        WEBACCOUNT: '263'
+      }, database);
 
       if (!authData?.success) {
         console.error("❌ SoftOne Auth Failed");
         return [];
       }
 
-      // Χρησιμοποιούμε το session token για τις επόμενες κλήσεις
       const sessionClientId = authData.sessionToken || authData.clientID;
 
-      // Βήμα 3: Λήψη Δεδομένων (SelectorFields)
       const customersRaw = await this.s1Request({
         service: "selectorFields",
         clientID: sessionClientId,
-        appId: "156",
+        appId: creds.appId,
         TABLENAME: "CUSTOMER",
         KEYNAME: "COMPANY",
-        KEYVALUE: import.meta.env.VITE_SOFTONE_COMPANY,
+        KEYVALUE: creds.company,
         RESULTFIELDS: "CODE,NAME,ADDRESS,PHONE01,AFM,CITY",
         OBJECTPARAMS: { "BGMOBILECHECK": "0" }
-      });
+      }, database);
 
       const rows = customersRaw.rows || customersRaw;
 

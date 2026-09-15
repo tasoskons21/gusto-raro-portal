@@ -17,14 +17,35 @@ interface SupabaseProductRow {
   ImageUrl: string | null;
 }
 
-const s1Request = async (payload: any) => {
+const getSoftOneCredentials = (database: string = 'soft1') => {
+  const prefix = database === 'soft1' ? 'SOFTONE1' : 'SOFTONE';
+  const username = import.meta.env[`VITE_${prefix}_USERNAME`] || 'web';
+  const password = import.meta.env[`VITE_${prefix}_PASSWORD`] || 'gustoraro';
+  const appId = import.meta.env[`VITE_${prefix}_APPID`] || '157';
+  const company = import.meta.env[`VITE_${prefix}_COMPANY`] || (database === 'soft1' ? '1001' : '500');
+
+  console.log(`[DEBUG] getSoftOneCredentials - database: "${database}", prefix: "${prefix}"`);
+  console.log(`[DEBUG] username: "${username}"`);
+  console.log(`[DEBUG] password: "${password}"`);
+  console.log(`[DEBUG] appId: "${appId}"`);
+  console.log(`[DEBUG] company: "${company}"`);
+
+  return {
+    username,
+    password,
+    appId,
+    company,
+  };
+};
+
+const s1Request = async (payload: any, database: string = 'soft1') => {
   console.log(`s1Request starting for service: ${payload.service}`);
 
   try {
     const response = await fetch(S1_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ ...payload, database })
     });
 
     if (!response.ok) {
@@ -49,28 +70,40 @@ const s1Request = async (payload: any) => {
   }
 };
 
-export const getSoftOneAuth = async () => {
+export const getSoftOneAuth = async (database: string = 'soft1') => {
   try {
+    const creds = getSoftOneCredentials(database);
+
+    console.log(`[DEBUG] Attempting login with username: "${creds.username}", appId: "${creds.appId}"`);
+
     const login = await s1Request({
       service: "login",
-      username: "web",
-      password: "gustoraro",
-      appId: "157",
+      username: creds.username,
+      password: creds.password,
+      appId: creds.appId,
       language: "GRE"
-    });
+    }, database);
+
+    console.log(`[DEBUG] Login response:`, JSON.stringify(login));
 
     if (!login.success) throw new Error("SoftOne Login Failed");
+
+    console.log(`[DEBUG] Login successful, clientID: "${login.clientID}"`);
 
     const auth = await s1Request({
       service: "authenticate",
       clientID: login.clientID,
-      appId: "157",
-      company: "500",
-      branch: "1000",
-      module: "0",
-      refId: "1",
-      userId: "1"
-    });
+      appId: creds.appId,
+      company: '1001',
+      branch: '1000',
+      module: '0',
+      refId: '263',
+      userId: '263',
+      webAccount: '263',
+      objectParams: { BGMOBILECHECK: "0" }
+    }, database);
+
+    console.log(`[DEBUG] Authenticate response:`, JSON.stringify(auth));
 
     if (!auth.success) throw new Error("SoftOne Auth Failed");
 
@@ -81,24 +114,26 @@ export const getSoftOneAuth = async () => {
   }
 };
 
-export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 30) => {
+export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 30, database: string = 'soft1') => {
   if (!customerCode) {
     return { success: false, message: "Δεν επιλέχθηκε πελάτης", orders: [] };
   }
 
   try {
-    const auth = await getSoftOneAuth();
+    const auth = await getSoftOneAuth(database);
     if (!auth) throw new Error("Authentication failed");
+
+    const creds = getSoftOneCredentials(database);
 
     const custRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       TABLENAME: "CUSTOMER",
       KEYNAME: "CODE",
       KEYVALUE: customerCode,
       RESULTFIELDS: "TRDR"
-    });
+    }, database);
 
     const targetTrdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
     if (!targetTrdr) {
@@ -108,12 +143,12 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
     const selectorRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       TABLENAME: "SALDOC",
       KEYNAME: "TRDR",
       KEYVALUE: targetTrdr,
       RESULTFIELDS: "FINDOC,FINCODE,TRNDATE,SUMAMNT"
-    });
+    }, database);
 
     const rows = selectorRes?.rows || [];
     const ordersList = [];
@@ -151,20 +186,22 @@ export const fetchOrderHistoryFromSoftOne = async (customerCode?: string, daysBa
   }
 };
 
-export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
+export const fetchOrderDetailsFromSoftOne = async (trdAAA: string, database: string = 'soft1') => {
   try {
-    const auth = await getSoftOneAuth();
+    const auth = await getSoftOneAuth(database);
     if (!auth) throw new Error("Authentication failed");
+
+    const creds = getSoftOneCredentials(database);
 
     const linesRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       TABLENAME: "MTRLINES",
       KEYNAME: "FINDOC",
       KEYVALUE: trdAAA,
       RESULTFIELDS: "MTRL,QTY1,PRICE,DISC1PRC"
-    });
+    }, database);
 
     const rows = linesRes?.rows || [];
     if (rows.length === 0) return { success: true, items: [] };
@@ -182,12 +219,12 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
         const itemInfoRes = await s1Request({
           service: "selectorFields",
           clientID: auth.clientID,
-          appId: "157",
+          appId: creds.appId,
           TABLENAME: "MTRL",
           KEYNAME: "MTRL",
           KEYVALUE: mtrlId,
           RESULTFIELDS: "CODE,NAME"
-        });
+        }, database);
 
         if (itemInfoRes?.rows?.[0]) {
           const iRow = itemInfoRes.rows[0];
@@ -241,24 +278,26 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string) => {
   }
 };
 
-export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 365) => {
+export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string, daysBack: number = 365, database: string = 'soft1') => {
   if (!customerCode) {
     return { success: false, message: "Δεν επιλέχθηκε πελάτης", priceHistory: [] };
   }
 
   try {
-    const auth = await getSoftOneAuth();
+    const auth = await getSoftOneAuth(database);
     if (!auth) throw new Error("Authentication failed");
+
+    const creds = getSoftOneCredentials(database);
 
     const custRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       TABLENAME: "CUSTOMER",
       KEYNAME: "CODE",
       KEYVALUE: customerCode,
       RESULTFIELDS: "TRDR"
-    });
+    }, database);
 
     const targetTrdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
     if (!targetTrdr) {
@@ -268,12 +307,12 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
     const selectorRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       TABLENAME: "SALDOC",
       KEYNAME: "TRDR",
       KEYVALUE: targetTrdr,
       RESULTFIELDS: "FINDOC,TRNDATE"
-    });
+    }, database);
 
     const orderRows = selectorRes?.rows || [];
     if (orderRows.length === 0) {
@@ -297,12 +336,12 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
       const linesRes = await s1Request({
         service: "selectorFields",
         clientID: auth.clientID,
-        appId: "157",
+        appId: creds.appId,
         TABLENAME: "MTRLINES",
         KEYNAME: "FINDOC",
         KEYVALUE: orderId,
         RESULTFIELDS: "MTRL,QTY1,PRICE,DISC1PRC"
-      });
+      }, database);
 
       const lineRows = linesRes?.rows || [];
 
@@ -328,12 +367,12 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
       const itemInfoRes = await s1Request({
         service: "selectorFields",
         clientID: auth.clientID,
-        appId: "157",
+        appId: creds.appId,
         TABLENAME: "MTRL",
         KEYNAME: "MTRL",
         KEYVALUE: entry.mtrlId,
         RESULTFIELDS: "CODE,NAME"
-      });
+      }, database);
 
       let realCode = entry.mtrlId;
       let description = `Προϊόν ${entry.mtrlId}`;
@@ -402,24 +441,26 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
   }
 };
 
-export const fetchBranchesForCustomer = async (customerCode?: string, address?: string) => {
+export const fetchBranchesForCustomer = async (customerCode?: string, address?: string, database: string = 'soft1') => {
   if (!customerCode) {
     return { success: false, message: "Δεν επιλέχθηκε πελάτης", branches: [] };
   }
 
   try {
-    const auth = await getSoftOneAuth();
+    const auth = await getSoftOneAuth(database);
     if (!auth) throw new Error("Authentication failed");
+
+    const creds = getSoftOneCredentials(database);
 
     const custRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       TABLENAME: "CUSTOMER",
       KEYNAME: "CODE",
       KEYVALUE: customerCode,
       RESULTFIELDS: "TRDR"
-    });
+    }, database);
 
     const trdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
     if (!trdr) {
@@ -429,12 +470,12 @@ export const fetchBranchesForCustomer = async (customerCode?: string, address?: 
     const branchesRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       TABLENAME: "TRDBRANCH",
       KEYNAME: "TRDR",
       KEYVALUE: trdr,
       RESULTFIELDS: "TRDBRANCH,NAME"
-    });
+    }, database);
 
     const rows = branchesRes?.rows || [];
     const branches = rows.map((r: any) => ({
@@ -454,27 +495,29 @@ export const fetchBranchesForCustomer = async (customerCode?: string, address?: 
   }
 };
 
-export const sendOrderToSoftOne = async (order: any, branchId?: number | null) => {
+export const sendOrderToSoftOne = async (order: any, branchId?: number | null, database: string = 'soft1') => {
   if (!order || !order.customer_code) {
     return { success: false, message: "Δεν παρέχεται παραγγελία ή κωδικός πελάτη" };
   }
 
   try {
     console.log("Starting authentication...");
-    const auth = await getSoftOneAuth();
+    const auth = await getSoftOneAuth(database);
     console.log("Authentication finished...");
     if (!auth) throw new Error("Authentication failed");
+
+    const creds = getSoftOneCredentials(database);
 
     console.log("Starting customer lookup...");
     const custRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       TABLENAME: "CUSTOMER",
       KEYNAME: "CODE",
       KEYVALUE: order.customer_code,
       RESULTFIELDS: "TRDR"
-    });
+    }, database);
     console.log("Customer lookup finished...");
 
     const trdr = custRes?.rows?.[0] ? (Array.isArray(custRes.rows[0]) ? custRes.rows[0][0] : custRes.rows[0].TRDR) : null;
@@ -495,12 +538,12 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
           const mtrlRes = await s1Request({
             service: "selectorFields",
             clientID: auth.clientID,
-            appId: "157",
+            appId: creds.appId,
             TABLENAME: "MTRL",
             KEYNAME: "CODE",
             KEYVALUE: code,
             RESULTFIELDS: "MTRL"
-          });
+          }, database);
           const mtrlIdRaw = mtrlRes?.rows?.[0] ? (Array.isArray(mtrlRes.rows[0]) ? mtrlRes.rows[0][0] : mtrlRes.rows[0].MTRL) : null;
           if (mtrlIdRaw) {
             return { mtrlId: Number(mtrlIdRaw), qty: item.quantity || 1 };
@@ -526,12 +569,12 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
     const ordersRes = await s1Request({
       service: "selectorFields",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       TABLENAME: "SALDOC",
       KEYNAME: "TRDR",
       KEYVALUE: String(trdrId),
       RESULTFIELDS: "FINDOC,TRNDATE"
-    });
+    }, database);
 
     const orderRows = ordersRes?.rows || [];
     const sortedOrders = orderRows.sort((a: any, b: any) => {
@@ -547,12 +590,12 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
       const linesRes = await s1Request({
         service: "selectorFields",
         clientID: auth.clientID,
-        appId: "157",
+        appId: creds.appId,
         TABLENAME: "MTRLINES",
         KEYNAME: "FINDOC",
         KEYVALUE: orderId,
         RESULTFIELDS: "MTRL,DISC1PRC"
-      });
+      }, database);
       const lineRows = linesRes?.rows || [];
       for (const lineRow of lineRows) {
         const mtrlId = Array.isArray(lineRow) ? Number(lineRow[0]) : Number(lineRow.MTRL);
@@ -580,7 +623,7 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
       WHOUSE: 1,
       SOCRU: 1,
       CURRENCY: 0,
-      COMPANY: 500,
+      COMPANY: 1001,
       NOTES: order.notes || "",
       REMARKS: order.notes || ""
     };
@@ -592,7 +635,7 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
     const setDataPayload: any = {
       service: "setData",
       clientID: auth.clientID,
-      appId: "157",
+      appId: creds.appId,
       object: "SALDOC",
       KEY: "",
       data: {
@@ -609,7 +652,7 @@ export const sendOrderToSoftOne = async (order: any, branchId?: number | null) =
     console.log("setData payload:", JSON.stringify(setDataPayload, null, 2));
 
     console.log("Starting setData...");
-    const result = await s1Request(setDataPayload);
+    const result = await s1Request(setDataPayload, database);
     console.log("setData response received:", JSON.stringify(result));
 
     if (!result.success) {
