@@ -123,9 +123,10 @@ interface ProductRowProps {
 
   const ProductRow = React.memo<ProductRowProps>(({ product, currentQty, onUpdateQty, onViewProduct }) => {
   const imageUrl = product.imageUrl || product.ImageUrl || product.imageurl;
+  const isOutOfStock = (product.is_active ?? product.IsActive ?? true) === false;
 
   return (
-    <tr className={`group transition-colors ${currentQty > 0 ? 'bg-gusto-green/5' : 'hover:bg-slate-50/80'}`}>
+    <tr className={`group transition-colors ${isOutOfStock ? 'opacity-60 bg-slate-50' : currentQty > 0 ? 'bg-gusto-green/5' : 'hover:bg-slate-50/80'}`}>
       <td className="px-2 py-2">
         <div className="flex items-center gap-2">
           {imageUrl ? (
@@ -148,6 +149,11 @@ interface ProductRowProps {
               <span className="font-bold text-slate-700 text-xs leading-tight uppercase group-hover:text-gusto-green transition-colors truncate">
                 {product.description}
               </span>
+              {isOutOfStock && (
+                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-700 whitespace-nowrap">
+                  Εξαντλημένο
+                </span>
+              )}
             </div>
             <span className="text-[9px] text-slate-400 font-mono mt-0.5">{product.code}</span>
           </div>
@@ -160,28 +166,32 @@ interface ProductRowProps {
       </td>
       <td className="px-2 py-2">
         <div className="flex justify-center">
-          <div className={`flex items-center bg-white border-2 rounded-xl overflow-hidden transition-all min-w-[40px] ${currentQty > 0 ? 'border-gusto-green shadow-sm' : 'border-slate-100 group-hover:border-slate-200'}`}>
+          <div className={`flex items-center bg-white border-2 rounded-xl overflow-hidden transition-all min-w-[40px] ${currentQty > 0 && !isOutOfStock ? 'border-gusto-green shadow-sm' : 'border-slate-100 group-hover:border-slate-200'} ${isOutOfStock ? 'opacity-50' : ''}`}>
             <button
               type="button"
-              onClick={() => onUpdateQty(product, Math.max(0, currentQty - 1))}
-              className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-white rounded-md transition-all font-bold min-h-[28px]"
+              onClick={() => !isOutOfStock && onUpdateQty(product, Math.max(0, currentQty - 1))}
+              disabled={isOutOfStock}
+              className={`w-7 h-7 flex items-center justify-center rounded-md transition-all font-bold min-h-[28px] ${isOutOfStock ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-red-600 hover:bg-white'}`}
             >
               -
             </button>
             <input
               type="number"
-              className="w-7 bg-transparent text-center text-xs font-black outline-none border-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className={`w-7 bg-transparent text-center text-xs font-black outline-none border-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isOutOfStock ? 'text-slate-300 cursor-not-allowed' : ''}`}
               value={currentQty || ''}
               onChange={(e) => {
+                if (isOutOfStock) return;
                 const val = parseInt(e.target.value);
                 onUpdateQty(product, isNaN(val) ? 0 : val);
               }}
               placeholder="0"
+              disabled={isOutOfStock}
             />
             <button
               type="button"
-              onClick={() => onUpdateQty(product, currentQty + 1)}
-              className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-white rounded-md transition-all font-bold min-h-[28px]"
+              onClick={() => !isOutOfStock && onUpdateQty(product, currentQty + 1)}
+              disabled={isOutOfStock}
+              className={`w-7 h-7 flex items-center justify-center rounded-md transition-all font-bold min-h-[28px] ${isOutOfStock ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-gusto-green hover:bg-white'}`}
             >
               +
             </button>

@@ -22,6 +22,8 @@ export interface Product {
   ImageUrl?: string;
   imageurl?: string;
   quantity?: number;
+  is_active?: boolean;
+  IsActive?: boolean;
 }
 
 export interface CartItem extends Product {
@@ -86,6 +88,7 @@ export interface ProductPriceHistory {
   DISCOUNT_PERCENT: number;
   TRD_DATE: string;
   IMAGE_URL?: string;
+  is_active?: boolean;
 }
 
 export interface User {

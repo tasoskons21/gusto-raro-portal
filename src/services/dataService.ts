@@ -228,7 +228,7 @@ class DataService {
       const result = await fetchWithTimeout<any[]>(
         supabase
           .from('products')
-          .select('"Code", "Description", "Brand", "Price", "ImageUrl"')
+          .select('"Code", "Description", "Brand", "Price", "ImageUrl", "IsActive"')
           .order('Code'),
         15000,
         3
@@ -240,7 +240,8 @@ class DataService {
         description: p.Description,
         brand: p.Brand,
         price: Number(p.Price || 0),
-        imageUrl: p.ImageUrl
+        imageUrl: p.ImageUrl,
+        is_active: p.IsActive ?? true,
       }));
       
       // Update cache

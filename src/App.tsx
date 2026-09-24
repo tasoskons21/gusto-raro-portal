@@ -48,7 +48,7 @@ export default function App() {
   const [newUserForm, setNewUserForm] = useState({ email: '', password: '', role: 'customer', fullName: '', customerId: '' });
   const [searchCode, setSearchCode] = useState('');
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ description: '', price: '', imageUrl: '' });
+  const [editForm, setEditForm] = useState({ description: '', price: '', imageUrl: '', isActive: true });
   const [adminSearchResults, setAdminSearchResults] = useState<Product[]>([]);
   const [newBrandForm, setNewBrandForm] = useState({ name: '', logo: '' });
   const [newProductForm, setNewProductForm] = useState({ code: '', description: '', brand: '', price: '', imageUrl: '' });
@@ -385,6 +385,8 @@ export default function App() {
 
   // Cart Handlers
   const updateCartQuantity = useCallback((product: Product, qty: number) => {
+    const isActive = product.is_active ?? product.IsActive ?? true;
+    if (!isActive && qty > 0) return;
     setCart(prev => {
       const existing = prev.find(item => item.code === product.code);
       if (qty <= 0) return prev.filter(item => item.code !== product.code);
@@ -925,7 +927,8 @@ export default function App() {
         Description: newProductForm.description.toUpperCase(),
         Brand: newProductForm.brand,
         Price: parseFloat(newProductForm.price),
-        ImageUrl: newProductForm.imageUrl || null
+        ImageUrl: newProductForm.imageUrl || null,
+        IsActive: true
       }]);
       if (error) throw error;
       setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Το προϊόν δημιουργήθηκε επιτυχώς.' });
@@ -962,7 +965,8 @@ export default function App() {
       const updateData: any = {
         Code: code,
         Description: editForm.description.toUpperCase(),
-        Price: parseFloat(editForm.price)
+        Price: parseFloat(editForm.price),
+        IsActive: editForm.isActive
       };
 
       if (editForm.imageUrl) {

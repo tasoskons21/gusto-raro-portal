@@ -55,25 +55,27 @@ export const SoftOnePriceLog: React.FC<SoftOnePriceLogProps> = ({ customerCode, 
 
   const handleQuantityChange = (code: string, qty: number) => {
     const item = priceHistory.find(p => p.CODE === code);
-    if (item && qty > 0) {
+    if (!item) return;
+    if ((item.is_active ?? true) === false && qty > 0) return;
+    if (qty <= 0) {
       const product: Product = {
-        code: item.CODE,
+        code: code,
         description: item.DESCRIPTION,
         price: item.PRICE,
         brand: '',
         imageUrl: item.IMAGE_URL
       };
-      onUpdateCartQuantity(product, qty);
-    } else if (qty <= 0) {
-      const product: Product = {
-        code: code,
-        description: priceHistory.find(p => p.CODE === code)?.DESCRIPTION || '',
-        price: priceHistory.find(p => p.CODE === code)?.PRICE || 0,
-        brand: '',
-        imageUrl: priceHistory.find(p => p.CODE === code)?.IMAGE_URL
-      };
       onUpdateCartQuantity(product, 0);
+      return;
     }
+    const product: Product = {
+      code: item.CODE,
+      description: item.DESCRIPTION,
+      price: item.PRICE,
+      brand: '',
+      imageUrl: item.IMAGE_URL
+    };
+    onUpdateCartQuantity(product, qty);
   };
 
   return (
@@ -140,91 +142,98 @@ export const SoftOnePriceLog: React.FC<SoftOnePriceLogProps> = ({ customerCode, 
                   <th className="py-3 px-4 w-32 text-center">ΚΑΛΑΘΙ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 text-[12px]">
-                {priceHistory.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-2.5 px-4">
-                      <div className="w-10 h-10 rounded-md border border-slate-150 overflow-hidden bg-white flex items-center justify-center mx-auto shadow-sm flex-shrink-0">
-                        {item.IMAGE_URL ? (
-                          <img
-                            src={item.IMAGE_URL}
-                            alt={item.DESCRIPTION}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              const parent = (e.target as HTMLImageElement).parentElement;
-                              if (parent) {
-                                parent.innerHTML = `<div class="w-full h-full bg-slate-50 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/></svg></div>`;
-                              }
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-slate-50 flex items-center justify-center">
-                            <Package className="w-3.5 h-3.5 text-slate-400" />
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-4 font-semibold text-slate-500 tracking-tighter">
-                      {item.CODE}
-                    </td>
-                    <td className="py-2.5 px-4 font-bold text-slate-800 max-w-xs md:max-w-md truncate">
-                      {item.DESCRIPTION}
-                    </td>
-                    <td className="py-2.5 px-4 text-right font-bold text-slate-700 font-mono">
-                      {item.PRICE.toFixed(2)}€
-                    </td>
-                    <td className="py-2.5 px-4 text-center font-bold text-slate-700">
-                      {item.DISCOUNT_PERCENT > 0 ? (
-                        `${item.DISCOUNT_PERCENT}%`
-                      ) : (
-                        <span className="text-slate-300 font-medium">-</span>
-                      )}
-                    </td>
-                    <td className="py-2.5 px-4 text-center text-slate-600">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-gusto-green" />
-                        {formatDate(item.TRD_DATE)}
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <div className="flex justify-center">
-                        {(() => {
-                          const cartQty = cartItemsByCode.get(item.CODE) || 0;
-                          return (
-                            <div className={`flex items-center bg-white border-2 rounded-xl overflow-hidden transition-all min-w-[40px] ${cartQty > 0 ? 'border-gusto-green shadow-sm' : 'border-slate-100 hover:border-slate-200'}`}>
-                              <button
-                                type="button"
-                                onClick={() => handleQuantityChange(item.CODE, Math.max(0, cartQty - 1))}
-                                className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-slate-50 rounded-md transition-all font-bold min-h-[28px]"
-                              >
-                                <Minus size={12} />
-                              </button>
-                              <input
-                                type="number"
-                                className="w-7 bg-transparent text-center text-xs font-black outline-none border-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                value={cartQty || ''}
-                                onChange={(e) => {
-                                  const val = parseInt(e.target.value);
-                                  handleQuantityChange(item.CODE, isNaN(val) ? 0 : val);
-                                }}
-                                placeholder="0"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleQuantityChange(item.CODE, cartQty + 1)}
-                                className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-slate-50 rounded-md transition-all font-bold min-h-[28px]"
-                              >
-                                <Plus size={12} />
-                              </button>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+               <tbody className="divide-y divide-slate-50 text-[12px]">
+                 {priceHistory.map((item, idx) => {
+                   const isOutOfStock = (item.is_active ?? true) === false;
+                   const cartQty = cartItemsByCode.get(item.CODE) || 0;
+                   return (
+                     <tr key={idx} className={`hover:bg-slate-50/50 transition-colors ${isOutOfStock ? 'opacity-70 bg-slate-50' : ''}`}>
+                       <td className="py-2.5 px-4">
+                         <div className="w-10 h-10 rounded-md border border-slate-150 overflow-hidden bg-white flex items-center justify-center mx-auto shadow-sm flex-shrink-0">
+                           {item.IMAGE_URL ? (
+                             <img
+                               src={item.IMAGE_URL}
+                               alt={item.DESCRIPTION}
+                               className="w-full h-full object-cover"
+                               onError={(e) => {
+                                 (e.target as HTMLImageElement).style.display = 'none';
+                                 const parent = (e.target as HTMLImageElement).parentElement;
+                                 if (parent) {
+                                   parent.innerHTML = `<div class="w-full h-full bg-slate-50 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/></svg></div>`;
+                                 }
+                               }}
+                             />
+                           ) : (
+                             <div className="w-full h-full bg-slate-50 flex items-center justify-center">
+                               <Package className="w-3.5 h-3.5 text-slate-400" />
+                             </div>
+                           )}
+                         </div>
+                       </td>
+                       <td className="py-2.5 px-4 font-semibold text-slate-500 tracking-tighter">
+                         {item.CODE}
+                       </td>
+                       <td className="py-2.5 px-4 font-bold text-slate-800 max-w-xs md:max-w-md truncate">
+                         {item.DESCRIPTION}
+                         {isOutOfStock && (
+                           <span className="ml-2 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-700 whitespace-nowrap">
+                             Εξαντλημένο
+                           </span>
+                         )}
+                       </td>
+                       <td className="py-2.5 px-4 text-right font-bold text-slate-700 font-mono">
+                         {item.PRICE.toFixed(2)}€
+                       </td>
+                       <td className="py-2.5 px-4 text-center font-bold text-slate-700">
+                         {item.DISCOUNT_PERCENT > 0 ? (
+                           `${item.DISCOUNT_PERCENT}%`
+                         ) : (
+                           <span className="text-slate-300 font-medium">-</span>
+                         )}
+                       </td>
+                       <td className="py-2.5 px-4 text-center text-slate-600">
+                         <div className="flex items-center justify-center gap-1.5">
+                           <Calendar className="w-3.5 h-3.5 text-gusto-green" />
+                           {formatDate(item.TRD_DATE)}
+                         </div>
+                       </td>
+                       <td className="py-2.5 px-4">
+                         <div className="flex justify-center">
+                           <div className={`flex items-center bg-white border-2 rounded-xl overflow-hidden transition-all min-w-[40px] ${cartQty > 0 && !isOutOfStock ? 'border-gusto-green shadow-sm' : 'border-slate-100 hover:border-slate-200'} ${isOutOfStock ? 'opacity-50' : ''}`}>
+                             <button
+                               type="button"
+                               onClick={() => handleQuantityChange(item.CODE, Math.max(0, cartQty - 1))}
+                               disabled={isOutOfStock}
+                               className={`w-7 h-7 flex items-center justify-center rounded-md transition-all font-bold min-h-[28px] ${isOutOfStock ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-red-600 hover:bg-slate-50'}`}
+                             >
+                               <Minus size={12} />
+                             </button>
+                             <input
+                               type="number"
+                               className="w-7 bg-transparent text-center text-xs font-black outline-none border-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                               value={cartQty || ''}
+                               onChange={(e) => {
+                                 const val = parseInt(e.target.value);
+                                 handleQuantityChange(item.CODE, isNaN(val) ? 0 : val);
+                               }}
+                               placeholder="0"
+                               disabled={isOutOfStock}
+                             />
+                             <button
+                               type="button"
+                               onClick={() => handleQuantityChange(item.CODE, cartQty + 1)}
+                               disabled={isOutOfStock}
+                               className={`w-7 h-7 flex items-center justify-center rounded-md transition-all font-bold min-h-[28px] ${isOutOfStock ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-gusto-green hover:bg-slate-50'}`}
+                             >
+                               <Plus size={12} />
+                             </button>
+                           </div>
+                         </div>
+                       </td>
+                     </tr>
+                   );
+                 })}
+               </tbody>
             </table>
           </div>
         ) : (

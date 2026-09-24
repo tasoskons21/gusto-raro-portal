@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Building2, ShoppingCart, Minus, Plus } from 'lucide-react';
+import { X, Building2, ShoppingCart, Minus, Plus, AlertCircle } from 'lucide-react';
 import { Product } from '../../types';
 
 interface ProductDetailsModalProps {
@@ -21,6 +21,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   if (!product) return null;
 
   const imageUrl = product.imageUrl || product.ImageUrl || product.imageurl;
+  const isOutOfStock = (product.is_active ?? product.IsActive ?? true) === false;
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
@@ -59,6 +60,12 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               {product.code}
             </span>
           </div>
+          {isOutOfStock && (
+            <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+              <span className="text-xs font-bold text-red-700 uppercase tracking-wider">Εξαντλημένο Προϊόν</span>
+            </div>
+          )}
           <h2 className="text-base sm:text-lg font-black text-gusto-green leading-tight mb-3 sm:mb-4 uppercase">
             {product.description}
           </h2>
@@ -72,28 +79,32 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 </p>
               </div>
 
-              <div className="flex flex-col items-end gap-1.5">
+              <div className={`flex flex-col items-end gap-1.5 ${isOutOfStock ? 'opacity-50' : ''}`}>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ΠΟΣΟ</p>
-                <div className={`flex items-center bg-slate-50 border-2 rounded-lg overflow-hidden transition-all h-9 px-1.5 ${currentQty > 0 ? 'border-gusto-green shadow-sm bg-white' : 'border-slate-100'}`}>
+                <div className={`flex items-center bg-slate-50 border-2 rounded-lg overflow-hidden transition-all h-9 px-1.5 ${currentQty > 0 && !isOutOfStock ? 'border-gusto-green shadow-sm bg-white' : 'border-slate-100'}`}>
                   <button
-                    onClick={() => onUpdateQty && onUpdateQty(product, Math.max(0, currentQty - 1))}
-                    className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-white rounded-md transition-all font-bold"
+                    onClick={() => onUpdateQty && !isOutOfStock && onUpdateQty(product, Math.max(0, currentQty - 1))}
+                    disabled={isOutOfStock}
+                    className={`w-8 h-8 flex items-center justify-center rounded-md transition-all font-bold ${isOutOfStock ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-red-600 hover:bg-white'}`}
                   >
                     <Minus size={16} />
                   </button>
                   <input
                     type="number"
-                    className="w-8 bg-transparent text-center text-xs font-black outline-none border-none p-0"
+                    className={`w-8 bg-transparent text-center text-xs font-black outline-none border-none p-0 ${isOutOfStock ? 'text-slate-300 cursor-not-allowed' : ''}`}
                     value={currentQty || ''}
                     onChange={(e) => {
+                      if (isOutOfStock) return;
                       const val = parseInt(e.target.value);
                       onUpdateQty && onUpdateQty(product, isNaN(val) ? 0 : val);
                     }}
                     placeholder="0"
+                    disabled={isOutOfStock}
                   />
                   <button
-                    onClick={() => onUpdateQty && onUpdateQty(product, currentQty + 1)}
-                    className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-gusto-green hover:bg-white rounded-md transition-all font-bold"
+                    onClick={() => onUpdateQty && !isOutOfStock && onUpdateQty(product, currentQty + 1)}
+                    disabled={isOutOfStock}
+                    className={`w-8 h-8 flex items-center justify-center rounded-md transition-all font-bold ${isOutOfStock ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-gusto-green hover:bg-white'}`}
                   >
                     <Plus size={16} />
                   </button>

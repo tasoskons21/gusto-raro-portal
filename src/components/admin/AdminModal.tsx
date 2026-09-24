@@ -553,6 +553,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       <th className="px-8 py-5">Προϊόν</th>
                       <th className="px-8 py-5">Κωδικός</th>
                       <th className="px-8 py-5 text-right">Τιμή</th>
+                      <th className="px-8 py-5 text-center">Κατάσταση</th>
                       <th className="px-8 py-5 text-right">Ενέργειες</th>
                     </tr>
                   </thead>
@@ -593,40 +594,58 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                   className="w-24 px-3 py-2 bg-gusto-slate-50 border border-gusto-slate-200 rounded-lg font-bold text-gusto-slate-700 text-right focus:bg-white focus:border-gusto-slate-900 outline-none transition-all"
                                   value={editForm.price}
                                   onChange={e => setEditForm({ ...editForm, price: e.target.value })}
-                                />
-                                <span className="font-black">€</span>
-                              </div>
-                            ) : (
-                              <span className="font-black text-gusto-slate-900">{Number(p.price || (p as any).Price || 0).toFixed(2)}€</span>
-                            )}
-                          </td>
-                          <td className="px-8 py-4 text-right">
-                            <div className="flex justify-end gap-2">
-                                {isEditing ? (
-                                <>
-                                  <button onClick={() => onUpdateProduct(pCode)} className="w-9 h-9 bg-gusto-green/10 hover:bg-gusto-green/20 text-gusto-green rounded-lg transition-all flex items-center justify-center"><Check size={18} /></button>
-                                  <button onClick={() => setEditingProduct(null)} className="w-9 h-9 bg-gusto-slate-100 hover:bg-gusto-slate-200 text-gusto-slate-400 rounded-lg transition-all flex items-center justify-center"><X size={18} /></button>
-                                </>
-                              ) : (
-                                <>
-                                  <button onClick={() => {
-                                    setEditingProduct(pCode);
-                                    setEditForm({
-                                      description: p.description || (p as any).Description,
-                                      price: (() => {
-                                        const raw = p.price || (p as any).Price || 0;
-                                        const normalized = String(raw).replace(',', '.');
-                                        const num = Number(normalized);
-                                        return isNaN(num) ? '0.00' : num.toFixed(2);
-                                      })(),
-                                      imageUrl: p.imageUrl || (p as any).ImageUrl || ''
-                                    });
-                                  }} className="w-9 h-9 bg-blue-50 hover:bg-blue-100 text-blue-500 rounded-lg transition-all flex items-center justify-center"><Pencil size={16} /></button>
-                                  <button onClick={() => onDeleteProduct(pCode)} className="w-9 h-9 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center"><Trash2 size={16} /></button>
-                                </>
-                              )}
-                            </div>
-                          </td>
+                                 />
+                                 <span className="font-black">€</span>
+                               </div>
+                             ) : (
+                               <span className="font-black text-gusto-slate-900">{Number(p.price || (p as any).Price || 0).toFixed(2)}€</span>
+                             )}
+                           </td>
+                           <td className="px-8 py-4 text-center">
+                             {isEditing ? (
+                               <label className="flex items-center justify-center gap-2 cursor-pointer">
+                                 <input
+                                   type="checkbox"
+                                   checked={editForm.isActive}
+                                   onChange={e => setEditForm({ ...editForm, isActive: e.target.checked })}
+                                   className="w-4 h-4 rounded border-gusto-slate-300 text-gusto-green focus:ring-gusto-green"
+                                 />
+                                 <span className="text-[10px] font-bold text-gusto-slate-600 uppercase tracking-wider">Ενεργό</span>
+                               </label>
+                             ) : (
+                               <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${(p.is_active ?? p.IsActive ?? true) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                 {(p.is_active ?? p.IsActive ?? true) ? 'Ενεργό' : 'Εξαντλημένο'}
+                               </span>
+                             )}
+                           </td>
+                           <td className="px-8 py-4 text-right">
+                             <div className="flex justify-end gap-2">
+                                 {isEditing ? (
+                                 <>
+                                   <button onClick={() => onUpdateProduct(pCode)} className="w-9 h-9 bg-gusto-green/10 hover:bg-gusto-green/20 text-gusto-green rounded-lg transition-all flex items-center justify-center"><Check size={18} /></button>
+                                   <button onClick={() => setEditingProduct(null)} className="w-9 h-9 bg-gusto-slate-100 hover:bg-gusto-slate-200 text-gusto-slate-400 rounded-lg transition-all flex items-center justify-center"><X size={18} /></button>
+                                 </>
+                               ) : (
+                                 <>
+                                   <button onClick={() => {
+                                     setEditingProduct(pCode);
+                                     setEditForm({
+                                       description: p.description || (p as any).Description,
+                                       price: (() => {
+                                         const raw = p.price || (p as any).Price || 0;
+                                         const normalized = String(raw).replace(',', '.');
+                                         const num = Number(normalized);
+                                         return isNaN(num) ? '0.00' : num.toFixed(2);
+                                       })(),
+                                       imageUrl: p.imageUrl || (p as any).ImageUrl || '',
+                                       isActive: (p as any).is_active ?? (p as any).IsActive ?? true
+                                     });
+                                   }} className="w-9 h-9 bg-blue-50 hover:bg-blue-100 text-blue-500 rounded-lg transition-all flex items-center justify-center"><Pencil size={16} /></button>
+                                   <button onClick={() => onDeleteProduct(pCode)} className="w-9 h-9 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center"><Trash2 size={16} /></button>
+                                 </>
+                               )}
+                             </div>
+                           </td>
                         </tr>
                       );
                     })}

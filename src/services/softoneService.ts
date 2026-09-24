@@ -15,6 +15,7 @@ interface SupabaseProductRow {
   Code: string;
   Description: string;
   ImageUrl: string | null;
+  IsActive?: boolean;
 }
 
 const getSoftOneCredentials = (database: string = 'soft1') => {
@@ -248,7 +249,7 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string, database: str
 
     const { data: supabaseProducts, error: sbError } = await supabase
       .from('products')
-      .select('Code, Description, ImageUrl')
+      .select('Code, Description, ImageUrl, IsActive')
       .in('Code', allCodes) as { data: SupabaseProductRow[] | null, error: any };
 
     if (sbError) {
@@ -266,7 +267,8 @@ export const fetchOrderDetailsFromSoftOne = async (trdAAA: string, database: str
         QUANTITY: s1Item.QUANTITY,
         PRICE: s1Item.PRICE,
         DISCOUNT_PERCENT: s1Item.DISCOUNT_PERCENT,
-        IMAGE_URL: matchedProduct?.ImageUrl || null
+        IMAGE_URL: matchedProduct?.ImageUrl || null,
+        is_active: matchedProduct?.IsActive ?? true
       };
     });
 
@@ -396,14 +398,14 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
 
     const { data: supabaseProducts, error: sbError } = await supabase
       .from('products')
-      .select('Code, Description, ImageUrl')
+      .select('Code, Description, ImageUrl, IsActive')
       .in('Code', uniqueCodes) as { data: SupabaseProductRow[] | null, error: any };
 
     if (sbError) {
       console.error('⚠️ Supabase bulk fetch error:', sbError);
     }
 
-    const productMap = new Map<string, { CODE: string; DESCRIPTION: string; PRICE: number; DISCOUNT_PERCENT: number; TRD_DATE: string; IMAGE_URL?: string }>();
+    const productMap = new Map<string, { CODE: string; DESCRIPTION: string; PRICE: number; DISCOUNT_PERCENT: number; TRD_DATE: string; IMAGE_URL?: string; is_active?: boolean }>();
 
     for (const entry of entriesWithCodes) {
       const matchedProduct = supabaseProducts?.find(
@@ -413,7 +415,8 @@ export const fetchProductPriceHistoryFromSoftOne = async (customerCode?: string,
       const finalEntry = {
         ...entry,
         DESCRIPTION: matchedProduct?.Description || entry.DESCRIPTION,
-        IMAGE_URL: matchedProduct?.ImageUrl || undefined
+        IMAGE_URL: matchedProduct?.ImageUrl || undefined,
+        is_active: matchedProduct?.IsActive ?? true
       };
 
       delete (finalEntry as any).mtrlId;
