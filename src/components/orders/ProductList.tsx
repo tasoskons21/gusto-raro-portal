@@ -57,7 +57,8 @@ export const ProductList = React.memo<ProductListProps>(({
               <tr>
                 <th className="px-2 py-2 border-b border-gusto-slate-100 w-1/2 text-xs">ΠΕΡΙΓΡΑΦΗ</th>
                 <th className="px-2 py-2 border-b border-gusto-slate-100 w-1/4 text-right text-xs">ΤΙΜΗ</th>
-                <th className="px-2 py-2 border-b border-gusto-slate-100 w-1/4 text-center text-xs">ΠΟΣΟΤΗΤΑ</th>
+                <th className="px-2 py-2 border-b border-gusto-slate-100 w-1/6 text-center text-xs">ΚΙΒ.</th>
+                <th className="px-2 py-2 border-b border-gusto-slate-100 w-1/6 text-center text-xs">ΠΟΣΟΤΗΤΑ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -90,6 +91,7 @@ export const ProductList = React.memo<ProductListProps>(({
                     currentQty={cart.find(item => item.code === product.code)?.quantity || 0}
                     onUpdateQty={onUpdateCartQuantity}
                     onViewProduct={onViewProduct}
+                    piecesPerBox={product.pieces_per_box ?? product.PiecesPerBox ?? 1}
                   />
                 ))
               )}
@@ -119,9 +121,10 @@ interface ProductRowProps {
   currentQty: number;
   onUpdateQty: (product: Product, qty: number) => void;
   onViewProduct: (product: Product) => void;
+  piecesPerBox: number;
 }
 
-  const ProductRow = React.memo<ProductRowProps>(({ product, currentQty, onUpdateQty, onViewProduct }) => {
+  const ProductRow = React.memo<ProductRowProps>(({ product, currentQty, onUpdateQty, onViewProduct, piecesPerBox }) => {
   const imageUrl = product.imageUrl || product.ImageUrl || product.imageurl;
   const isOutOfStock = (product.is_active ?? product.IsActive ?? true) === false;
 
@@ -163,6 +166,9 @@ interface ProductRowProps {
         <span className="font-black text-slate-800 text-xs">
           {product.price.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}
         </span>
+      </td>
+      <td className="px-2 py-2 text-center">
+        <span className="font-bold text-slate-600 text-xs">{piecesPerBox <= 1 ? '-' : piecesPerBox}</span>
       </td>
       <td className="px-2 py-2">
         <div className="flex justify-center">

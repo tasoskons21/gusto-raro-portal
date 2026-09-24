@@ -24,6 +24,8 @@ export interface Product {
   quantity?: number;
   is_active?: boolean;
   IsActive?: boolean;
+  pieces_per_box?: number;
+  PiecesPerBox?: number;
 }
 
 export interface CartItem extends Product {

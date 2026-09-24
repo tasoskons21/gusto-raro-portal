@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  X, Settings, Plus, Trash2, Pencil, Check, Search, 
-  Users as UsersIcon, Building2, Package, Mail, Lock, 
+import {
+  X, Settings, Plus, Trash2, Pencil, Check, Search,
+  Users as UsersIcon, Building2, Package, Mail, Lock,
   Image as ImageIcon, ExternalLink,
   Hash, FileText, Award, ChevronDown
 } from 'lucide-react';
@@ -61,8 +61,8 @@ interface SmartInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElemen
   previewImage?: boolean;
 }
 
-  const SmartInput: React.FC<SmartInputProps> = ({ 
-  value, onChange, debounceTime = 300, label, icon, previewImage, className, ...props 
+const SmartInput: React.FC<SmartInputProps> = ({
+  value, onChange, debounceTime = 300, label, icon, previewImage, className, ...props
 }) => {
   const [localValue, setLocalValue] = React.useState(value);
   const debouncedValue = useDebounce(localValue, debounceTime);
@@ -108,15 +108,15 @@ interface SmartInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElemen
         />
         {previewImage && debouncedPreviewUrl && (
           <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white border border-gusto-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
-            <img 
+            <img
               src={debouncedPreviewUrl || undefined}
-              alt="" 
-              className="max-w-full max-h-full object-contain p-1" 
+              alt=""
+              className="max-w-full max-h-full object-contain p-1"
               onError={(e) => {
                 if (!e.currentTarget.src.includes('placeholder')) {
                   e.currentTarget.src = 'https://via.placeholder.com/32?text=ERR';
                 }
-              }} 
+              }}
             />
           </div>
         )}
@@ -150,7 +150,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose} className="fixed inset-0 bg-gusto-slate-900/60 backdrop-blur-md"
       />
-      
+
       <motion.div
         initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
         className="bg-white w-full max-w-6xl h-full sm:h-[90vh] sm:rounded-[40px] shadow-2xl relative z-10 overflow-hidden flex flex-col"
@@ -179,11 +179,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => { setActiveTab(tab.id as AdminTab); setShowAddForm(false); }}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
-                    activeTab === tab.id 
-                    ? 'bg-white text-gusto-slate-900 shadow-sm' 
-                    : 'text-gusto-slate-400 hover:text-gusto-slate-600'
-                  }`}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === tab.id
+                      ? 'bg-white text-gusto-slate-900 shadow-sm'
+                      : 'text-gusto-slate-400 hover:text-gusto-slate-600'
+                    }`}
                 >
                   <Icon size={18} />
                   {tab.label}
@@ -200,7 +199,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black text-gusto-slate-900 tracking-tight">Διαχείριση Χρηστών</h3>
-                <button 
+                <button
                   onClick={() => setShowAddForm(!showAddForm)}
                   className="bg-gusto-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gusto-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-gusto-slate-200"
                 >
@@ -222,9 +221,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <p className="text-[10px] font-bold text-gusto-slate-400 uppercase tracking-widest">Συμπληρώστε τα απαραίτητα πεδία</p>
                         </div>
                       </div>
-                      <form onSubmit={(e) => { 
-                        onAddUser(e); 
-                        setShowAddForm(false); 
+                      <form onSubmit={(e) => {
+                        onAddUser(e);
+                        setShowAddForm(false);
                       }}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                           <div className="space-y-1.5">
@@ -233,7 +232,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400">
                                 <Mail size={16} />
                               </div>
-                              <input 
+                              <input
                                 required
                                 type="email"
                                 placeholder="user@example.com"
@@ -249,7 +248,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400">
                                 <Lock size={16} />
                               </div>
-                              <input 
+                              <input
                                 required
                                 type="password"
                                 placeholder="••••••••"
@@ -279,9 +278,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           </div>
                         </div>
                         {newUser.role === 'customer' && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: -10 }} 
-                            animate={{ opacity: 1, y: 0 }} 
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
                             className="bg-blue-50/50 border-2 border-blue-100 rounded-xl p-5"
                           >
                             <div className="flex items-center gap-2 mb-3">
@@ -335,11 +334,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           </div>
                         </td>
                         <td className="px-8 py-5">
-                          <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                            u.role === 'admin' ? 'bg-amber-100 text-amber-700' : 
-                            u.role === 'seller' ? 'bg-blue-100 text-blue-700' : 
-                            'bg-gusto-slate-100 text-gusto-slate-600'
-                          }`}>
+                          <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${u.role === 'admin' ? 'bg-amber-100 text-amber-700' :
+                              u.role === 'seller' ? 'bg-blue-100 text-blue-700' :
+                                'bg-gusto-slate-100 text-gusto-slate-600'
+                            }`}>
                             {u.role}
                           </span>
                         </td>
@@ -363,7 +361,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black text-gusto-slate-900 tracking-tight">Διαχείριση Brands</h3>
-                <button 
+                <button
                   onClick={() => setShowAddForm(!showAddForm)}
                   className="bg-gusto-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gusto-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-gusto-slate-200"
                 >
@@ -377,7 +375,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                     <div className="bg-white p-6 rounded-[32px] border border-gusto-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] mb-6">
                       <form onSubmit={onAddBrand} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <SmartInput 
+                        <SmartInput
                           label="Όνομα Brand"
                           required
                           placeholder="Π.Χ. GUSTO RARO"
@@ -434,7 +432,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black text-gusto-slate-900 tracking-tight">Διαχείριση Προϊόντων</h3>
-                <button 
+                <button
                   onClick={() => setShowAddForm(!showAddForm)}
                   className="bg-gusto-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gusto-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-gusto-slate-200"
                 >
@@ -464,7 +462,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400">
                                 <Hash size={16} />
                               </div>
-                              <input 
+                              <input
                                 required
                                 placeholder="Π.Χ. 10-20-30"
                                 value={newProductForm.code || ''}
@@ -477,7 +475,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             <label className="text-[10px] font-black text-gusto-slate-500 uppercase ml-1 tracking-wider">Τιμή (€) *</label>
                             <div className="relative">
                               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gusto-slate-400 font-black text-sm">€</div>
-                              <input 
+                              <input
                                 required
                                 type="number"
                                 step="0.01"
@@ -494,7 +492,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               <div className="absolute left-4 top-4 text-gusto-slate-400">
                                 <FileText size={16} />
                               </div>
-                              <input 
+                              <input
                                 required
                                 placeholder="ΠΕΡΙΓΡΑΦΗ ΠΡΟΪΟΝΤΟΣ"
                                 value={newProductForm.description || ''}
@@ -531,11 +529,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
               <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
-                  <SmartInput 
-                    placeholder="ΑΝΑΖΗΤΗΣΗ ΜΕ ΚΩΔΙΚΟ..." 
-                    value={searchCode} 
-                    onChange={val => setSearchCode(val.toUpperCase())} 
-                    onKeyDown={(e) => e.key === 'Enter' && onSearchProduct()} 
+                  <SmartInput
+                    placeholder="ΑΝΑΖΗΤΗΣΗ ΜΕ ΚΩΔΙΚΟ..."
+                    value={searchCode}
+                    onChange={val => setSearchCode(val.toUpperCase())}
+                    onKeyDown={(e) => e.key === 'Enter' && onSearchProduct()}
                     icon={<Search size={20} />}
                     className="py-4 rounded-2xl shadow-sm"
                   />
@@ -553,8 +551,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       <th className="px-8 py-5">Προϊόν</th>
                       <th className="px-8 py-5">Κωδικός</th>
                       <th className="px-8 py-5 text-right">Τιμή</th>
-                      <th className="px-8 py-5 text-center">Κατάσταση</th>
-                      <th className="px-8 py-5 text-right">Ενέργειες</th>
+                      <th className="px-8 py-5 text-center">Κιβ.</th>
+                      <th className="px-8 py-5 text-right">Κατάσταση</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gusto-slate-50">
@@ -570,7 +568,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               </div>
                               <div className="flex flex-col">
                                 {isEditing ? (
-                                  <input 
+                                  <input
                                     className="w-full px-4 py-2 bg-gusto-slate-50 border border-gusto-slate-200 rounded-lg font-bold text-gusto-slate-700 text-sm focus:bg-white focus:border-gusto-slate-900 outline-none transition-all uppercase"
                                     value={editForm.description}
                                     onChange={e => setEditForm({ ...editForm, description: e.target.value.toUpperCase() })}
@@ -578,7 +576,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 ) : (
                                   <span className="font-bold text-gusto-slate-800 uppercase leading-tight">{p.description || (p as any).Description}</span>
                                 )}
-                                
+
                               </div>
                             </div>
                           </td>
@@ -588,64 +586,78 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <td className="px-8 py-4 text-right">
                             {isEditing ? (
                               <div className="flex items-center justify-end gap-1">
-                                <input 
+                                <input
                                   type="number"
                                   step="0.01"
                                   className="w-24 px-3 py-2 bg-gusto-slate-50 border border-gusto-slate-200 rounded-lg font-bold text-gusto-slate-700 text-right focus:bg-white focus:border-gusto-slate-900 outline-none transition-all"
                                   value={editForm.price}
                                   onChange={e => setEditForm({ ...editForm, price: e.target.value })}
-                                 />
-                                 <span className="font-black">€</span>
-                               </div>
-                             ) : (
-                               <span className="font-black text-gusto-slate-900">{Number(p.price || (p as any).Price || 0).toFixed(2)}€</span>
-                             )}
-                           </td>
-                           <td className="px-8 py-4 text-center">
-                             {isEditing ? (
-                               <label className="flex items-center justify-center gap-2 cursor-pointer">
-                                 <input
-                                   type="checkbox"
-                                   checked={editForm.isActive}
-                                   onChange={e => setEditForm({ ...editForm, isActive: e.target.checked })}
-                                   className="w-4 h-4 rounded border-gusto-slate-300 text-gusto-green focus:ring-gusto-green"
-                                 />
-                                 <span className="text-[10px] font-bold text-gusto-slate-600 uppercase tracking-wider">Ενεργό</span>
-                               </label>
-                             ) : (
-                               <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${(p.is_active ?? p.IsActive ?? true) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                 {(p.is_active ?? p.IsActive ?? true) ? 'Ενεργό' : 'Εξαντλημένο'}
-                               </span>
-                             )}
-                           </td>
-                           <td className="px-8 py-4 text-right">
-                             <div className="flex justify-end gap-2">
-                                 {isEditing ? (
-                                 <>
-                                   <button onClick={() => onUpdateProduct(pCode)} className="w-9 h-9 bg-gusto-green/10 hover:bg-gusto-green/20 text-gusto-green rounded-lg transition-all flex items-center justify-center"><Check size={18} /></button>
-                                   <button onClick={() => setEditingProduct(null)} className="w-9 h-9 bg-gusto-slate-100 hover:bg-gusto-slate-200 text-gusto-slate-400 rounded-lg transition-all flex items-center justify-center"><X size={18} /></button>
-                                 </>
-                               ) : (
-                                 <>
-                                   <button onClick={() => {
-                                     setEditingProduct(pCode);
-                                     setEditForm({
-                                       description: p.description || (p as any).Description,
-                                       price: (() => {
-                                         const raw = p.price || (p as any).Price || 0;
-                                         const normalized = String(raw).replace(',', '.');
-                                         const num = Number(normalized);
-                                         return isNaN(num) ? '0.00' : num.toFixed(2);
-                                       })(),
-                                       imageUrl: p.imageUrl || (p as any).ImageUrl || '',
-                                       isActive: (p as any).is_active ?? (p as any).IsActive ?? true
-                                     });
-                                   }} className="w-9 h-9 bg-blue-50 hover:bg-blue-100 text-blue-500 rounded-lg transition-all flex items-center justify-center"><Pencil size={16} /></button>
-                                   <button onClick={() => onDeleteProduct(pCode)} className="w-9 h-9 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center"><Trash2 size={16} /></button>
-                                 </>
-                               )}
-                             </div>
-                           </td>
+                                />
+                                <span className="font-black">€</span>
+                              </div>
+                            ) : (
+                              <span className="font-black text-gusto-slate-900">{Number(p.price || (p as any).Price || 0).toFixed(2)}€</span>
+                            )}
+                          </td>
+                          <td className="px-8 py-4 text-center">
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                className="w-20 px-3 py-2 bg-gusto-slate-50 border border-gusto-slate-200 rounded-lg font-bold text-gusto-slate-700 text-center focus:bg-white focus:border-gusto-slate-900 outline-none transition-all"
+                                value={editForm.piecesPerBox}
+                                onChange={e => setEditForm({ ...editForm, piecesPerBox: Math.max(1, parseInt(e.target.value) || 1) })}
+                                min="1"
+                              />
+                            ) : (
+                              <span className="font-black text-gusto-slate-900">{((p.pieces_per_box ?? (p as any).PiecesPerBox ?? 1) <= 1 ? '-' : (p.pieces_per_box ?? (p as any).PiecesPerBox ?? 1))}</span>
+                            )}
+                          </td>
+                          <td className="px-8 py-4 text-center">
+                            {isEditing ? (
+                              <label className="flex items-center justify-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={editForm.isActive}
+                                  onChange={e => setEditForm({ ...editForm, isActive: e.target.checked })}
+                                  className="w-4 h-4 rounded border-gusto-slate-300 text-gusto-green focus:ring-gusto-green"
+                                />
+                                <span className="text-[10px] font-bold text-gusto-slate-600 uppercase tracking-wider">Ενεργό</span>
+                              </label>
+                            ) : (
+                              <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${(p.is_active ?? p.IsActive ?? true) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {(p.is_active ?? p.IsActive ?? true) ? 'Ενεργό' : 'Εξαντλημένο'}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-8 py-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              {isEditing ? (
+                                <>
+                                  <button onClick={() => onUpdateProduct(pCode)} className="w-9 h-9 bg-gusto-green/10 hover:bg-gusto-green/20 text-gusto-green rounded-lg transition-all flex items-center justify-center"><Check size={18} /></button>
+                                  <button onClick={() => setEditingProduct(null)} className="w-9 h-9 bg-gusto-slate-100 hover:bg-gusto-slate-200 text-gusto-slate-400 rounded-lg transition-all flex items-center justify-center"><X size={18} /></button>
+                                </>
+                              ) : (
+                                <>
+                                  <button onClick={() => {
+                                    setEditingProduct(pCode);
+                                    setEditForm({
+                                      description: p.description || (p as any).Description,
+                                      price: (() => {
+                                        const raw = p.price || (p as any).Price || 0;
+                                        const normalized = String(raw).replace(',', '.');
+                                        const num = Number(normalized);
+                                        return isNaN(num) ? '0.00' : num.toFixed(2);
+                                      })(),
+                                      imageUrl: p.imageUrl || (p as any).ImageUrl || '',
+                                      isActive: (p as any).is_active ?? (p as any).IsActive ?? true,
+                                      piecesPerBox: (p as any).pieces_per_box ?? (p as any).PiecesPerBox ?? 1
+                                    });
+                                  }} className="w-9 h-9 bg-blue-50 hover:bg-blue-100 text-blue-500 rounded-lg transition-all flex items-center justify-center"><Pencil size={16} /></button>
+                                  <button onClick={() => onDeleteProduct(pCode)} className="w-9 h-9 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all flex items-center justify-center"><Trash2 size={16} /></button>
+                                </>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}

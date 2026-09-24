@@ -48,7 +48,7 @@ export default function App() {
   const [newUserForm, setNewUserForm] = useState({ email: '', password: '', role: 'customer', fullName: '', customerId: '' });
   const [searchCode, setSearchCode] = useState('');
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ description: '', price: '', imageUrl: '', isActive: true });
+  const [editForm, setEditForm] = useState({ description: '', price: '', imageUrl: '', isActive: true, piecesPerBox: 1 });
   const [adminSearchResults, setAdminSearchResults] = useState<Product[]>([]);
   const [newBrandForm, setNewBrandForm] = useState({ name: '', logo: '' });
   const [newProductForm, setNewProductForm] = useState({ code: '', description: '', brand: '', price: '', imageUrl: '' });
@@ -918,28 +918,29 @@ export default function App() {
     });
   }, [setConfirmModal, setStatusModal, supabase, loadInitialData]);
 
-  const handleCreateProduct = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsAdminLoading(true);
-    try {
-      const { error } = await supabase.from('products').insert([{
-        Code: newProductForm.code.toUpperCase(),
-        Description: newProductForm.description.toUpperCase(),
-        Brand: newProductForm.brand,
-        Price: parseFloat(newProductForm.price),
-        ImageUrl: newProductForm.imageUrl || null,
-        IsActive: true
-      }]);
-      if (error) throw error;
-      setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Το προϊόν δημιουργήθηκε επιτυχώς.' });
-      setNewProductForm({ code: '', description: '', brand: '', price: '', imageUrl: '' });
-      await loadInitialData();
-    } catch (err: any) {
-      setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά τη δημιουργία προϊόντος.' });
-    } finally {
-      setIsAdminLoading(false);
-    }
-  }, [newProductForm, supabase, setIsAdminLoading, setStatusModal, setNewProductForm, loadInitialData]);
+   const handleCreateProduct = useCallback(async (e: React.FormEvent) => {
+     e.preventDefault();
+     setIsAdminLoading(true);
+     try {
+       const { error } = await supabase.from('products').insert([{
+         Code: newProductForm.code.toUpperCase(),
+         Description: newProductForm.description.toUpperCase(),
+         Brand: newProductForm.brand,
+         Price: parseFloat(newProductForm.price),
+         ImageUrl: newProductForm.imageUrl || null,
+         IsActive: true,
+         PiecesPerBox: 1
+       }]);
+       if (error) throw error;
+       setStatusModal({ show: true, type: 'success', title: 'Επιτυχία', message: 'Το προϊόν δημιουργήθηκε επιτυχώς.' });
+       setNewProductForm({ code: '', description: '', brand: '', price: '', imageUrl: '' });
+       await loadInitialData();
+     } catch (err: any) {
+       setStatusModal({ show: true, type: 'error', title: 'Αποτυχία', message: err.message || 'Σφάλμα κατά τη δημιουργία προϊόντος.' });
+     } finally {
+       setIsAdminLoading(false);
+     }
+   }, [newProductForm, supabase, setIsAdminLoading, setStatusModal, setNewProductForm, loadInitialData]);
 
   const handleSearchProduct = useCallback(async () => {
     if (!searchCode.trim()) return;
@@ -966,7 +967,8 @@ export default function App() {
         Code: code,
         Description: editForm.description.toUpperCase(),
         Price: parseFloat(editForm.price),
-        IsActive: editForm.isActive
+        IsActive: editForm.isActive,
+        PiecesPerBox: editForm.piecesPerBox
       };
 
       if (editForm.imageUrl) {
